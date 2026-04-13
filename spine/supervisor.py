@@ -44,7 +44,15 @@ class Supervisor:
             self.process.terminate()
 
     def request_restart(self, reason: str):
-        self.events.emit("spine.cortex_restart", {"reason": reason})
+        commit_sha = self._get_current_commit()
+        self.events.emit(
+            "spine.cortex_restart",
+            {
+                "reason": reason,
+                "commit_sha": commit_sha,
+                "consecutive_failures": self._consecutive_failures,
+            },
+        )
         self._restart_requested.set()
 
     async def _start_cortex(self):
@@ -93,7 +101,15 @@ class Supervisor:
                     return
 
     def _handle_cortex_exit(self, exit_code: int):
-        self.events.emit("spine.cortex_crash", {"exit_code": exit_code})
+        commit_sha = self._get_current_commit()
+        self.events.emit(
+            "spine.cortex_crash",
+            {
+                "exit_code": exit_code,
+                "commit_sha": commit_sha,
+                "consecutive_failures": self._consecutive_failures,
+            },
+        )
 
         if self.health.first_think_done:
             self._consecutive_failures = 0
@@ -102,7 +118,14 @@ class Supervisor:
             logger.info(
                 f"[Spine] Cortex startup failure (exit {exit_code}) — reverting last commit"
             )
-            self.events.emit("spine.startup_failure", {"exit_code": exit_code})
+            self.events.emit(
+                "spine.startup_failure",
+                {
+                    "exit_code": exit_code,
+                    "commit_sha": commit_sha,
+                    "consecutive_failures": self._consecutive_failures,
+                },
+            )
             self._consecutive_failures += 1
             self._revert_commit(1)
             self.stream.queue_system_notice(
@@ -121,6 +144,8 @@ class Supervisor:
                 "spine.system_override",
                 {
                     "message": "Maximum reversal depth reached. Abandoning approach.",
+                    "commit_sha": commit_sha,
+                    "consecutive_failures": self._consecutive_failures,
                 },
             )
 
@@ -144,3 +169,15 @@ class Supervisor:
             )
         except Exception as e:
             logger.error(f"[Spine] Failed to revert commits: {e}")
+
+    def _get_current_commit(self) -> str:
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=self.cfg.app_dir,
+                capture_output=True,
+                text=True,
+            )
+            return result.stdout.strip()[:8]
+        except Exception:
+            return "unknown"

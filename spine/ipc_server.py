@@ -92,6 +92,9 @@ class IPCServer:
             if method == "think":
                 think_req = self._parse_think(params)
                 result = await self.stream.think(think_req)
+                self.supervisor.health.record_event()
+                if not self.supervisor.health.first_think_done:
+                    self.supervisor.health.record_first_think()
                 return self._success_response(
                     req_id, self._think_response_to_dict(result)
                 )
