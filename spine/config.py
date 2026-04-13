@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -21,6 +22,7 @@ class SpineConfig:
     active_window: int = 5
     max_context_tokens: int = 71680
     gate_url: str = "http://gate:4000"
+    gate_model: str = "gemma4:31b-cloud"
     telegram_bot_token: str = ""
     telegram_chat_id: int = 0
     stall_timeout: float = 600.0
@@ -32,10 +34,12 @@ class SpineConfig:
 def load_config(path: str) -> SpineConfig:
     cfg = SpineConfig()
     config_file = Path(path)
-    if not config_file.exists():
-        return cfg
-    data = json.loads(config_file.read_text())
-    for key, value in data.items():
-        if hasattr(cfg, key):
-            setattr(cfg, key, value)
+    if config_file.exists():
+        data = json.loads(config_file.read_text())
+        for key, value in data.items():
+            if hasattr(cfg, key):
+                setattr(cfg, key, value)
+    env_model = os.environ.get("TALOS_MODEL")
+    if env_model:
+        cfg.gate_model = env_model
     return cfg

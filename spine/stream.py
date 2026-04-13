@@ -42,7 +42,7 @@ class StreamManager:
         messages = self._build_payload(req)
 
         api_req = {
-            "model": "talos",
+            "model": self.cfg.gate_model,
             "messages": self._messages_to_dicts(messages),
             "tools": [self._tool_def_to_dict(t) for t in req.tools],
         }
