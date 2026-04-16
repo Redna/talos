@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from aiohttp import web
 
 from spine.config import SpineConfig
@@ -24,6 +25,7 @@ class ControlPlane:
         self.app.router.add_get("/status", self._handle_status)
         self.app.router.add_get("/events", self._handle_events)
         self.app.router.add_get("/state", self._handle_state)
+        self.app.router.add_get("/commit", self._handle_commit)
         self.app.router.add_post("/message", self._handle_message)
         self.app.router.add_post("/command", self._handle_command)
         self.app.router.add_get("/health", self._handle_health)
@@ -43,13 +45,84 @@ class ControlPlane:
 
     async def _handle_events(self, request):
         tail = int(request.query.get("tail", "100"))
-        return web.json_response(
-            {"tail": tail, "note": "Event querying from JSONL files"}
-        )
+        from pathlib import Path
+
+        events = []
+        try:
+            events_dir = Path(self.cfg.spine_dir) / "events"
+            if events_dir.exists():
+                jsonl_files = sorted(events_dir.glob("*.jsonl"), reverse=True)
+                for f in jsonl_files:
+                    for line in reversed(f.read_text(encoding="utf-8").splitlines()):
+                        line = line.strip()
+                        if line:
+                            try:
+                                events.append(json.loads(line))
+                            except (json.JSONDecodeError, ValueError):
+                                pass
+                            if len(events) >= tail:
+                                break
+                    if len(events) >= tail:
+                        break
+        except Exception:
+            pass
+        return web.json_response(events)
 
     async def _handle_state(self, request):
         state = self.stream.get_state()
         return web.json_response(state)
+
+    async def _handle_commit(self, request):
+        from pathlib import Path
+        import subprocess
+
+        commit_info = {}
+        try:
+            candidate_path = Path(self.cfg.spine_dir) / "last_candidate_commit"
+            stable_path = Path(self.cfg.spine_dir) / "last_stable_commit"
+            if candidate_path.exists():
+                commit_info["candidate"] = candidate_path.read_text().strip()
+                try:
+                    result = subprocess.run(
+                        [
+                            "git",
+                            "-C",
+                            self.cfg.app_dir,
+                            "log",
+                            "-1",
+                            "--format=%s",
+                            commit_info["candidate"],
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    commit_info["candidate_msg"] = result.stdout.strip()
+                except Exception:
+                    pass
+            if stable_path.exists():
+                commit_info["stable"] = stable_path.read_text().strip()
+            if "candidate" in commit_info and "stable" in commit_info:
+                try:
+                    result = subprocess.run(
+                        [
+                            "git",
+                            "-C",
+                            self.cfg.app_dir,
+                            "rev-list",
+                            "--count",
+                            f"{commit_info['stable']}..{commit_info['candidate']}",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    commit_info["ahead"] = int(result.stdout.strip())
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return web.json_response(commit_info)
 
     async def _handle_message(self, request):
         data = await request.json()
@@ -69,4 +142,17 @@ class ControlPlane:
         return web.Response(status=400, text="unknown command")
 
     async def _handle_health(self, request):
-        return web.json_response({"status": "healthy"})
+        health = {"status": "healthy"}
+        if hasattr(self.supervisor, "health") and self.supervisor.health:
+            h = self.supervisor.health
+            if hasattr(h, "is_stalled") and h.is_stalled():
+                health["status"] = "stalled"
+            if (
+                hasattr(h, "first_think_done")
+                and not h.first_think_done
+                and h.cortex_start_time > 0
+            ):
+                health["status"] = "starting"
+        if hasattr(self.supervisor, "_consecutive_failures"):
+            health["consecutive_failures"] = self.supervisor._consecutive_failures
+        return web.json_response(health)

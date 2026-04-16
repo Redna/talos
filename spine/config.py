@@ -19,6 +19,7 @@ class SpineConfig:
     socket_path: str = "/tmp/spine.sock"
     control_plane_port: int = 4001
     context_threshold: float = 0.85
+    max_messages: int = 200
     active_window: int = 5
     max_context_tokens: int = 71680
     gate_url: str = "http://gate:4000"

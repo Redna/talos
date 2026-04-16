@@ -42,8 +42,11 @@ class ServerRunner:
     def start(self):
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
-        for _ in range(50):
+        # Wait for socket to be created and server to be listening
+        for _ in range(100):
             if Path(self.server.cfg.socket_path).exists():
+                # Give it a tiny bit more time to actually accept connections
+                time.sleep(0.1)
                 return
             time.sleep(0.05)
         raise RuntimeError("Server socket not created in time")
@@ -83,10 +86,6 @@ def _rpc(socket_path: str, method: str, params: dict) -> dict:
 @pytest.fixture
 def running_server(tmp_path):
     server, stream, sup, events, cfg = make_env(tmp_path)
-    for method_name, return_value in [
-        ("_send_to_gate", None),
-    ]:
-        pass
     runner = ServerRunner(server)
     runner.start()
     yield server, stream, cfg, runner

@@ -47,7 +47,10 @@ class StreamManager:
             "tools": [self._tool_def_to_dict(t) for t in req.tools],
         }
 
-        if self.context_pct > self.cfg.context_threshold:
+        if (
+            self.context_pct > self.cfg.context_threshold
+            or len(self.messages) > self.cfg.max_messages
+        ):
             fold_messages, fold_tools = self._enforce_fold(messages, req.tools)
             api_req["messages"] = self._messages_to_dicts(fold_messages)
             api_req["tools"] = [self._tool_def_to_dict(t) for t in fold_tools]

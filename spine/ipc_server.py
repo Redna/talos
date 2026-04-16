@@ -49,6 +49,7 @@ class IPCServer:
             self._handle_conn,
             path=str(socket_path),
         )
+        socket_path.chmod(0o666)
         logger.info(f"[Spine] IPC server listening on {self.cfg.socket_path}")
 
     async def stop(self):
@@ -133,14 +134,25 @@ class IPCServer:
     def _parse_think(self, params: dict) -> ThinkRequest:
         from spine.ipc_types import HUDData, ToolDef
 
-        tools = [
-            ToolDef(
-                name=t["name"],
-                description=t.get("description", ""),
-                parameters=t.get("parameters", {}),
-            )
-            for t in params.get("tools", [])
-        ]
+        tools = []
+        for t in params.get("tools", []):
+            if "function" in t:
+                func = t["function"]
+                tools.append(
+                    ToolDef(
+                        name=func["name"],
+                        description=func.get("description", ""),
+                        parameters=func.get("parameters", {}),
+                    )
+                )
+            else:
+                tools.append(
+                    ToolDef(
+                        name=t["name"],
+                        description=t.get("description", ""),
+                        parameters=t.get("parameters", {}),
+                    )
+                )
         hud = params.get("hud_data", {})
         return ThinkRequest(
             focus=params.get("focus", ""),
