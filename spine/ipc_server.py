@@ -49,6 +49,7 @@ class IPCServer:
             self._handle_conn,
             path=str(socket_path),
         )
+        socket_path.chmod(0o666)
         logger.info(f"[Spine] IPC server listening on {self.cfg.socket_path}")
 
     async def stop(self):

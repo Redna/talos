@@ -225,21 +225,32 @@ class Supervisor:
     def _revert_commit(self, depth: int):
         app_dir = self.cfg.app_dir
         try:
-            result = subprocess.run(
+            # 1. Revert the code
+            subprocess.run(
                 ["git", "reset", "--hard", f"HEAD~{depth}"],
                 cwd=app_dir,
                 capture_output=True,
+                check=True,
             )
-            if result.returncode != 0:
-                logger.error(f"[Spine] git reset failed: {result.stderr.decode()}")
-                return
             subprocess.run(
-                ["git", "clean", "-fd"],
-                cwd=app_dir,
-                capture_output=True,
+                ["git", "clean", "-fd"], cwd=app_dir, capture_output=True, check=True
             )
+
+            # 2. Restore the memory state to synchronize with the code revert
+            # This prevents "Zombie Crash Loops" where old code meets new/corrupt state.
+            if self.snapshots.restore(self.cfg.memory_dir):
+                logger.info(
+                    f"[Spine] Memory state synchronized with code revert (depth={depth})"
+                )
+            else:
+                logger.warning(
+                    "[Spine] Code reverted, but no valid memory snapshot found to restore"
+                )
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"[Spine] Git revert failed: {e}")
         except Exception as e:
-            logger.error(f"[Spine] Failed to revert commits: {e}")
+            logger.error(f"[Spine] Failed to revert commits/state: {e}")
 
     def _restore_pristine_spine(self):
         pristine = Path("/spine_pristine")

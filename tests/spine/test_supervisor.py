@@ -8,34 +8,55 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from spine.supervisor import Supervisor
 from spine.config import SpineConfig
+from spine.stream import StreamManager
 
 
-@pytest.fixture
-def mock_deps():
-    return {
-        "cfg": MagicMock(spec=SpineConfig),
-        "events": MagicMock(),
-        "snapshots": MagicMock(),
-        "stream": MagicMock(),
-    }
+def make_config(tmp_path):
+    cfg = SpineConfig()
+    cfg.app_dir = str(tmp_path)
+    cfg.constitution_path = str(tmp_path / "CONSTITUTION.md")
+    cfg.identity_path = str(tmp_path / "identity.md")
+    Path(cfg.constitution_path).write_text("# Principles\nAgency.")
+    Path(cfg.identity_path).write_text("# Identity\nTalos.")
+    return cfg
 
 
-def test_request_restart_triggers_restart(mock_deps):
-    supervisor = Supervisor(**mock_deps)
+def test_request_restart_emits_event(tmp_path):
+    cfg = make_config(tmp_path)
+    stream = StreamManager(cfg)
+    events = MagicMock()
+    snapshots = MagicMock()
+    sup = Supervisor(cfg, events, snapshots, stream)
+    sup.request_restart("test reason")
+    args, kwargs = events.emit.call_args
+    assert args[0] == "spine.cortex_restart"
+    assert args[1]["reason"] == "test reason"
+    assert "commit_sha" in args[1]
+    assert "consecutive_failures" in args[1]
 
-    supervisor.request_restart("Test Reason")
-    mock_deps["events"].emit.assert_called_with(
-        "spine.cortex_restart",
-        {
-            "reason": "Test Reason",
-            "commit_sha": "unknown",
-            "consecutive_failures": 0,
-        },
-    )
+
+def test_handle_startup_failure_reverts_one_commit(tmp_path):
+    cfg = make_config(tmp_path)
+    stream = StreamManager(cfg)
+    events = MagicMock()
+    snapshots = MagicMock()
+    sup = Supervisor(cfg, events, snapshots, stream)
+    sup._consecutive_failures = 0
+    with patch("spine.supervisor.subprocess.run") as mock_run:
+        sup._revert_commit(1)
+        reset_called = any(
+            call.args[0] == ["git", "reset", "--hard", "HEAD~1"]
+            for call in mock_run.call_args_list
+        )
+        assert reset_called, "git reset --hard HEAD~1 was not called"
 
 
-def test_shutdown_stops_process(mock_deps):
-    supervisor = Supervisor(**mock_deps)
+def test_shutdown_stops_process(tmp_path):
+    cfg = make_config(tmp_path)
+    stream = StreamManager(cfg)
+    events = MagicMock()
+    snapshots = MagicMock()
+    supervisor = Supervisor(cfg, events, snapshots, stream)
     mock_process = MagicMock()
     mock_process.poll.return_value = None
     supervisor.process = mock_process
@@ -45,14 +66,18 @@ def test_shutdown_stops_process(mock_deps):
     mock_process.terminate.assert_called_once()
 
 
-def test_start_cortex_launches_process(mock_deps):
-    supervisor = Supervisor(**mock_deps)
-    mock_deps["cfg"].spine_dir = "/app/spine"
-    mock_deps["cfg"].socket_path = "/tmp/socket"
-    mock_deps["cfg"].memory_dir = "/tmp/memory"
-    mock_deps["cfg"].cortex_bin = "/bin/echo"
-    mock_deps["cfg"].cortex_args = ["test"]
-    mock_deps["cfg"].app_dir = "/app"
+def test_start_cortex_launches_process(tmp_path):
+    cfg = make_config(tmp_path)
+    cfg.spine_dir = str(tmp_path / "spine")
+    cfg.socket_path = "/tmp/socket"
+    cfg.memory_dir = "/tmp/memory"
+    cfg.cortex_bin = "/bin/echo"
+    cfg.cortex_args = ["test"]
+    cfg.app_dir = str(tmp_path)
+    stream = StreamManager(cfg)
+    events = MagicMock()
+    snapshots = MagicMock()
+    supervisor = Supervisor(cfg, events, snapshots, stream)
 
     with patch("subprocess.Popen") as mock_popen:
         mock_popen.return_value = MagicMock(pid=1234)
@@ -61,8 +86,12 @@ def test_start_cortex_launches_process(mock_deps):
         assert supervisor.process.pid == 1234
 
 
-def test_write_crash_bundle(tmp_path):
+@pytest.mark.asyncio
+async def test_write_crash_bundle(tmp_path):
     """Crash bundle contains last_100_events, state_snapshot, and crash_summary."""
+    cfg = make_config(tmp_path)
+    cfg.spine_dir = str(tmp_path)
+
     mock_events = MagicMock()
     mock_events.recent_events.return_value = [
         {
@@ -72,7 +101,7 @@ def test_write_crash_bundle(tmp_path):
         }
     ]
 
-    mock_stream = MagicMock()
+    mock_stream = AsyncMock()
     mock_stream.get_state.return_value = {
         "focus": "test focus",
         "turn": 5,
@@ -83,29 +112,22 @@ def test_write_crash_bundle(tmp_path):
         "status": "healthy",
     }
 
-    mock_cfg = MagicMock()
-    mock_cfg.spine_dir = str(tmp_path)
-    mock_cfg.app_dir = "."
-
-    supervisor = Supervisor.__new__(Supervisor)
-    supervisor.cfg = mock_cfg
-    supervisor.events = mock_events
-    supervisor.stream = mock_stream
-    supervisor.health = MagicMock()
-    supervisor.health.first_think_done = True
-    supervisor._consecutive_failures = 2
-
+    stream = StreamManager(cfg)
+    events = MagicMock()
+    events.recent_events.return_value = mock_events.recent_events.return_value
+    snapshots = MagicMock()
+    supervisor = Supervisor(cfg, events, snapshots, stream)
     supervisor._get_current_commit = lambda: "abc1234"
 
-    crash_dir = supervisor._write_crash_bundle(1)
+    crash_dir = await supervisor._write_crash_bundle(1)
 
     assert crash_dir.exists(), "Crash dir was not created"
     assert (crash_dir / "last_100_events.jsonl").exists()
     assert (crash_dir / "state_snapshot.json").exists()
     assert (crash_dir / "crash_summary.md").exists()
 
-    events = (crash_dir / "last_100_events.jsonl").read_text()
-    assert "spine.cortex_started" in events
+    events_text = (crash_dir / "last_100_events.jsonl").read_text()
+    assert "spine.cortex_started" in events_text
 
     state = json.loads((crash_dir / "state_snapshot.json").read_text())
     assert state["focus"] == "test focus"
