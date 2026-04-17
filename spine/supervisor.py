@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import subprocess
+from datetime import datetime
 from pathlib import Path
 
 from spine.config import SpineConfig
@@ -117,7 +119,51 @@ class Supervisor:
                     )
                     return
 
+    def _write_crash_bundle(self, exit_code: int) -> Path:
+        """Write crash forensics bundle to /spine/crashes/{timestamp}/."""
+        crash_dir = (
+            Path(self.cfg.spine_dir)
+            / "crashes"
+            / datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        )
+        crash_dir.mkdir(parents=True, exist_ok=True)
+
+        recent = self.events.recent_events(100)
+        (crash_dir / "last_100_events.jsonl").write_text(
+            "\n".join(json.dumps(e) for e in recent)
+        )
+
+        state = self.stream.get_state()
+        (crash_dir / "state_snapshot.json").write_text(
+            json.dumps(state, indent=2, default=str)
+        )
+
+        commit_sha = self._get_current_commit()
+        summary = f"""# Crash Forensics Summary
+
+**Timestamp:** {datetime.now().isoformat()}
+**Exit Code:** {exit_code}
+**Commit:** {commit_sha}
+**Consecutive Failures:** {self._consecutive_failures}
+**First Think Done:** {self.health.first_think_done}
+**Last Focus:** {state.get("focus", "unknown")}
+**Turn:** {state.get("turn", 0)}
+**Context %:** {state.get("context_pct", 0.0):.1%}
+**Tokens Used:** {state.get("tokens_used", 0):,}
+
+## Recent Events (last 5)
+
+"""
+        for event in recent[-5:]:
+            summary += f"- {event.get('type')} @ {event.get('ts')}: {json.dumps(event.get('payload', {}))}\n"
+
+        (crash_dir / "crash_summary.md").write_text(summary)
+        logger.info(f"[Spine] Crash bundle written: {crash_dir}")
+        return crash_dir
+
     def _handle_cortex_exit(self, exit_code: int):
+        crash_dir = self._write_crash_bundle(exit_code)
+        self.events.emit("spine.crash_bundle_written", {"path": str(crash_dir)})
         commit_sha = self._get_current_commit()
         self.events.emit(
             "spine.cortex_crash",
