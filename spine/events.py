@@ -38,7 +38,7 @@ class EventLogger:
         """Read the last n events from the event log, newest last."""
         events_dir = Path(self.events_dir)
         all_events = []
-        for jsonl_file in sorted(events_dir.glob("*.jsonl"), reverse=True):
+        for jsonl_file in sorted(events_dir.glob("*.jsonl")):
             try:
                 for line in jsonl_file.read_text().splitlines():
                     if not line.strip():
