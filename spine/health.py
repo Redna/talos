@@ -28,6 +28,8 @@ class HealthMonitor:
         return time.time() - self.last_event_time > self.stall_timeout
 
     def is_startup_failure(self, exit_code: int) -> bool:
+        if exit_code == 0:
+            return False
         if self.first_think_done:
             return False
         return time.time() - self.cortex_start_time < self.startup_timeout

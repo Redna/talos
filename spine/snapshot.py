@@ -12,7 +12,7 @@ class SnapshotManager:
         self.interval = interval
 
     def should_snapshot(self, turn_count: int) -> bool:
-        return turn_count % self.interval == 0
+        return turn_count > 0 and turn_count % self.interval == 0
 
     def save(self, snapshot: dict) -> None:
         snapshot["timestamp"] = datetime.now(timezone.utc).isoformat()

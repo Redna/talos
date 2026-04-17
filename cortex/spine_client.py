@@ -1,6 +1,7 @@
 """
 Spine IPC Client — Unix domain socket JSON-RPC client for Cortex ↔ Spine communication.
 """
+
 import json
 import socket
 from typing import Any, Optional
@@ -24,6 +25,7 @@ class SpineClient:
         }
 
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(30)
         sock.connect(self.socket_path)
         try:
             sock.sendall((json.dumps(request) + "\n").encode("utf-8"))
@@ -36,6 +38,8 @@ class SpineClient:
                 if b"\n" in response_data:
                     break
             response = json.loads(response_data.decode("utf-8").strip())
+        except (socket.timeout, json.JSONDecodeError) as e:
+            raise SpineError(-32000, f"Communication error: {e}")
         finally:
             sock.close()
 
@@ -45,19 +49,25 @@ class SpineClient:
 
     def think(self, focus: str, tools: list[dict], hud_data: dict) -> dict:
         """Call the LLM with current stream and tool definitions."""
-        return self._send_request("think", {
-            "focus": focus,
-            "tools": tools,
-            "hud_data": hud_data,
-        })
+        return self._send_request(
+            "think",
+            {
+                "focus": focus,
+                "tools": tools,
+                "hud_data": hud_data,
+            },
+        )
 
     def tool_result(self, tool_call_id: str, output: str, success: bool) -> dict:
         """Return tool execution result to the Spine."""
-        return self._send_request("tool_result", {
-            "tool_call_id": tool_call_id,
-            "output": output,
-            "success": success,
-        })
+        return self._send_request(
+            "tool_result",
+            {
+                "tool_call_id": tool_call_id,
+                "output": output,
+                "success": success,
+            },
+        )
 
     def request_fold(self, synthesis: str) -> dict:
         """Request a context fold with a synthesis."""
@@ -73,7 +83,9 @@ class SpineClient:
 
     def emit_event(self, event_type: str, payload: dict) -> dict:
         """Log a custom event."""
-        return self._send_request("emit_event", {"type": event_type, "payload": payload})
+        return self._send_request(
+            "emit_event", {"type": event_type, "payload": payload}
+        )
 
     def get_state(self, keys: list[str]) -> dict:
         """Query the Spine's authoritative view of agent state."""
@@ -82,6 +94,7 @@ class SpineClient:
 
 class SpineError(Exception):
     """Error returned by the Spine."""
+
     def __init__(self, code: int, message: str):
         self.code = code
         self.message = message

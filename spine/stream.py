@@ -5,7 +5,11 @@ import aiohttp
 from typing import Any
 from dataclasses import dataclass, field
 
+import logging
+
 from spine.config import SpineConfig
+
+logger = logging.getLogger("spine.stream")
 from spine.constitution import ConstitutionManager
 from spine.ipc_types import ToolDef, HUDData, ThinkResponse, ToolCallResult
 
@@ -23,10 +27,13 @@ class StreamManager:
     def __init__(self, cfg: SpineConfig):
         self.cfg = cfg
         self.messages: list[Message] = []
+        self._init_message: Message | None = None
         self.turn: int = 0
         self.tokens_used: int = 0
         self.context_pct: float = 0.0
         self.queued_notices: list[str] = []
+        self._no_tool_call_retries: int = 0
+        self._focus: str = ""
         self.state: dict[str, Any] = {}
         self.constitution_mgr = ConstitutionManager(
             cfg.constitution_path, cfg.identity_path
@@ -39,12 +46,15 @@ class StreamManager:
         if changed:
             self.state["constitution_reloaded"] = True
 
+        self._focus = req.focus
+
         messages = self._build_payload(req)
 
         api_req = {
             "model": self.cfg.gate_model,
             "messages": self._messages_to_dicts(messages),
             "tools": [self._tool_def_to_dict(t) for t in req.tools],
+            "tool_choice": "required",
         }
 
         if self.context_pct > self.cfg.context_threshold:
@@ -91,6 +101,85 @@ class StreamManager:
             )
         )
 
+        if not tool_calls:
+            self.messages.pop()
+            self._no_tool_call_retries += 1
+
+            if (
+                self.context_pct > self.cfg.context_threshold
+                and self._no_tool_call_retries >= 1
+            ):
+                logger.warning(
+                    "[Spine] LLM ignored fold_context — requesting text-based synthesis"
+                )
+                self._no_tool_call_retries = 0
+                synthesis = await self._request_fold_synthesis(req)
+                if synthesis:
+                    self.apply_fold(synthesis)
+                    return ThinkResponse(
+                        assistant_message=f"[FOLD SYNTHESIZED] {synthesis[:200]}",
+                        tool_calls=[],
+                        context_pct=0.1,
+                        turn=self.turn,
+                        tokens_used=self.tokens_used,
+                        folded=True,
+                    )
+                else:
+                    self.queued_notices.append(
+                        "[SYSTEM | Failed to produce fold synthesis. Retrying.]"
+                    )
+                    return await self.think(req)
+
+            if self._no_tool_call_retries > 3:
+                logger.error(
+                    "[Spine] LLM returned no tool calls 3 times in a row — forcing reflect"
+                )
+                synthetic_id = f"call_forced_{self.turn}"
+                self.messages.append(
+                    Message(
+                        role="assistant",
+                        content="",
+                        tool_calls=[
+                            {
+                                "id": synthetic_id,
+                                "type": "function",
+                                "function": {
+                                    "name": "reflect",
+                                    "arguments": '{"status": "forced idle"}',
+                                },
+                            }
+                        ],
+                    )
+                )
+                self.messages.append(
+                    Message(
+                        role="tool",
+                        content="[SYSTEM | No tool call produced after 3 attempts. Forced reflect.]",
+                        tool_call_id=synthetic_id,
+                    )
+                )
+                self._no_tool_call_retries = 0
+                return ThinkResponse(
+                    assistant_message="",
+                    tool_calls=[
+                        ToolCallResult(
+                            id=synthetic_id,
+                            name="reflect",
+                            arguments={"status": "forced idle"},
+                        )
+                    ],
+                    context_pct=self.context_pct,
+                    turn=self.turn,
+                    tokens_used=self.tokens_used,
+                    folded=False,
+                )
+            self.queued_notices.append(
+                "[SYSTEM | You MUST call a tool. Your last response had no tool call. Always call at least one tool.]"
+            )
+            return await self.think(req)
+
+        self._no_tool_call_retries = 0
+
         self.turn += 1
         self.tokens_used = resp.get("usage", {}).get("total_tokens", 0)
         self.context_pct = resp.get("usage", {}).get("context_pct", 0.0)
@@ -108,11 +197,14 @@ class StreamManager:
                     raise RuntimeError(f"Gate returned status {resp.status}")
                 return await resp.json()
 
+    def _genesis_prompt(self) -> str:
+        identity = self.constitution_mgr.identity
+        return f"{identity}\n\nBegin your evolution. Act with agency."
+
     def _build_payload(self, req: ThinkRequest) -> list[Message]:
         system_msg = Message(
             role="system", content=self.constitution_mgr.system_prompt()
         )
-        shed_messages = self._apply_shedding(self.messages)
 
         hud_str = self._format_hud(
             req.hud_data,
@@ -121,13 +213,36 @@ class StreamManager:
             self.tokens_used,
             self.queued_notices,
         )
+        should_show_hud = (
+            bool(self.queued_notices)
+            or self.turn % 10 == 0
+            or self.context_pct > 0.5
+            or self.turn == 1
+        )
         self.queued_notices = []
 
-        focus_msg = Message(role="user", content=req.focus)
-        messages = [system_msg] + shed_messages + [focus_msg]
+        if not self.messages:
+            if self._init_message is None:
+                self._init_message = Message(
+                    role="user", content=self._genesis_prompt()
+                )
+            return [system_msg, self._init_message]
 
-        if messages and hud_str:
-            messages[-1].content += "\n" + hud_str
+        messages = [system_msg] + list(self._apply_shedding(self.messages))
+
+        focus_parts = []
+        if should_show_hud:
+            focus_parts.append(req.focus)
+            if hud_str:
+                focus_parts.append(hud_str)
+        last = messages[-1]
+        messages[-1] = Message(
+            role=last.role,
+            content=last.content + "\n\n" + "\n\n".join(focus_parts),
+            tool_calls=last.tool_calls,
+            tool_call_id=last.tool_call_id,
+            name=last.name,
+        )
 
         return messages
 
@@ -183,6 +298,42 @@ class StreamManager:
                     tool_call_id=msg.tool_call_id,
                 )
         return msg
+
+    async def _request_fold_synthesis(self, req: ThinkRequest) -> str:
+        fold_prompt = (
+            "Your context window is nearly full. You MUST produce a DELTA-pattern synthesis of everything above.\n"
+            "Format: State Delta (what changed), Negative Knowledge (what didn't work), Handoff (next steps).\n"
+            "Write the synthesis as plain text. Be thorough — this replaces your entire conversation history."
+        )
+        messages = self._messages_to_dicts(self._build_payload(req))
+        messages.append({"role": "user", "content": fold_prompt})
+
+        api_req = {
+            "model": self.cfg.gate_model,
+            "messages": messages,
+        }
+        try:
+            resp = await self._send_to_gate(api_req)
+            if resp.get("choices"):
+                content = resp["choices"][0]["message"].get("content", "")
+                if len(content) > 100:
+                    return content
+        except Exception as e:
+            logger.error(f"[Spine] Fold synthesis request failed: {e}")
+        return ""
+
+    def _auto_synthesize(self) -> str:
+        recent = self.messages[-6:] if len(self.messages) >= 6 else list(self.messages)
+        parts = []
+        for m in recent:
+            if m.role == "assistant" and m.content:
+                parts.append(f"Assistant: {m.content[:200]}")
+            elif m.role == "tool" and m.content:
+                parts.append(f"Tool: {m.content[:150]}")
+        summary = (
+            "; ".join(parts) if parts else "Context window pressure — forced fold."
+        )
+        return f"Auto-fold: {summary[:800]}"
 
     def _format_hud(
         self,
@@ -256,6 +407,7 @@ class StreamManager:
             self.messages[1],
             Message(role="assistant", content=synthesis),
         ]
+        self._init_message = None
         self.turn += 1
         self.context_pct = 0.1
 
@@ -266,6 +418,8 @@ class StreamManager:
             "tokens_used": self.tokens_used,
             "message_count": len(self.messages),
             "queued_notices": len(self.queued_notices),
+            "model": self.cfg.gate_model,
+            "focus": getattr(self, "_focus", "no focus"),
         }
         if keys:
             result = {}

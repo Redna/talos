@@ -54,6 +54,14 @@ class ConstitutionManager:
         except Exception as e:
             return True, e
 
+    @property
+    def identity(self) -> str:
+        self._lock.acquire()
+        try:
+            return self._identity
+        finally:
+            self._lock.release()
+
     def system_prompt(self) -> str:
         self._lock.acquire()
         try:

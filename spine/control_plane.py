@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from aiohttp import web
 
 from spine.config import SpineConfig
@@ -27,12 +30,13 @@ class ControlPlane:
         self.app.router.add_post("/message", self._handle_message)
         self.app.router.add_post("/command", self._handle_command)
         self.app.router.add_get("/health", self._handle_health)
+        self.app.router.add_get("/commit", self._handle_commit)
 
     async def start(self):
-        runner = web.AppRunner(self.app)
-        await runner.setup()
-        site = web.TCPSite(runner, "0.0.0.0", self.cfg.control_plane_port)
-        await site.start()
+        self._runner = web.AppRunner(self.app)
+        await self._runner.setup()
+        self._site = web.TCPSite(self._runner, "0.0.0.0", self.cfg.control_plane_port)
+        await self._site.start()
 
     async def stop(self):
         await self.app.shutdown()
@@ -43,9 +47,15 @@ class ControlPlane:
 
     async def _handle_events(self, request):
         tail = int(request.query.get("tail", "100"))
-        return web.json_response(
-            {"tail": tail, "note": "Event querying from JSONL files"}
-        )
+        events_dir = Path(self.events.events_dir)
+        all_events = []
+        for jsonl_file in sorted(events_dir.glob("*.jsonl"), reverse=True):
+            for line in jsonl_file.read_text().splitlines():
+                try:
+                    all_events.append(json.loads(line))
+                except (json.JSONDecodeError, ValueError):
+                    pass
+        return web.json_response(all_events[-tail:])
 
     async def _handle_state(self, request):
         state = self.stream.get_state()
@@ -70,3 +80,13 @@ class ControlPlane:
 
     async def _handle_health(self, request):
         return web.json_response({"status": "healthy"})
+
+    async def _handle_commit(self, request):
+        candidate_file = Path(self.cfg.spine_dir) / "last_candidate_commit"
+        if not candidate_file.exists():
+            return web.json_response({})
+        try:
+            commit_hash = candidate_file.read_text().strip()
+            return web.json_response({"candidate": commit_hash})
+        except Exception:
+            return web.json_response({})

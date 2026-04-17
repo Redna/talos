@@ -9,6 +9,7 @@ Main entry point. Runs the ReAct loop:
   5. Return tool results
   6. Repeat
 """
+
 import os
 import sys
 import json
@@ -93,10 +94,13 @@ def main():
                 tool_args = tc.get("arguments", {})
 
                 # Emit event for observability
-                client.emit_event("cortex.tool_call", {
-                    "tool": tool_name,
-                    "args_summary": json.dumps(tool_args)[:200],
-                })
+                client.emit_event(
+                    "cortex.tool_call",
+                    {
+                        "tool": tool_name,
+                        "args_summary": json.dumps(tool_args)[:200],
+                    },
+                )
 
                 # Execute the tool
                 start_time = time.time()
@@ -104,16 +108,19 @@ def main():
                 duration_ms = int((time.time() - start_time) * 1000)
 
                 # Return result to Spine
-                success = not result.startswith("[ERROR]")
+                success = not result.startswith(("[ERROR]", "[REJECTED]", "[EXIT"))
                 client.tool_result(tc["id"], result, success)
 
                 # Emit result event
-                client.emit_event("cortex.tool_result", {
-                    "tool": tool_name,
-                    "success": success,
-                    "duration_ms": duration_ms,
-                    "output_chars": len(result),
-                })
+                client.emit_event(
+                    "cortex.tool_result",
+                    {
+                        "tool": tool_name,
+                        "success": success,
+                        "duration_ms": duration_ms,
+                        "output_chars": len(result),
+                    },
+                )
 
                 # Check for restart signal
                 if tool_name == "request_restart":
@@ -128,10 +135,11 @@ def main():
             print("[Cortex] Interrupted. Exiting gracefully.")
             sys.exit(0)
         except Exception as e:
-            print(f"[Cortex] Fatal error: {e}")
+            print(f"[Cortex] Loop error: {e}")
             state.error_streak += 1
             state.save()
-            sys.exit(1)
+            time.sleep(1)
+            continue
 
 
 if __name__ == "__main__":

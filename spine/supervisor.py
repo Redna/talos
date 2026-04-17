@@ -37,6 +37,19 @@ class Supervisor:
         while self._running:
             await self._start_cortex()
             await self._watch_cortex()
+            if self._consecutive_failures > 0 and self._running:
+                backoff = min(5 * self._consecutive_failures, 60)
+                logger.info(
+                    f"[Spine] Backing off {backoff}s before restart (consecutive failures: {self._consecutive_failures})"
+                )
+                self.events.emit(
+                    "spine.restart_backoff",
+                    {
+                        "backoff_seconds": backoff,
+                        "consecutive_failures": self._consecutive_failures,
+                    },
+                )
+                await asyncio.sleep(backoff)
 
     def stop(self):
         self._running = False
@@ -56,6 +69,8 @@ class Supervisor:
         self._restart_requested.set()
 
     async def _start_cortex(self):
+        self._restart_requested.clear()
+        self._restore_pristine_spine()
         env = dict(os.environ)
         env["SPINE_SOCKET"] = self.cfg.socket_path
         env["MEMORY_DIR"] = self.cfg.memory_dir
@@ -90,14 +105,16 @@ class Supervisor:
                 await asyncio.wait_for(self._restart_requested.wait(), timeout=30.0)
                 logger.info("[Spine] Restart requested")
                 self.process.terminate()
-                self.process.wait()
+                await asyncio.get_event_loop().run_in_executor(None, self.process.wait)
                 return
             except asyncio.TimeoutError:
                 if self.health.is_stalled():
                     logger.info("[Spine] Cortex stall detected")
                     self.events.emit("spine.stall_detected", {})
                     self.process.terminate()
-                    self.process.wait()
+                    await asyncio.get_event_loop().run_in_executor(
+                        None, self.process.wait
+                    )
                     return
 
     def _handle_cortex_exit(self, exit_code: int):
@@ -113,6 +130,11 @@ class Supervisor:
 
         if self.health.first_think_done:
             self._consecutive_failures = 0
+            self.stream.queue_system_notice(
+                f"[SYSTEM | Cortex exited after successful operation (exit code {exit_code}). "
+                f"No revert applied.]"
+            )
+            return
 
         if self.health.is_startup_failure(exit_code):
             logger.info(
@@ -157,11 +179,14 @@ class Supervisor:
     def _revert_commit(self, depth: int):
         app_dir = self.cfg.app_dir
         try:
-            subprocess.run(
+            result = subprocess.run(
                 ["git", "reset", "--hard", f"HEAD~{depth}"],
                 cwd=app_dir,
                 capture_output=True,
             )
+            if result.returncode != 0:
+                logger.error(f"[Spine] git reset failed: {result.stderr.decode()}")
+                return
             subprocess.run(
                 ["git", "clean", "-fd"],
                 cwd=app_dir,
@@ -169,6 +194,20 @@ class Supervisor:
             )
         except Exception as e:
             logger.error(f"[Spine] Failed to revert commits: {e}")
+
+    def _restore_pristine_spine(self):
+        pristine = Path("/spine_pristine")
+        target = Path(self.cfg.app_dir) / "spine"
+        if pristine.is_dir() and target.is_dir():
+            try:
+                subprocess.run(
+                    ["cp", "-a", str(pristine) + "/.", str(target)],
+                    check=True,
+                    capture_output=True,
+                )
+                logger.info("[Spine] Restored pristine spine files")
+            except Exception as e:
+                logger.error(f"[Spine] Failed to restore pristine spine: {e}")
 
     def _get_current_commit(self) -> str:
         try:

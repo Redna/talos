@@ -14,7 +14,7 @@ class SpineConfig:
     identity_path: str = "/app/identity.md"
     app_dir: str = "/app"
     cortex_bin: str = "/venv/bin/python"
-    cortex_args: list[str] = field(default_factory=lambda: ["seed_agent.py"])
+    cortex_args: list[str] = field(default_factory=lambda: ["/app/cortex/seed_agent.py"])
     startup_timeout: float = 30.0
     socket_path: str = "/tmp/spine.sock"
     control_plane_port: int = 4001

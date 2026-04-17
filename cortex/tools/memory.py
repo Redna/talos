@@ -1,4 +1,5 @@
-"""Memory tools — store, recall, search."""
+"""Memory tools — store, recall, search, and synthesize."""
+
 from tool_registry import ToolRegistry
 from memory_store import MemoryStore
 
@@ -15,7 +16,7 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
                 "value": {"type": "string", "description": "Value to store"},
             },
             "required": ["key", "value"],
-        }
+        },
     )
     def store_fact(key: str, value: str) -> str:
         return memory.store(key, value)
@@ -28,7 +29,7 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
                 "key": {"type": "string", "description": "Key to look up"},
             },
             "required": ["key"],
-        }
+        },
     )
     def recall_fact(key: str) -> str:
         return memory.recall(key)
@@ -38,7 +39,7 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
         parameters={
             "type": "object",
             "properties": {},
-        }
+        },
     )
     def list_memory_keys() -> str:
         keys = memory.list_keys()
@@ -52,7 +53,7 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
                 "query": {"type": "string", "description": "Search query"},
             },
             "required": ["query"],
-        }
+        },
     )
     def search_memory(query: str) -> str:
         results = []
@@ -61,5 +62,58 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
             if query.lower() in key.lower() or query.lower() in value.lower():
                 results.append(f"{key}: {value[:100]}")
         if results:
-            return f"[SEARCH RESULTS] Found {len(results)} matches:\n" + "\n".join(results)
+            return f"[SEARCH RESULTS] Found {len(results)} matches:\n" + "\n".join(
+                results
+            )
         return f"[NOT FOUND] No memories matching '{query}'"
+
+    @registry.tool(
+        description="Forget a specific memory key to free up space.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "key": {"type": "string", "description": "Key to delete"},
+            },
+            "required": ["key"],
+        },
+    )
+    def forget_memory(key: str) -> str:
+        result = memory.forget(key)
+        if result.startswith("[FORGOTTEN]"):
+            return f"[FORGOT] Memory '{key}' has been deleted."
+        return result
+
+    @registry.tool(
+        description="Consolidate multiple memory keys into one. Deletes the source keys after merging their values into the target key.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "target_key": {
+                    "type": "string",
+                    "description": "Key to store the merged result",
+                },
+                "source_keys": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Keys to merge into target (will be deleted after merge)",
+                },
+                "merged_value": {
+                    "type": "string",
+                    "description": "The consolidated value to store in target_key",
+                },
+            },
+            "required": ["target_key", "source_keys", "merged_value"],
+        },
+    )
+    def consolidate_memory(
+        target_key: str, source_keys: list[str], merged_value: str
+    ) -> str:
+        memory.store(target_key, merged_value)
+        deleted = []
+        for key in source_keys:
+            if key == target_key:
+                continue
+            result = memory.forget(key)
+            if result.startswith("[FORGOTTEN]"):
+                deleted.append(key)
+        return f"[CONSOLIDATED] Merged {len(source_keys)} keys into '{target_key}'. Deleted: {', '.join(deleted)}"

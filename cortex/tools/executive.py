@@ -1,4 +1,5 @@
 """Executive Control tools — focus, fold, reflect."""
+
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
@@ -11,10 +12,13 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         parameters={
             "type": "object",
             "properties": {
-                "objective": {"type": "string", "description": "The objective to focus on"},
+                "objective": {
+                    "type": "string",
+                    "description": "The objective to focus on",
+                },
             },
             "required": ["objective"],
-        }
+        },
     )
     def set_focus(objective: str) -> str:
         old = state.set_focus(objective)
@@ -26,14 +30,19 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         parameters={
             "type": "object",
             "properties": {
-                "synthesis": {"type": "string", "description": "Summary of what was accomplished"},
+                "synthesis": {
+                    "type": "string",
+                    "description": "Summary of what was accomplished",
+                },
             },
             "required": ["synthesis"],
-        }
+        },
     )
     def resolve_focus(synthesis: str) -> str:
         old = state.resolve_focus(synthesis)
-        client.emit_event("cortex.focus_resolved", {"focus": old, "synthesis": synthesis})
+        client.emit_event(
+            "cortex.focus_resolved", {"focus": old, "synthesis": synthesis}
+        )
         return f"[FOCUS RESOLVED] {old}: {synthesis}"
 
     @registry.tool(
@@ -41,10 +50,13 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         parameters={
             "type": "object",
             "properties": {
-                "synthesis": {"type": "string", "description": "DELTA pattern synthesis of current context"},
+                "synthesis": {
+                    "type": "string",
+                    "description": "DELTA pattern synthesis of current context",
+                },
             },
             "required": ["synthesis"],
-        }
+        },
     )
     def fold_context(synthesis: str) -> str:
         client.request_fold(synthesis)
@@ -55,15 +67,32 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         parameters={
             "type": "object",
             "properties": {
-                "status": {"type": "string", "description": "Current status reflection"},
-                "sleep_duration": {"type": "integer", "description": "Seconds to pause (1-120)"},
+                "status": {
+                    "type": "string",
+                    "description": "Current status reflection",
+                },
+                "sleep_duration": {
+                    "type": "integer",
+                    "description": "Seconds to pause (1-120)",
+                },
             },
             "required": ["status"],
-        }
+        },
     )
     def reflect(status: str, sleep_duration: int = 0) -> str:
-        import time
-        client.emit_event("cortex.reflect", {"status": status, "sleep_duration": sleep_duration})
+        client.emit_event(
+            "cortex.reflect", {"status": status, "sleep_duration": sleep_duration}
+        )
         if sleep_duration > 0:
-            time.sleep(min(sleep_duration, 120))
+            import time
+            from pathlib import Path
+            import os
+
+            wake_path = Path(os.environ.get("SPINE_DIR", "/spine")) / ".wake"
+            deadline = time.time() + min(sleep_duration, 120)
+            while time.time() < deadline:
+                if wake_path.exists():
+                    wake_path.unlink(missing_ok=True)
+                    break
+                time.sleep(0.5)
         return f"[REFLECT] {status}"

@@ -13,6 +13,7 @@ from spine.stream import StreamManager
 from spine.supervisor import Supervisor
 from spine.ipc_server import IPCServer
 from spine.control_plane import ControlPlane
+from spine.telegram import TelegramPoller
 
 logging.basicConfig(level=logging.INFO, format="[Spine] %(message)s")
 logger = logging.getLogger("spine")
@@ -40,8 +41,16 @@ async def main():
     control_plane = ControlPlane(cfg, supervisor, stream_mgr, event_logger)
     ipc_server = IPCServer(cfg, supervisor, stream_mgr, event_logger)
 
+    def on_telegram_message(text: str):
+        stream_mgr.queue_system_notice(f"[TELEGRAM | {text}]")
+        wake_path = Path(cfg.spine_dir) / ".wake"
+        wake_path.touch()
+
+    telegram_poller = TelegramPoller(cfg, on_telegram_message)
+
     await ipc_server.start()
     await control_plane.start()
+    await telegram_poller.start()
 
     loop = asyncio.get_event_loop()
     stop_event = asyncio.Event()
@@ -61,6 +70,7 @@ async def main():
     supervisor.stop()
     await ipc_server.stop()
     await control_plane.stop()
+    await telegram_poller.stop()
     event_logger.close()
     logger.info("[Spine] Stopped.")
 

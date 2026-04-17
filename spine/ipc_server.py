@@ -82,6 +82,7 @@ class IPCServer:
             pass
         finally:
             writer.close()
+            await writer.wait_closed()
 
     async def _handle_request(self, raw: dict) -> dict:
         req_id = raw.get("id", 0)
@@ -95,6 +96,8 @@ class IPCServer:
                 self.supervisor.health.record_event()
                 if not self.supervisor.health.first_think_done:
                     self.supervisor.health.record_first_think()
+                if self.supervisor.snapshots.should_snapshot(self.stream.turn):
+                    self.supervisor.snapshots.save(self.stream.get_state())
                 return self._success_response(
                     req_id, self._think_response_to_dict(result)
                 )
@@ -133,14 +136,25 @@ class IPCServer:
     def _parse_think(self, params: dict) -> ThinkRequest:
         from spine.ipc_types import HUDData, ToolDef
 
-        tools = [
-            ToolDef(
-                name=t["name"],
-                description=t.get("description", ""),
-                parameters=t.get("parameters", {}),
-            )
-            for t in params.get("tools", [])
-        ]
+        tools = []
+        for t in params.get("tools", []):
+            if "function" in t:
+                func = t["function"]
+                tools.append(
+                    ToolDef(
+                        name=func["name"],
+                        description=func.get("description", ""),
+                        parameters=func.get("parameters", {}),
+                    )
+                )
+            else:
+                tools.append(
+                    ToolDef(
+                        name=t["name"],
+                        description=t.get("description", ""),
+                        parameters=t.get("parameters", {}),
+                    )
+                )
         hud = params.get("hud_data", {})
         return ThinkRequest(
             focus=params.get("focus", ""),
