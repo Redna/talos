@@ -126,7 +126,7 @@ class IPCServer:
                 self.events.emit(params.get("type", ""), params.get("payload", {}))
                 return self._success_response(req_id, "ok")
             elif method == "get_state":
-                state = self.stream.get_state(params.get("keys"))
+                state = await self.stream.get_state(params.get("keys"))
                 return self._success_response(req_id, state)
             else:
                 return self._error_response(req_id, -32601, "Method not found")

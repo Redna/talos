@@ -421,7 +421,7 @@ class StreamManager:
         self.turn += 1
         self.context_pct = 0.1
 
-    def get_state(self, keys: list[str] | None = None) -> dict[str, Any]:
+    async def get_state(self, keys: list[str] | None = None) -> dict[str, Any]:
         authoritative = {
             "context_pct": self.context_pct,
             "turn": self.turn,
@@ -430,6 +430,7 @@ class StreamManager:
             "queued_notices": len(self.queued_notices),
             "model": self.cfg.gate_model,
             "focus": getattr(self, "_focus", "no focus"),
+            "is_paused": await self.is_paused(),
         }
         if keys:
             result = {}
