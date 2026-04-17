@@ -6,6 +6,8 @@ import urllib.parse
 import urllib.request
 import json
 
+from pathlib import Path
+
 from spine.config import SpineConfig
 
 logger = logging.getLogger("spine.telegram")
@@ -69,6 +71,10 @@ class TelegramPoller:
             logger.info(f"[Telegram] Auto-detected chat_id={chat_id}")
         logger.info(f"[Telegram] Inbound message: {text[:100]}")
         self.on_message(text)
+        paused_file = Path("/spine/.paused")
+        if paused_file.exists():
+            paused_file.unlink()
+            Path("/spine/.wake").touch()
 
     def _fetch_updates(self):
         url = (
