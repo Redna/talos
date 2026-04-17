@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+from pathlib import Path
 import aiohttp
 from typing import Any
 from dataclasses import dataclass, field
@@ -38,6 +40,13 @@ class StreamManager:
         self.constitution_mgr = ConstitutionManager(
             cfg.constitution_path, cfg.identity_path
         )
+
+    async def is_paused(self) -> bool:
+        return Path("/spine/.paused").exists()
+
+    async def _wait_while_paused(self):
+        while await self.is_paused():
+            await asyncio.sleep(0.5)
 
     async def think(self, req: ThinkRequest) -> ThinkResponse:
         changed, err = self.constitution_mgr.reload_if_changed()
@@ -187,6 +196,7 @@ class StreamManager:
         return think_resp
 
     async def _send_to_gate(self, req: dict) -> dict:
+        await self._wait_while_paused()
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.cfg.gate_url}/v1/chat/completions",
