@@ -73,7 +73,20 @@ class ControlPlane:
         if command == "force_restart":
             self.supervisor.request_restart("operator_command")
             return web.Response(status=200)
-        elif command in ("pause", "resume", "force_fold"):
+        elif command == "pause":
+            Path("/spine/.paused").touch()
+            self.stream.queue_system_notice(
+                "[SYSTEM | Paused — waiting for resume or Telegram]"
+            )
+            return web.Response(status=200)
+
+        elif command == "resume":
+            if Path("/spine/.paused").exists():
+                Path("/spine/.paused").unlink()
+                Path("/spine/.wake").touch()
+            return web.Response(status=200)
+
+        elif command == "force_fold":
             self.stream.queue_system_notice(f"[SYSTEM | Command: {command}]")
             return web.Response(status=200)
         return web.Response(status=400, text="unknown command")
