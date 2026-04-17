@@ -42,23 +42,11 @@ class ControlPlane:
         await self.app.shutdown()
 
     async def _handle_status(self, request):
-        state = self.stream.get_state()
+        state = await self.stream.get_state()
         return web.json_response(state)
 
-    async def _handle_events(self, request):
-        tail = int(request.query.get("tail", "100"))
-        events_dir = Path(self.events.events_dir)
-        all_events = []
-        for jsonl_file in sorted(events_dir.glob("*.jsonl"), reverse=True):
-            for line in jsonl_file.read_text().splitlines():
-                try:
-                    all_events.append(json.loads(line))
-                except (json.JSONDecodeError, ValueError):
-                    pass
-        return web.json_response(all_events[-tail:])
-
     async def _handle_state(self, request):
-        state = self.stream.get_state()
+        state = await self.stream.get_state()
         return web.json_response(state)
 
     async def _handle_message(self, request):

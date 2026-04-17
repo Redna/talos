@@ -100,7 +100,7 @@ class Supervisor:
         while self._running:
             retcode = self.process.poll()
             if retcode is not None:
-                self._handle_cortex_exit(retcode)
+                await self._handle_cortex_exit(retcode)
                 return
 
             try:
@@ -119,7 +119,7 @@ class Supervisor:
                     )
                     return
 
-    def _write_crash_bundle(self, exit_code: int) -> Path:
+    async def _write_crash_bundle(self, exit_code: int) -> Path:
         """Write crash forensics bundle to /spine/crashes/{timestamp}/."""
         crash_dir = (
             Path(self.cfg.spine_dir)
@@ -133,7 +133,7 @@ class Supervisor:
             "\n".join(json.dumps(e) for e in recent)
         )
 
-        state = self.stream.get_state()
+        state = await self.stream.get_state()
         (crash_dir / "state_snapshot.json").write_text(
             json.dumps(state, indent=2, default=str)
         )
@@ -161,8 +161,8 @@ class Supervisor:
         logger.info(f"[Spine] Crash bundle written: {crash_dir}")
         return crash_dir
 
-    def _handle_cortex_exit(self, exit_code: int):
-        crash_dir = self._write_crash_bundle(exit_code)
+    async def _handle_cortex_exit(self, exit_code: int):
+        crash_dir = await self._write_crash_bundle(exit_code)
         self.events.emit("spine.crash_bundle_written", {"path": str(crash_dir)})
         commit_sha = self._get_current_commit()
         self.events.emit(
