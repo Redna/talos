@@ -33,3 +33,20 @@ class EventLogger:
             self._file.close()
             self._file = None
             self._current_date = ""
+
+    def recent_events(self, n: int = 100) -> list[dict]:
+        """Read the last n events from the event log, newest last."""
+        events_dir = Path(self.events_dir)
+        all_events = []
+        for jsonl_file in sorted(events_dir.glob("*.jsonl"), reverse=True):
+            try:
+                for line in jsonl_file.read_text().splitlines():
+                    if not line.strip():
+                        continue
+                    try:
+                        all_events.append(json.loads(line))
+                    except (json.JSONDecodeError, ValueError):
+                        pass
+            except FileNotFoundError:
+                continue
+        return all_events[-n:]
