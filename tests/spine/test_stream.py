@@ -1,8 +1,12 @@
 from pathlib import Path
 
+import asyncio
+
+import pytest
+
 from spine.stream import StreamManager, Message
 from spine.config import SpineConfig
-from spine.ipc_types import HUDData, ToolDef
+from spine.ipc_types import HUDData, ToolDef, ThinkRequest
 
 
 def make_config(tmp_path):
@@ -114,7 +118,7 @@ def test_get_state(tmp_path):
     sm.turn = 5
     sm.tokens_used = 1000
     sm.context_pct = 0.5
-    state = sm.get_state()
+    state = asyncio.get_event_loop().run_until_complete(sm.get_state())
     assert state["turn"] == 5
     assert state["tokens_used"] == 1000
     assert state["context_pct"] == 0.5
@@ -125,7 +129,9 @@ def test_get_state_with_keys(tmp_path):
     sm = StreamManager(cfg)
     sm.turn = 5
     sm.set_state("custom_key", "custom_val")
-    state = sm.get_state(["turn", "custom_key"])
+    state = asyncio.get_event_loop().run_until_complete(
+        sm.get_state(["turn", "custom_key"])
+    )
     assert state["turn"] == 5
     assert state["custom_key"] == "custom_val"
 
@@ -135,3 +141,132 @@ def test_queue_system_notice(tmp_path):
     sm = StreamManager(cfg)
     sm.queue_system_notice("test notice")
     assert sm.queued_notices == ["test notice"]
+
+
+def test_hud_appended_to_tool_message(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm.messages = [
+        Message(role="user", content="init"),
+        Message(
+            role="assistant",
+            content="thinking",
+            tool_calls=[
+                {
+                    "id": "c1",
+                    "type": "function",
+                    "function": {"name": "reflect", "arguments": "{}"},
+                }
+            ],
+        ),
+        Message(role="tool", content="reflected", tool_call_id="c1"),
+    ]
+    sm.turn = 5
+    sm.queue_system_notice("[TELEGRAM | hello]")
+    req = ThinkRequest(
+        focus="stay on task",
+        tools=[],
+        hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
+    )
+    payload = sm._build_payload(req)
+    tool_msgs = [m for m in payload if m.role == "tool"]
+    assert len(tool_msgs) == 1
+    assert "[TELEGRAM | hello]" in tool_msgs[0].content
+    assistant_msgs = [m for m in payload if m.role == "assistant"]
+    assert not any("[TELEGRAM | hello]" in m.content for m in assistant_msgs)
+
+
+def test_notices_survive_if_not_displayed(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm.messages = [
+        Message(role="user", content="init"),
+        Message(
+            role="assistant",
+            content="thinking",
+            tool_calls=[
+                {
+                    "id": "c1",
+                    "type": "function",
+                    "function": {"name": "reflect", "arguments": "{}"},
+                }
+            ],
+        ),
+        Message(role="tool", content="reflected", tool_call_id="c1"),
+    ]
+    sm.turn = 7
+    sm.queue_system_notice("[TELEGRAM | urgent]")
+    req = ThinkRequest(
+        focus="stay on task",
+        tools=[],
+        hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
+    )
+    payload = sm._build_payload(req)
+    assert sm.queued_notices == []
+
+
+def test_notices_preserved_when_hud_not_shown(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm.messages = [
+        Message(role="user", content="init"),
+        Message(role="tool", content="result", tool_call_id="c1"),
+    ]
+    sm.turn = 3
+    sm.queue_system_notice("[TELEGRAM | delayed]")
+    req = ThinkRequest(
+        focus="stay on task",
+        tools=[],
+        hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
+    )
+    payload = sm._build_payload(req)
+    assert "[TELEGRAM | delayed]" in payload[-1].content
+    assert sm._pending_notices == []
+    assert sm.queued_notices == []
+
+
+def test_pending_notices_promoted_on_next_cycle(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm.messages = [
+        Message(role="user", content="init"),
+        Message(role="tool", content="result", tool_call_id="c1"),
+    ]
+    sm.turn = 3
+    sm.queue_system_notice("[TELEGRAM | hello]")
+    req = ThinkRequest(
+        focus="stay on task",
+        tools=[],
+        hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
+    )
+    payload = sm._build_payload(req)
+    assert "[TELEGRAM | hello]" in payload[-1].content
+    assert sm.queued_notices == []
+    assert sm._pending_notices == []
+    sm.queue_system_notice("[TELEGRAM | world]")
+    payload2 = sm._build_payload(req)
+    assert "[TELEGRAM | world]" in payload2[-1].content
+
+
+def test_notices_survive_into_pending_when_hud_not_shown(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm.messages = [
+        Message(role="user", content="init"),
+        Message(role="tool", content="result", tool_call_id="c1"),
+    ]
+    sm.queue_system_notice("[TELEGRAM | urgent]")
+    sm._pending_notices = ["[TELEGRAM | earlier]"]
+    sm.turn = 5
+    sm.context_pct = 0.1
+    payload = sm._build_payload(
+        ThinkRequest(
+            focus="stay on task",
+            tools=[],
+            hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
+        )
+    )
+    assert sm._pending_notices == []
+    assert sm.queued_notices == []
+    assert "[TELEGRAM | earlier]" in payload[-1].content
+    assert "[TELEGRAM | urgent]" in payload[-1].content

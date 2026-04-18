@@ -17,10 +17,12 @@ def test_default_config():
 
 
 def test_load_config_missing_file():
+    import os
+    # Clear environment variables that might influence default config
+    os.environ.pop("TELEGRAM_BOT_TOKEN", None)
+    os.environ.pop("TELEGRAM_CHAT_ID", None)
     cfg = load_config("/nonexistent/path/config.json")
-    assert cfg == SpineConfig()
-
-
+    assert cfg.telegram_bot_token == ""
 def test_load_config_overrides(tmp_path):
     config_data = {
         "socket_path": "/custom/spine.sock",

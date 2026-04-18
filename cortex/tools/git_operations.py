@@ -87,26 +87,63 @@ def register_git_tools(registry: ToolRegistry, client: SpineClient):
             },
         },
     )
+    @registry.tool(
+        description="Push commits to the remote repository.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "remote": {
+                    "type": "string",
+                    "description": "Remote name (default: origin)",
+                },
+                "branch": {
+                    "type": "string",
+                    "description": "Branch name (default: current)",
+                },
+            },
+        },
+    )
     def git_push(remote: str = "origin", branch: str = "") -> str:
         client.emit_event("cortex.git_push", {"remote": remote, "branch": branch})
-        result = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True
-        )
-        current = result.stdout.strip()
-        err = _check_branch_allowed(current)
-        if err:
-            return err
+        import os
+        env = os.environ.copy()
+        env["GIT_DIR"] = "/runtime_git"
+        env["GIT_WORK_TREE"] = "/app"
+
         try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], 
+                capture_output=True, text=True, env=env, timeout=30
+            )
+            current = result.stdout.strip()
+            err = _check_branch_allowed(current)
+            if err:
+                return err
+            
             cmd = ["git", "push", remote]
             if branch:
                 cmd.append(branch)
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=60, env=env
+            )
             if result.returncode != 0:
                 return f"[ERROR] Push failed: {result.stderr}"
             return f"[PUSHED] {result.stdout.strip()}"
         except Exception as e:
             return f"[ERROR] Push failed: {e}"
-
+    @registry.tool(
+        description="Show the current git diff (staged or unstaged).",
+        parameters={
+            "type": "object",
+            "properties": {
+                "staged": {
+                    "type": "boolean",
+                    "description": "Show staged changes (default: true)",
+                },
+            },
+        },
+    )
     @registry.tool(
         description="Show the current git diff (staged or unstaged).",
         parameters={
@@ -121,11 +158,17 @@ def register_git_tools(registry: ToolRegistry, client: SpineClient):
     )
     def git_diff(staged: bool = True) -> str:
         client.emit_event("cortex.git_diff", {"staged": staged})
+        import os
+        env = os.environ.copy()
+        env["GIT_DIR"] = "/runtime_git"
+        env["GIT_WORK_TREE"] = "/app"
         try:
             cmd = ["git", "diff"]
             if staged:
                 cmd.append("--staged")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30, env=env
+            )
             if not result.stdout.strip():
                 return "[NO CHANGES] Nothing to show."
             # Truncate if too long

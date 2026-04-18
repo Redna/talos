@@ -14,7 +14,9 @@ class SpineConfig:
     identity_path: str = "/app/identity.md"
     app_dir: str = "/app"
     cortex_bin: str = "/venv/bin/python"
-    cortex_args: list[str] = field(default_factory=lambda: ["/app/cortex/seed_agent.py"])
+    cortex_args: list[str] = field(
+        default_factory=lambda: ["/app/cortex/seed_agent.py"]
+    )
     startup_timeout: float = 30.0
     socket_path: str = "/tmp/spine.sock"
     control_plane_port: int = 4001
@@ -43,4 +45,13 @@ def load_config(path: str) -> SpineConfig:
     env_model = os.environ.get("TALOS_MODEL")
     if env_model:
         cfg.gate_model = env_model
+    env_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if env_token:
+        cfg.telegram_bot_token = env_token
+    env_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    if env_chat_id:
+        try:
+            cfg.telegram_chat_id = int(env_chat_id)
+        except ValueError:
+            pass
     return cfg

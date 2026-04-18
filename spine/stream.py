@@ -34,6 +34,7 @@ class StreamManager:
         self.tokens_used: int = 0
         self.context_pct: float = 0.0
         self.queued_notices: list[str] = []
+        self._pending_notices: list[str] = []
         self._no_tool_call_retries: int = 0
         self._focus: str = ""
         self.state: dict[str, Any] = {}
@@ -219,20 +220,18 @@ class StreamManager:
             role="system", content=self.constitution_mgr.system_prompt()
         )
 
-        hud_str = self._format_hud(
-            req.hud_data,
-            self.context_pct,
-            self.turn,
-            self.tokens_used,
-            self.queued_notices,
-        )
+        all_notices = list(self._pending_notices) + list(self.queued_notices)
         should_show_hud = (
-            bool(self.queued_notices)
+            bool(all_notices)
             or self.turn % 10 == 0
             or self.context_pct > 0.5
             or self.turn == 1
         )
-        self.queued_notices = []
+        if should_show_hud:
+            self._pending_notices = []
+            self.queued_notices = []
+        else:
+            self._pending_notices = list(all_notices)
 
         if not self.messages:
             if self._init_message is None:
@@ -243,18 +242,40 @@ class StreamManager:
 
         messages = [system_msg] + list(self._apply_shedding(self.messages))
 
+        if not should_show_hud:
+            return messages
+
         focus_parts = []
-        if should_show_hud:
-            focus_parts.append(req.focus)
-            if hud_str:
-                focus_parts.append(hud_str)
-        last = messages[-1]
-        messages[-1] = Message(
-            role=last.role,
-            content=last.content + "\n\n" + "\n\n".join(focus_parts),
-            tool_calls=last.tool_calls,
-            tool_call_id=last.tool_call_id,
-            name=last.name,
+        focus_parts.append(req.focus)
+        hud_str = self._format_hud(
+            req.hud_data,
+            self.context_pct,
+            self.turn,
+            self.tokens_used,
+            all_notices,
+        )
+        focus_parts.append(hud_str)
+
+        target_idx = None
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].role == "tool":
+                target_idx = i
+                break
+        if target_idx is None:
+            for i in range(len(messages) - 1, -1, -1):
+                if messages[i].role == "user":
+                    target_idx = i
+                    break
+        if target_idx is None:
+            target_idx = len(messages) - 1
+
+        target = messages[target_idx]
+        messages[target_idx] = Message(
+            role=target.role,
+            content=target.content + "\n\n" + "\n\n".join(focus_parts),
+            tool_calls=target.tool_calls,
+            tool_call_id=target.tool_call_id,
+            name=target.name,
         )
 
         return messages
@@ -431,6 +452,7 @@ class StreamManager:
             "tokens_used": self.tokens_used,
             "message_count": len(self.messages),
             "queued_notices": len(self.queued_notices),
+            "pending_notices": len(self._pending_notices),
             "model": self.cfg.gate_model,
             "focus": getattr(self, "_focus", "no focus"),
             "is_paused": await self.is_paused(),
