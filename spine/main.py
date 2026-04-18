@@ -42,6 +42,7 @@ async def main():
     ipc_server = IPCServer(cfg, supervisor, stream_mgr, event_logger)
 
     def on_telegram_message(text: str):
+        logger.info(f"[Spine] Telegram notice queued: [TELEGRAM | {text}]")
         stream_mgr.queue_system_notice(f"[TELEGRAM | {text}]")
         wake_path = Path(cfg.spine_dir) / ".wake"
         wake_path.touch()

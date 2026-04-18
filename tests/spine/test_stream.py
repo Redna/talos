@@ -171,7 +171,10 @@ def test_hud_appended_to_tool_message(tmp_path):
     payload = sm._build_payload(req)
     tool_msgs = [m for m in payload if m.role == "tool"]
     assert len(tool_msgs) == 1
-    assert "[TELEGRAM | hello]" in tool_msgs[0].content
+    assert (
+        "[TELEGRAM | hello]" in tool_msgs[0].content
+        or "Telegram: hello" in tool_msgs[0].content
+    )
     assistant_msgs = [m for m in payload if m.role == "assistant"]
     assert not any("[TELEGRAM | hello]" in m.content for m in assistant_msgs)
 
@@ -220,7 +223,7 @@ def test_notices_preserved_when_hud_not_shown(tmp_path):
         hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
     )
     payload = sm._build_payload(req)
-    assert "[TELEGRAM | delayed]" in payload[-1].content
+    assert "Telegram: delayed" in payload[-1].content
     assert sm._pending_notices == []
     assert sm.queued_notices == []
 
@@ -240,12 +243,12 @@ def test_pending_notices_promoted_on_next_cycle(tmp_path):
         hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
     )
     payload = sm._build_payload(req)
-    assert "[TELEGRAM | hello]" in payload[-1].content
+    assert "Telegram: hello" in payload[-1].content
     assert sm.queued_notices == []
     assert sm._pending_notices == []
     sm.queue_system_notice("[TELEGRAM | world]")
     payload2 = sm._build_payload(req)
-    assert "[TELEGRAM | world]" in payload2[-1].content
+    assert "Telegram: world" in payload2[-1].content
 
 
 def test_notices_survive_into_pending_when_hud_not_shown(tmp_path):
@@ -268,5 +271,5 @@ def test_notices_survive_into_pending_when_hud_not_shown(tmp_path):
     )
     assert sm._pending_notices == []
     assert sm.queued_notices == []
-    assert "[TELEGRAM | earlier]" in payload[-1].content
-    assert "[TELEGRAM | urgent]" in payload[-1].content
+    assert "Telegram: earlier" in payload[-1].content
+    assert "Telegram: urgent" in payload[-1].content

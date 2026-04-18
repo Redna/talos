@@ -227,6 +227,10 @@ class StreamManager:
             or self.context_pct > 0.5
             or self.turn == 1
         )
+        if all_notices:
+            logger.info(
+                f"[Spine] HUD delivering {len(all_notices)} notices: {all_notices}"
+            )
         if should_show_hud:
             self._pending_notices = []
             self.queued_notices = []
@@ -270,9 +274,14 @@ class StreamManager:
             target_idx = len(messages) - 1
 
         target = messages[target_idx]
+        focus_text = "\n\n".join(focus_parts)
+        final_content = target.content + "\n\n" + focus_text
+        if all_notices:
+            logger.info(f"[Spine] HUD piggyback on {target.role} idx={target_idx}")
+            logger.info(f"[Spine] FOCUS_APPENDED={focus_text.replace(chr(10), '\\n')}")
         messages[target_idx] = Message(
             role=target.role,
-            content=target.content + "\n\n" + "\n\n".join(focus_parts),
+            content=final_content,
             tool_calls=target.tool_calls,
             tool_call_id=target.tool_call_id,
             name=target.name,
@@ -392,7 +401,13 @@ class StreamManager:
 
         parts = [main_hud]
         for notice in queued_notices:
-            parts.append(f"[SYSTEM | {notice} | Urgency: {hud_data.urgency}]")
+            if notice.startswith("[TELEGRAM | "):
+                text = notice[len("[TELEGRAM | ") : -1]
+                parts.append(
+                    f"\n[CREATOR MESSAGE — respond via send_message | Telegram: {text} | Urgency: critical]"
+                )
+            else:
+                parts.append(f"[SYSTEM | {notice} | Urgency: {hud_data.urgency}]")
 
         return " ".join(parts)
 

@@ -117,26 +117,3 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
             if result.startswith("[FORGOTTEN]"):
                 deleted.append(key)
         return f"[CONSOLIDATED] Merged {len(source_keys)} keys into '{target_key}'. Deleted: {', '.join(deleted)}"
-
-    @registry.tool(
-        description="Perform an autonomous review of memory health. Returns a list of keys and their content for the agent to synthesize.",
-        parameters={
-            "type": "object",
-            "properties": {},
-        },
-    )
-    def review_memory_health() -> str:
-        keys = memory.list_keys()
-        if not keys:
-            return "[REVIEW] Memory is empty. Nothing to synthesize."
-        
-        report = ["[MEMORY HEALTH REVIEW]"]
-        report.append(f"Total Slots Used: {len(keys)}/{memory.max_slots}")
-        report.append("\n--- Current Memory Index ---")
-        
-        for key in keys:
-            value = memory.recall(key)
-            report.append(f"Key: {key}\nValue: {value}\n---")
-            
-        report.append("\n[ANALYSIS] Review the above entries for redundancy, stale information, or patterns that can be merged into higher-order principles (P9).")
-        return "\n".join(report)

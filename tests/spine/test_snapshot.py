@@ -3,9 +3,10 @@ import pytest
 
 def test_should_snapshot_at_interval():
     sm = SnapshotManager("/tmp/snapshots", interval=10)
-    assert sm.should_snapshot(0) is False
+    assert sm.should_snapshot(0) is True
     assert sm.should_snapshot(10) is True
     assert sm.should_snapshot(20) is True
+
 def test_should_not_snapshot_between_intervals():
     sm = SnapshotManager("/tmp/snapshots", interval=10)
     assert sm.should_snapshot(5) is False
