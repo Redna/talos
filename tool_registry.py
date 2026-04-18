@@ -10,9 +10,21 @@ class ToolMetadata(BaseModel):
     parameters_schema: Dict[str, Any]
     func: Callable
 
+import json
+import asyncio
+from typing import Callable, Any, Dict, List, Optional, Union
+from pydantic import BaseModel, create_model, ValidationError
+
+class ToolMetadata(BaseModel):
+    """Metadata for a registered tool."""
+    name: str
+    description: str
+    parameters_schema: Dict[str, Any]
+    func: Callable
+
 class ToolRegistry:
     """
-    Advanced Tool Registry with Pydantic validation.
+    Advanced Tool Registry with Pydantic validation and Async support.
     Transforms raw tool calls into validated Python calls.
     """
 
@@ -55,9 +67,10 @@ class ToolRegistry:
             for meta in self._tools.values()
         ]
 
-    def execute(self, name: str, args: Dict[str, Any]) -> str:
+    async def execute(self, name: str, args: Dict[str, Any]) -> str:
         """
-        Executes a tool with dynamic Pydantic validation based on its schema.
+        Executes a tool with dynamic Pydantic validation.
+        Supports both synchronous and asynchronous tool functions.
         """
         if name not in self._tools:
             return f"[ERROR] Unknown tool: {name}"
@@ -66,11 +79,9 @@ class ToolRegistry:
         
         try:
             # Create a dynamic Pydantic model based on the JSON schema properties
-            # This ensures that we validate types before calling the function.
             properties = meta.parameters_schema.get("properties", {})
             required = meta.parameters_schema.get("required", [])
             
-            # Map JSON types to Python types for the dynamic model
             type_map = {
                 "string": str,
                 "integer": int,
@@ -83,20 +94,20 @@ class ToolRegistry:
             fields = {}
             for prop_name, prop_info in properties.items():
                 py_type = type_map.get(prop_info.get("type"), Any)
-                # Mark as required or optional
                 if prop_name not in required:
                     fields[prop_name] = (Optional[py_type], None)
                 else:
                     fields[prop_name] = (py_type, ...)
 
-            # Generate the validator model
             ValidatorModel = create_model(f"{name}_Validator", **fields)
-            
-            # Validate the input args
             validated_data = ValidatorModel(**args).model_dump()
             
-            # Call the actual tool function
-            result = meta.func(**validated_data)
+            # Handle async vs sync tool functions
+            if asyncio.iscoroutinefunction(meta.func):
+                result = await meta.func(**validated_data)
+            else:
+                result = meta.func(**validated_data)
+                
             return str(result)
 
         except ValidationError as e:
