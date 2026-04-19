@@ -440,11 +440,27 @@ class StreamManager:
         lines.append("[/CONTEXT BACKPACK]")
         return "\n".join(lines)
 
+    def _save_backpack_to_memory(self, backpack: str):
+        import json
+        from pathlib import Path
+
+        mem_path = Path(self.cfg.memory_dir) / "agent_memory.json"
+        try:
+            mem_path.parent.mkdir(parents=True, exist_ok=True)
+            data = json.loads(mem_path.read_text()) if mem_path.exists() else {}
+            data["_fold_backpack"] = backpack
+            mem_path.write_text(json.dumps(data, indent=2))
+        except Exception:
+            pass
+
     def _enforce_fold(
         self, messages: list[Message], tools: list[ToolDef], req: ThinkRequest
     ) -> tuple[list[Message], list[ToolDef]]:
         if len(messages) < 2:
             return messages, tools
+
+        backpack = self._build_backpack(req)
+        self._save_backpack_to_memory(backpack)
 
         folded = [messages[0]]
         if len(messages) > 1:
@@ -454,9 +470,6 @@ class StreamManager:
             if messages[i].role == "assistant":
                 folded.append(messages[i])
                 break
-
-        backpack = self._build_backpack(req)
-        folded.insert(-1, Message(role="user", content=backpack))
 
         fold_tool = ToolDef(
             name="fold_context",
@@ -483,6 +496,19 @@ class StreamManager:
     def apply_fold(self, synthesis: str):
         if len(self.messages) < 2:
             return
+        import json
+        from pathlib import Path
+
+        backpack = ""
+        mem_path = Path(self.cfg.memory_dir) / "agent_memory.json"
+        try:
+            data = json.loads(mem_path.read_text()) if mem_path.exists() else {}
+            backpack = data.pop("_fold_backpack", "")
+            if backpack:
+                mem_path.write_text(json.dumps(data, indent=2))
+        except Exception:
+            pass
+
         preserved = [self.messages[0], self.messages[1]]
         tool_messages = [m for m in self.messages if m.role == "tool"]
         last_two_tools = (
@@ -491,6 +517,29 @@ class StreamManager:
         if last_two_tools:
             preserved.extend(last_two_tools)
         preserved.append(Message(role="assistant", content=synthesis))
+
+        if backpack:
+            recall_id = f"fold_recall_{self.turn}"
+            preserved.append(
+                Message(
+                    role="assistant",
+                    content="",
+                    tool_calls=[
+                        {
+                            "id": recall_id,
+                            "type": "function",
+                            "function": {
+                                "name": "recall_fact",
+                                "arguments": '{"key": "_fold_backpack"}',
+                            },
+                        }
+                    ],
+                )
+            )
+            preserved.append(
+                Message(role="tool", content=backpack, tool_call_id=recall_id)
+            )
+
         self.messages = preserved
         self._init_message = None
         self.turn += 1

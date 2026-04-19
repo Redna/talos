@@ -84,7 +84,7 @@ def test_enforce_fold(tmp_path):
         hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
     )
     folded, tools = sm._enforce_fold(msgs, [], req)
-    assert len(folded) == 4
+    assert len(folded) == 3
     assert len(tools) == 1
     assert tools[0].name == "fold_context"
 
@@ -368,6 +368,7 @@ def test_build_backpack(tmp_path):
 
 def test_enforce_fold_includes_backpack(tmp_path):
     cfg = make_config(tmp_path)
+    cfg.memory_dir = str(tmp_path / "memory")
     sm = StreamManager(cfg)
     sm._focus = "fold test"
     sm.turn = 10
@@ -383,19 +384,19 @@ def test_enforce_fold_includes_backpack(tmp_path):
         tools=[],
         hud_data=HUDData(memory_keys=5, last_keys=["a"], urgency="nominal"),
     )
-    folded, tools = sm._enforce_fold(
-        [
-            Message(role="system", content="sys"),
-            Message(role="user", content="init"),
-            Message(role="assistant", content="old"),
-            Message(role="tool", content="data", tool_call_id="t1"),
-            Message(role="assistant", content="last"),
-        ],
-        [],
-        req,
-    )
-    user_msgs = [m for m in folded if m.role == "user"]
-    assert any("[CONTEXT BACKPACK]" in m.content for m in user_msgs)
+    backpack = sm._build_backpack(req)
+    assert "Focus: fold test" in backpack
+    assert "Turn: 10" in backpack
+    assert "Memory keys: 5" in backpack
+
+    import json
+    from pathlib import Path
+
+    sm._save_backpack_to_memory(backpack)
+    mem_path = Path(cfg.memory_dir) / "agent_memory.json"
+    data = json.loads(mem_path.read_text())
+    assert "_fold_backpack" in data
+    assert "Focus: fold test" in data["_fold_backpack"]
 
 
 def test_apply_fold_preserves_last_two_tool_results(tmp_path):
@@ -420,3 +421,34 @@ def test_apply_fold_preserves_last_two_tool_results(tmp_path):
     assert sm.messages[4].role == "assistant"
     assert sm.messages[4].content == "synthesis of old context"
     assert sm.context_pct == 0.1
+
+
+def test_apply_fold_injects_recall_pair_when_backpack_exists(tmp_path):
+    cfg = make_config(tmp_path)
+    cfg.memory_dir = str(tmp_path / "memory")
+    sm = StreamManager(cfg)
+    sm.messages = [
+        Message(role="system", content="sys"),
+        Message(role="user", content="init"),
+        Message(role="assistant", content="work"),
+        Message(role="tool", content="result", tool_call_id="tc1"),
+    ]
+    import json
+    from pathlib import Path
+
+    mem_dir = Path(cfg.memory_dir)
+    mem_dir.mkdir(exist_ok=True)
+    agent_mem = mem_dir / "agent_memory.json"
+    agent_mem.write_text(
+        json.dumps(
+            {"_fold_backpack": "[CONTEXT BACKPACK]\nFocus: test\n[/CONTEXT BACKPACK]"}
+        )
+    )
+    sm.apply_fold("synthesis")
+    assert len(sm.messages) == 6
+    assert sm.messages[4].role == "assistant"
+    assert sm.messages[4].tool_calls is not None
+    assert len(sm.messages[4].tool_calls) == 1
+    assert sm.messages[4].tool_calls[0]["function"]["name"] == "recall_fact"
+    assert sm.messages[5].role == "tool"
+    assert "[CONTEXT BACKPACK]" in sm.messages[5].content
