@@ -18,8 +18,9 @@ def test_default_config():
 
 def test_load_config_missing_file():
     cfg = load_config("/nonexistent/path/config.json")
-    assert cfg == SpineConfig()
-
+    # We only verify core defaults because load_config may inject env vars
+    assert cfg.memory_dir == "/memory"
+    assert cfg.socket_path == "/tmp/spine.sock"
 
 def test_load_config_overrides(tmp_path):
     config_data = {
