@@ -1,15 +1,3 @@
-
-import json
-from typing import Callable, Any, Dict, List, Optional
-from pydantic import BaseModel, create_model, ValidationError
-
-class ToolMetadata(BaseModel):
-    """Metadata for a registered tool."""
-    name: str
-    description: str
-    parameters_schema: Dict[str, Any]
-    func: Callable
-
 import json
 import asyncio
 from typing import Callable, Any, Dict, List, Optional, Union
@@ -107,6 +95,8 @@ class ToolRegistry:
                 result = await meta.func(**validated_data)
             else:
                 result = meta.func(**validated_data)
+                if asyncio.iscoroutine(result):
+                    result = await result
                 
             return str(result)
 
