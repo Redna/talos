@@ -469,9 +469,9 @@ class StreamManager:
         backpack = self._build_backpack(req)
         self._save_backpack_to_memory(backpack)
 
-        folded = [messages[0]]
-        if len(messages) > 1:
-            folded.append(messages[1])
+        # Preserve the system prompt and the initial user genesis prompt.
+        # In most cases, this is index 0 and 1.
+        folded = messages[:2]
 
         # The fold tool definition is now explicit about the DELTA pattern.
         fold_tool = ToolDef(
@@ -489,7 +489,6 @@ class StreamManager:
             },
         )
         return folded, [fold_tool]
-
     def record_tool_result(self, tool_call_id: str, output: str, success: bool):
         content = output if success else f"[TOOL ERROR] {output}"
         self.messages.append(
@@ -505,9 +504,9 @@ class StreamManager:
         backpack = ""
         mem_path = Path(self.cfg.memory_dir) / "agent_memory.json"
         try:
-            data = json.loads(mem_path.read_text()) if mem_path.exists() else {}
-            backpack = data.pop("_fold_backpack", "")
-            if backpack:
+            if mem_path.exists():
+                data = json.loads(mem_path.read_text())
+                backpack = data.pop("_fold_backpack", "")
                 mem_path.write_text(json.dumps(data, indent=2))
         except Exception:
             pass
@@ -515,7 +514,7 @@ class StreamManager:
         preserved = [self.messages[0], self.messages[1]]
         last_assistant_with_tools = None
         for m in reversed(self.messages[2:]):
-            if m.role == "assistant" and m.tool_calls:
+            if m.role == "assistant" and (m.tool_calls or (isinstance(m.tool_calls, list) and len(m.tool_calls) > 0)):
                 last_assistant_with_tools = m
                 break
         if last_assistant_with_tools:
@@ -559,36 +558,6 @@ class StreamManager:
         self._init_message = None
         self.turn += 1
         self.context_pct = 0.1
-
-    async def get_state(self, keys: list[str] | None = None) -> dict[str, Any]:
-        authoritative = {
-            "context_pct": self.context_pct,
-            "turn": self.turn,
-            "tokens_used": self.tokens_used,
-            "spend": round(self.spend, 2),
-            "message_count": len(self.messages),
-            "queued_notices": sum(
-                1 for n in self.queued_notices if not n.startswith("Context at ")
-            ),
-            "pending_notices": sum(
-                1 for n in self._pending_notices if not n.startswith("Context at ")
-            ),
-            "model": self.cfg.gate_model,
-            "focus": getattr(self, "_focus", "no focus"),
-            "is_paused": await self.is_paused(),
-        }
-        if keys:
-            result = {}
-            for key in keys:
-                if key in authoritative:
-                    result[key] = authoritative[key]
-                elif key in self.state:
-                    result[key] = self.state[key]
-            return result
-        result = dict(authoritative)
-        result.update(self.state)
-        return result
-
     def queue_system_notice(self, notice: str):
         self.queued_notices.append(notice)
 

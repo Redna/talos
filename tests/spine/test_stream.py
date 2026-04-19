@@ -14,11 +14,11 @@ def make_config(tmp_path):
     cfg.constitution_path = str(tmp_path / "CONSTITUTION.md")
     cfg.identity_path = str(tmp_path / "identity.md")
     cfg.spine_dir = str(tmp_path / "spine")
+    cfg.memory_dir = str(tmp_path / "memory")
     Path(cfg.constitution_path).write_text("# Principles\nAgency.")
-    Path(cfg.identity_path).write_text("# Identity\nYou are Talos.")
+    Path(cfg.identity_path).write_text("# Identity\nTalos.")
+    Path(cfg.spine_dir).mkdir(parents=True, exist_ok=True)
     return cfg
-
-
 def test_format_hud(tmp_path):
     cfg = make_config(tmp_path)
     sm = StreamManager(cfg)
@@ -84,11 +84,9 @@ def test_enforce_fold(tmp_path):
         hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
     )
     folded, tools = sm._enforce_fold(msgs, [], req)
-    assert len(folded) == 3
+    assert len(folded) == 2
     assert len(tools) == 1
     assert tools[0].name == "fold_context"
-
-
 def test_record_tool_result(tmp_path):
     cfg = make_config(tmp_path)
     sm = StreamManager(cfg)

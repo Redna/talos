@@ -17,10 +17,11 @@ def test_default_config():
 
 
 def test_load_config_missing_file():
-    cfg = load_config("/nonexistent/path/config.json")
-    assert cfg == SpineConfig()
-
-
+    from unittest.mock import patch
+    import os
+    with patch.dict(os.environ, {}, clear=True):
+        cfg = load_config("/nonexistent/path/config.json")
+        assert cfg == SpineConfig()
 def test_load_config_overrides(tmp_path):
     config_data = {
         "socket_path": "/custom/spine.sock",
