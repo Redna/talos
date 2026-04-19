@@ -33,6 +33,7 @@ class StreamManager:
         self.turn: int = 0
         self.tokens_used: int = 0
         self.context_pct: float = 0.0
+        self.spend: float = 0.0
         self.queued_notices: list[str] = []
         self._pending_notices: list[str] = []
         self._no_tool_call_retries: int = 0
@@ -78,8 +79,13 @@ class StreamManager:
             self.queued_notices.append(
                 f"Context at {int(self.context_pct * 100)}%. You MUST use fold_context immediately."
             )
+            self._auto_fold_notice = True
 
         resp = await self._send_to_gate(api_req)
+
+        usage = resp.get("usage", {})
+        total_tokens = usage.get("total_tokens", 0)
+        self.spend += total_tokens * 0.000002
 
         assistant_content = ""
         tool_calls = []
@@ -221,6 +227,7 @@ class StreamManager:
         )
 
         all_notices = list(self._pending_notices) + list(self.queued_notices)
+        req.hud_data.spend = self.spend
         should_show_hud = (
             bool(all_notices)
             or self.turn % 10 == 0
@@ -393,6 +400,8 @@ class StreamManager:
             f"Tokens: {tokens_used}",
             f"Memory: {hud_data.memory_keys} keys",
         ]
+        if hud_data.spend > 0:
+            hud_parts.append(f"Spend: ${hud_data.spend:.2f}")
         if hud_data.last_keys:
             hud_parts.append(
                 f"Last {len(hud_data.last_keys)}: {', '.join(hud_data.last_keys)}"
@@ -404,7 +413,7 @@ class StreamManager:
             if notice.startswith("[TELEGRAM | "):
                 text = notice[len("[TELEGRAM | ") : -1]
                 parts.append(
-                    f"\n[CREATOR MESSAGE — respond via send_message | Telegram: {text} | Urgency: critical]"
+                    f'\n[SYSTEM NOTICE | Type: Incoming message | Channel: Telegram | Content: "{text}" | Urgency: critical]'
                 )
             else:
                 parts.append(f"[SYSTEM | {notice} | Urgency: {hud_data.urgency}]")
@@ -465,9 +474,14 @@ class StreamManager:
             "context_pct": self.context_pct,
             "turn": self.turn,
             "tokens_used": self.tokens_used,
+            "spend": round(self.spend, 2),
             "message_count": len(self.messages),
-            "queued_notices": len(self.queued_notices),
-            "pending_notices": len(self._pending_notices),
+            "queued_notices": sum(
+                1 for n in self.queued_notices if not n.startswith("Context at ")
+            ),
+            "pending_notices": sum(
+                1 for n in self._pending_notices if not n.startswith("Context at ")
+            ),
             "model": self.cfg.gate_model,
             "focus": getattr(self, "_focus", "no focus"),
             "is_paused": await self.is_paused(),

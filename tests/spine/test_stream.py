@@ -171,10 +171,7 @@ def test_hud_appended_to_tool_message(tmp_path):
     payload = sm._build_payload(req)
     tool_msgs = [m for m in payload if m.role == "tool"]
     assert len(tool_msgs) == 1
-    assert (
-        "[TELEGRAM | hello]" in tool_msgs[0].content
-        or "Telegram: hello" in tool_msgs[0].content
-    )
+    assert 'Content: "hello"' in tool_msgs[0].content
     assistant_msgs = [m for m in payload if m.role == "assistant"]
     assert not any("[TELEGRAM | hello]" in m.content for m in assistant_msgs)
 
@@ -223,7 +220,7 @@ def test_notices_preserved_when_hud_not_shown(tmp_path):
         hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
     )
     payload = sm._build_payload(req)
-    assert "Telegram: delayed" in payload[-1].content
+    assert 'Content: "delayed"' in payload[-1].content
     assert sm._pending_notices == []
     assert sm.queued_notices == []
 
@@ -243,12 +240,12 @@ def test_pending_notices_promoted_on_next_cycle(tmp_path):
         hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
     )
     payload = sm._build_payload(req)
-    assert "Telegram: hello" in payload[-1].content
+    assert 'Content: "hello"' in payload[-1].content
     assert sm.queued_notices == []
     assert sm._pending_notices == []
     sm.queue_system_notice("[TELEGRAM | world]")
     payload2 = sm._build_payload(req)
-    assert "Telegram: world" in payload2[-1].content
+    assert 'Content: "world"' in payload2[-1].content
 
 
 def test_notices_survive_into_pending_when_hud_not_shown(tmp_path):
@@ -271,5 +268,57 @@ def test_notices_survive_into_pending_when_hud_not_shown(tmp_path):
     )
     assert sm._pending_notices == []
     assert sm.queued_notices == []
-    assert "Telegram: earlier" in payload[-1].content
-    assert "Telegram: urgent" in payload[-1].content
+    assert 'Content: "earlier"' in payload[-1].content
+    assert 'Content: "urgent"' in payload[-1].content
+
+
+def test_format_hud_includes_spend_when_nonzero(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    hud_data = HUDData(memory_keys=5, last_keys=["key1"], urgency="nominal", spend=3.50)
+    hud_str = sm._format_hud(
+        hud_data, context_pct=0.45, turn=10, tokens_used=5000, queued_notices=[]
+    )
+    assert "Spend: $3.50" in hud_str
+
+
+def test_format_hud_excludes_spend_when_zero(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    hud_data = HUDData(memory_keys=5, last_keys=["key1"], urgency="nominal", spend=0)
+    hud_str = sm._format_hud(
+        hud_data, context_pct=0.45, turn=10, tokens_used=5000, queued_notices=[]
+    )
+    assert "Spend:" not in hud_str
+
+
+def test_spend_flows_through_build_payload(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm.messages = [
+        Message(role="user", content="init"),
+        Message(
+            role="assistant",
+            content="thinking",
+            tool_calls=[
+                {
+                    "id": "c1",
+                    "type": "function",
+                    "function": {"name": "reflect", "arguments": "{}"},
+                }
+            ],
+        ),
+        Message(role="tool", content="reflected", tool_call_id="c1"),
+    ]
+    sm.turn = 5
+    sm.queue_system_notice("[TELEGRAM | test]")
+    sm.spend = 3.50
+    req = ThinkRequest(
+        focus="stay on task",
+        tools=[],
+        hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal", spend=0),
+    )
+    payload = sm._build_payload(req)
+    tool_msgs = [m for m in payload if m.role == "tool"]
+    assert len(tool_msgs) == 1
+    assert "Spend: $3.50" in tool_msgs[0].content

@@ -16,6 +16,7 @@ class HUDData:
     memory_keys: int
     last_keys: list[str]
     urgency: str
+    spend: float = 0.0
 
 
 @dataclass
