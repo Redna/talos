@@ -72,7 +72,7 @@ class StreamManager:
             self.context_pct > self.cfg.context_threshold
             or len(self.messages) > self.cfg.max_messages
         ):
-            fold_messages, fold_tools = self._enforce_fold(messages, req.tools)
+            fold_messages, fold_tools = self._enforce_fold(messages, req.tools, req)
             api_req["messages"] = self._messages_to_dicts(fold_messages)
             api_req["tools"] = [self._tool_def_to_dict(t) for t in fold_tools]
             api_req["tool_choice"] = {"type": "function", "name": "fold_context"}
@@ -351,7 +351,9 @@ class StreamManager:
 
     async def _request_fold_synthesis(self, req: ThinkRequest) -> str:
         fold_prompt = (
-            "Your context window is nearly full. You MUST produce a DELTA-pattern synthesis of everything above.\n"
+            self._build_backpack(req)
+            + "\n\n"
+            + "Your context window is nearly full. You MUST produce a DELTA-pattern synthesis of everything above.\n"
             "Format: State Delta (what changed), Negative Knowledge (what didn't work), Handoff (next steps).\n"
             "Write the synthesis as plain text. Be thorough — this replaces your entire conversation history."
         )
@@ -420,8 +422,26 @@ class StreamManager:
 
         return " ".join(parts)
 
+    def _build_backpack(self, req: ThinkRequest) -> str:
+        lines = ["[CONTEXT BACKPACK]"]
+        lines.append(f"Focus: {self._focus}")
+        lines.append(f"Turn: {self.turn}")
+        lines.append(f"Tokens used: {self.tokens_used}")
+        lines.append(f"Memory keys: {req.hud_data.memory_keys}")
+        if req.hud_data.last_keys:
+            last_n = req.hud_data.last_keys[-5:]
+            lines.append(f"Last key names: {', '.join(last_n)}")
+        tool_msgs = [m for m in self.messages if m.role == "tool"]
+        last_3 = tool_msgs[-3:] if len(tool_msgs) >= 3 else tool_msgs
+        if last_3:
+            lines.append("Recent tool outputs:")
+            for tm in last_3:
+                lines.append(f"  - {tm.content[:300]}")
+        lines.append("[/CONTEXT BACKPACK]")
+        return "\n".join(lines)
+
     def _enforce_fold(
-        self, messages: list[Message], tools: list[ToolDef]
+        self, messages: list[Message], tools: list[ToolDef], req: ThinkRequest
     ) -> tuple[list[Message], list[ToolDef]]:
         if len(messages) < 2:
             return messages, tools
@@ -434,6 +454,9 @@ class StreamManager:
             if messages[i].role == "assistant":
                 folded.append(messages[i])
                 break
+
+        backpack = self._build_backpack(req)
+        folded.insert(-1, Message(role="user", content=backpack))
 
         fold_tool = ToolDef(
             name="fold_context",
@@ -460,11 +483,15 @@ class StreamManager:
     def apply_fold(self, synthesis: str):
         if len(self.messages) < 2:
             return
-        self.messages = [
-            self.messages[0],
-            self.messages[1],
-            Message(role="assistant", content=synthesis),
-        ]
+        preserved = [self.messages[0], self.messages[1]]
+        tool_messages = [m for m in self.messages if m.role == "tool"]
+        last_two_tools = (
+            tool_messages[-2:] if len(tool_messages) >= 2 else tool_messages
+        )
+        if last_two_tools:
+            preserved.extend(last_two_tools)
+        preserved.append(Message(role="assistant", content=synthesis))
+        self.messages = preserved
         self._init_message = None
         self.turn += 1
         self.context_pct = 0.1

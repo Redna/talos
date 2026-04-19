@@ -69,14 +69,22 @@ def test_apply_shedding_truncates_tool_output(tmp_path):
 def test_enforce_fold(tmp_path):
     cfg = make_config(tmp_path)
     sm = StreamManager(cfg)
+    sm._focus = "test"
+    sm.turn = 1
+    sm.tokens_used = 0
     msgs = [
         Message(role="system", content="sys"),
         Message(role="user", content="init"),
         Message(role="assistant", content="thinking"),
         Message(role="user", content="do thing"),
     ]
-    folded, tools = sm._enforce_fold(msgs, [])
-    assert len(folded) == 3
+    req = ThinkRequest(
+        focus="test",
+        tools=[],
+        hud_data=HUDData(memory_keys=0, last_keys=[], urgency="nominal"),
+    )
+    folded, tools = sm._enforce_fold(msgs, [], req)
+    assert len(folded) == 4
     assert len(tools) == 1
     assert tools[0].name == "fold_context"
 
@@ -322,3 +330,93 @@ def test_spend_flows_through_build_payload(tmp_path):
     tool_msgs = [m for m in payload if m.role == "tool"]
     assert len(tool_msgs) == 1
     assert "Spend: $3.50" in tool_msgs[0].content
+
+
+def test_build_backpack(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm._focus = "stay on task"
+    sm.turn = 7
+    sm.tokens_used = 1234
+    sm.messages = [
+        Message(role="system", content="sys"),
+        Message(role="user", content="init"),
+        Message(role="assistant", content="thinking"),
+        Message(role="tool", content="tool result one", tool_call_id="tc1"),
+        Message(role="assistant", content="more thinking"),
+        Message(role="tool", content="tool result two", tool_call_id="tc2"),
+        Message(role="assistant", content="final"),
+    ]
+    req = ThinkRequest(
+        focus="stay on task",
+        tools=[],
+        hud_data=HUDData(
+            memory_keys=12, last_keys=["k1", "k2", "k3"], urgency="nominal"
+        ),
+    )
+    backpack = sm._build_backpack(req)
+    assert "Focus: stay on task" in backpack
+    assert "Turn: 7" in backpack
+    assert "Tokens used: 1234" in backpack
+    assert "Memory keys: 12" in backpack
+    assert "Recent tool outputs:" in backpack
+    assert "tool result one" in backpack
+    assert "tool result two" in backpack
+    assert "[CONTEXT BACKPACK]" in backpack
+    assert "[/CONTEXT BACKPACK]" in backpack
+
+
+def test_enforce_fold_includes_backpack(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm._focus = "fold test"
+    sm.turn = 10
+    sm.tokens_used = 5000
+    sm.messages = [
+        Message(role="system", content="sys"),
+        Message(role="user", content="init"),
+        Message(role="assistant", content="thinking"),
+        Message(role="tool", content="result", tool_call_id="tc1"),
+    ]
+    req = ThinkRequest(
+        focus="fold test",
+        tools=[],
+        hud_data=HUDData(memory_keys=5, last_keys=["a"], urgency="nominal"),
+    )
+    folded, tools = sm._enforce_fold(
+        [
+            Message(role="system", content="sys"),
+            Message(role="user", content="init"),
+            Message(role="assistant", content="old"),
+            Message(role="tool", content="data", tool_call_id="t1"),
+            Message(role="assistant", content="last"),
+        ],
+        [],
+        req,
+    )
+    user_msgs = [m for m in folded if m.role == "user"]
+    assert any("[CONTEXT BACKPACK]" in m.content for m in user_msgs)
+
+
+def test_apply_fold_preserves_last_two_tool_results(tmp_path):
+    cfg = make_config(tmp_path)
+    sm = StreamManager(cfg)
+    sm.messages = [
+        Message(role="system", content="sys"),
+        Message(role="user", content="init"),
+        Message(role="assistant", content="old response"),
+        Message(role="tool", content="tool result A", tool_call_id="tc1"),
+        Message(role="assistant", content="middle"),
+        Message(role="tool", content="tool result B", tool_call_id="tc2"),
+        Message(role="assistant", content="middle 2"),
+        Message(role="tool", content="tool result C", tool_call_id="tc3"),
+    ]
+    sm.apply_fold("synthesis of old context")
+    assert len(sm.messages) == 5
+    assert sm.messages[0].role == "system"
+    assert sm.messages[1].role == "user"
+    assert sm.messages[2].content == "tool result B"
+    assert sm.messages[3].content == "tool result C"
+    assert sm.messages[4].role == "assistant"
+    assert sm.messages[4].content == "synthesis of old context"
+    assert sm.context_pct == 0.1
