@@ -1,7 +1,10 @@
-
+[project]
+name = "talos-cortex"
+version = "0.1.0"
+description = "Talos V2 Cortex — Self-evolving autonomous agent"
+requires-python = ">=3.10"
 dependencies = [
     "aiohttp>=3.9",
-    "pydantic>=2.0",
 ]
 
 [project.optional-dependencies]

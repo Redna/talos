@@ -18,8 +18,8 @@ def test_default_config():
 
 def test_load_config_missing_file():
     cfg = load_config("/nonexistent/path/config.json")
-    # We check a default value that is not influenced by environment variables
-    assert cfg.memory_dir == "/memory"
+    assert cfg == SpineConfig()
+
 
 def test_load_config_overrides(tmp_path):
     config_data = {
