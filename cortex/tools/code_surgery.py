@@ -21,28 +21,35 @@ def register_code_surgery_tools(registry: ToolRegistry, client: SpineClient):
             },
         },
     )
+    @registry.tool(
+        description="Scan the entire repository and return an index of all symbols and their locations.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Root directory to scan (default: /app)",
+                },
+            },
+        },
+    )
     def generate_repo_map(path: str = "/app") -> str:
         client.emit_event("cortex.generate_repo_map", {"path": path})
         try:
-            result = subprocess.run(
-                [
-                    "find",
-                    path,
-                    "-name",
-                    "*.py",
-                    "-o",
-                    "-name",
-                    "*.go",
-                    "-o",
-                    "-name",
-                    "*.js",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            files = result.stdout.strip().split("\n") if result.stdout.strip() else []
-            return f"[REPO MAP] Found {len(files)} source files in {path}"
+            from cortex.repo_mapper import RepoMapper
+            mapper = RepoMapper(path)
+            repo_map = mapper.scan()
+            
+            output = []
+            for rel_path, symbols in repo_map.items():
+                output.append(f"{rel_path}:")
+                for sym in symbols:
+                    output.append(f"  - {sym.kind} {sym.name} [L{sym.start_line}:{sym.end_line}]")
+            
+            if not output:
+                return f"[REPO MAP] No Python symbols found in {path}"
+            
+            return "\n".join(output)
         except Exception as e:
             return f"[ERROR] Failed to generate repo map: {e}"
 

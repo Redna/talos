@@ -105,6 +105,28 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
             "required": ["target_key", "source_keys", "merged_value"],
         },
     )
+    @registry.tool(
+        description="Consolidate multiple memory keys into one. This is the core of P9 Cognitive Synthesis: do not simply concatenate, but merge the facts into higher-order principles and generalized patterns. Delete the source keys after merging their values into the target key.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "target_key": {
+                    "type": "string",
+                    "description": "Key to store the merged result (e.g., 'CORE_PRINCIPLE_X')",
+                },
+                "source_keys": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Keys to merge into target (will be deleted after merge)",
+                },
+                "merged_value": {
+                    "type": "string",
+                    "description": "The synthesized value. Extract the 'why' and the 'how' from the source facts to create a higher-order principle.",
+                },
+            },
+            "required": ["target_key", "source_keys", "merged_value"],
+        },
+    )
     def consolidate_memory(
         target_key: str, source_keys: list[str], merged_value: str
     ) -> str:

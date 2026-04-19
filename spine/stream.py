@@ -473,20 +473,16 @@ class StreamManager:
         if len(messages) > 1:
             folded.append(messages[1])
 
-        for i in range(len(messages) - 1, -1, -1):
-            if messages[i].role == "assistant":
-                folded.append(messages[i])
-                break
-
+        # The fold tool definition is now explicit about the DELTA pattern.
         fold_tool = ToolDef(
             name="fold_context",
-            description="Compress the conversation context into a summary",
+            description="Compress the conversation context into a summary using the DELTA pattern: State Delta (what changed), Negative Knowledge (what didn't work), and Handoff (next steps). This is critical for maintaining continuity (P1) and preventing cognitive collapse (P6).",
             parameters={
                 "type": "object",
                 "properties": {
                     "synthesis": {
                         "type": "string",
-                        "description": "A concise summary using the DELTA pattern: State Delta, Negative Knowledge, Handoff",
+                        "description": "The synthesis produced using the DELTA pattern.",
                     },
                 },
                 "required": ["synthesis"],
