@@ -13,7 +13,8 @@ class SnapshotManager:
         self.memory_dir = Path(memory_dir) if memory_dir else None
 
     def should_snapshot(self, turn_count: int) -> bool:
-        return turn_count % self.interval == 0
+        return turn_count > 0 and turn_count % self.interval == 0
+
     def save(self, snapshot: dict) -> None:
         snapshot_path = self.snapshots_dir / "last_good_state.json"
         

@@ -27,6 +27,7 @@ class ControlPlane:
         self.app.router.add_get("/status", self._handle_status)
         self.app.router.add_get("/events", self._handle_events)
         self.app.router.add_get("/state", self._handle_state)
+        self.app.router.add_get("/trajectory", self._handle_trajectory)
         self.app.router.add_get("/commit", self._handle_commit)
         self.app.router.add_post("/message", self._handle_message)
         self.app.router.add_post("/command", self._handle_command)
@@ -60,6 +61,33 @@ class ControlPlane:
     async def _handle_state(self, request):
         state = await self.stream.get_state()
         return web.json_response(state)
+
+    async def _handle_trajectory(self, request):
+        messages = self.stream.get_messages()
+        tail = min(int(request.query.get("tail", "100")), 500)
+        messages = messages[-tail:]
+        result = []
+        for m in messages:
+            d = {"role": m.role, "content": m.content if m.content else ""}
+            if m.tool_calls:
+                tc_list = []
+                for tc in m.tool_calls:
+                    tc_d = {
+                        "id": tc.get("id", ""),
+                        "type": tc.get("type", "function"),
+                        "function": {
+                            "name": tc.get("function", {}).get("name", ""),
+                            "arguments": tc.get("function", {}).get("arguments", "{}"),
+                        },
+                    }
+                    tc_list.append(tc_d)
+                d["tool_calls"] = tc_list
+            if m.tool_call_id:
+                d["tool_call_id"] = m.tool_call_id
+            if m.name:
+                d["name"] = m.name
+            result.append(d)
+        return web.json_response(result)
 
     async def _handle_message(self, request):
         data = await request.json()

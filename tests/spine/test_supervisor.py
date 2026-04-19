@@ -116,7 +116,7 @@ async def test_write_crash_bundle(tmp_path):
     events = MagicMock()
     events.recent_events.return_value = mock_events.recent_events.return_value
     snapshots = MagicMock()
-    supervisor = Supervisor(cfg, events, snapshots, stream)
+    supervisor = Supervisor(cfg, events, snapshots, mock_stream)
     supervisor._get_current_commit = lambda: "abc1234"
 
     crash_dir = await supervisor._write_crash_bundle(1)

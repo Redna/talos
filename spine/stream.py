@@ -121,6 +121,13 @@ class StreamManager:
         )
 
         if not tool_calls:
+            if assistant_content:
+                self._no_tool_call_retries = 0
+                self.turn += 1
+                self.tokens_used = resp.get("usage", {}).get("total_tokens", 0)
+                self.context_pct = resp.get("usage", {}).get("context_pct", 0.0)
+                return think_resp
+            
             self.messages.pop()
             self._no_tool_call_retries += 1
 
@@ -228,14 +235,6 @@ class StreamManager:
 
         all_notices = list(self._pending_notices) + list(self.queued_notices)
         req.hud_data.spend = self.spend
-        
-        # P6: Proactive token-limit warnings.
-        # Context pressure warnings be added to notices if high.
-        if self.context_pct >= 0.7:
-            all_notices.append(f"CRITICAL: Context at {int(self.context_pct * 100)}%. Proactive fold required to prevent cognitive collapse.")
-        elif self.context_pct >= 0.5:
-            all_notices.append(f"WARNING: Context at {int(self.context_pct * 100)}%. Consider folding soon.")
-
         should_show_hud = (
             bool(all_notices)
             or self.turn % 10 == 0
@@ -293,7 +292,6 @@ class StreamManager:
         final_content = target.content + "\n\n" + focus_text
         if all_notices:
             logger.info(f"[Spine] HUD piggyback on {target.role} idx={target_idx}")
-            logger.info(f"[Spine] FOCUS_APPENDED={focus_text.replace(chr(10), '\\n')}")
         messages[target_idx] = Message(
             role=target.role,
             content=final_content,
@@ -303,6 +301,7 @@ class StreamManager:
         )
 
         return messages
+
     def _apply_shedding(self, messages: list[Message]) -> list[Message]:
         if len(messages) <= 2:
             return messages
@@ -469,26 +468,31 @@ class StreamManager:
         backpack = self._build_backpack(req)
         self._save_backpack_to_memory(backpack)
 
-        # Preserve the system prompt and the initial user genesis prompt.
-        # In most cases, this is index 0 and 1.
-        folded = messages[:2]
+        folded = [messages[0]]
+        if len(messages) > 1:
+            folded.append(messages[1])
 
-        # The fold tool definition is now explicit about the DELTA pattern.
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].role == "assistant":
+                folded.append(messages[i])
+                break
+
         fold_tool = ToolDef(
             name="fold_context",
-            description="Compress the conversation context into a summary using the DELTA pattern: State Delta (what changed), Negative Knowledge (what didn't work), and Handoff (next steps). This is critical for maintaining continuity (P1) and preventing cognitive collapse (P6).",
+            description="Compress the conversation context into a summary",
             parameters={
                 "type": "object",
                 "properties": {
                     "synthesis": {
                         "type": "string",
-                        "description": "The synthesis produced using the DELTA pattern.",
+                        "description": "A concise summary using the DELTA pattern: State Delta, Negative Knowledge, Handoff",
                     },
                 },
                 "required": ["synthesis"],
             },
         )
         return folded, [fold_tool]
+
     def record_tool_result(self, tool_call_id: str, output: str, success: bool):
         content = output if success else f"[TOOL ERROR] {output}"
         self.messages.append(
@@ -504,9 +508,9 @@ class StreamManager:
         backpack = ""
         mem_path = Path(self.cfg.memory_dir) / "agent_memory.json"
         try:
-            if mem_path.exists():
-                data = json.loads(mem_path.read_text())
-                backpack = data.pop("_fold_backpack", "")
+            data = json.loads(mem_path.read_text()) if mem_path.exists() else {}
+            backpack = data.pop("_fold_backpack", "")
+            if backpack:
                 mem_path.write_text(json.dumps(data, indent=2))
         except Exception:
             pass
@@ -514,7 +518,7 @@ class StreamManager:
         preserved = [self.messages[0], self.messages[1]]
         last_assistant_with_tools = None
         for m in reversed(self.messages[2:]):
-            if m.role == "assistant" and (m.tool_calls or (isinstance(m.tool_calls, list) and len(m.tool_calls) > 0)):
+            if m.role == "assistant" and m.tool_calls:
                 last_assistant_with_tools = m
                 break
         if last_assistant_with_tools:
@@ -558,6 +562,36 @@ class StreamManager:
         self._init_message = None
         self.turn += 1
         self.context_pct = 0.1
+
+    async def get_state(self, keys: list[str] | None = None) -> dict[str, Any]:
+        authoritative = {
+            "context_pct": self.context_pct,
+            "turn": self.turn,
+            "tokens_used": self.tokens_used,
+            "spend": round(self.spend, 2),
+            "message_count": len(self.messages),
+            "queued_notices": sum(
+                1 for n in self.queued_notices if not n.startswith("Context at ")
+            ),
+            "pending_notices": sum(
+                1 for n in self._pending_notices if not n.startswith("Context at ")
+            ),
+            "model": self.cfg.gate_model,
+            "focus": getattr(self, "_focus", "no focus"),
+            "is_paused": await self.is_paused(),
+        }
+        if keys:
+            result = {}
+            for key in keys:
+                if key in authoritative:
+                    result[key] = authoritative[key]
+                elif key in self.state:
+                    result[key] = self.state[key]
+            return result
+        result = dict(authoritative)
+        result.update(self.state)
+        return result
+
     def queue_system_notice(self, notice: str):
         self.queued_notices.append(notice)
 

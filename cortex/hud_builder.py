@@ -11,11 +11,11 @@ def build_hud_data(state: AgentState, memory: MemoryStore, urgency: str = "nomin
     Returns:
         Dict with memory_keys, last_keys, and urgency.
     """
-    all_keys = memory.list_keys()
-    last_keys = all_keys[-3:] if len(all_keys) >= 3 else all_keys
+    keys = memory.list_keys()
+    last_keys = keys[-3:] if len(keys) >= 3 else keys
 
     return {
-        "memory_keys": len(all_keys),
+        "memory_keys": memory.count,
         "last_keys": last_keys,
         "urgency": urgency,
     }

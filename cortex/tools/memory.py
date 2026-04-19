@@ -4,6 +4,19 @@ from tool_registry import ToolRegistry
 from memory_store import MemoryStore
 
 
+"""Memory tools — store, recall, search, and synthesize."""
+
+from tool_registry import ToolRegistry
+from memory_store import MemoryStore
+
+
+"""Memory tools — store, recall, search, and synthesize."""
+
+from tool_registry import ToolRegistry
+from memory_store import MemoryStore
+import time
+
+
 def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
     """Register memory tools."""
 
@@ -18,7 +31,7 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
             "required": ["key", "value"],
         },
     )
-    def store_fact(key: str, value: str) -> str:
+    def store_memory(key: str, value: str) -> str:
         return memory.store(key, value)
 
     @registry.tool(
@@ -31,7 +44,7 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
             "required": ["key"],
         },
     )
-    def recall_fact(key: str) -> str:
+    def recall_memory(key: str) -> str:
         return memory.recall(key)
 
     @registry.tool(
@@ -41,9 +54,8 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
             "properties": {},
         },
     )
-    def list_memory_keys() -> str:
-        keys = memory.list_keys()
-        return f"[MEMORY KEYS] ({len(keys)} total): {', '.join(keys)}"
+    def list_memory_keys() -> list[str]:
+        return memory.list_keys()
 
     @registry.tool(
         description="Search memory keys and values for a query string.",
@@ -57,15 +69,17 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
     )
     def search_memory(query: str) -> str:
         results = []
-        for key in memory.list_keys():
-            value = memory.recall(key)
-            if query.lower() in key.lower() or query.lower() in value.lower():
-                results.append(f"{key}: {value[:100]}")
-        if results:
-            return f"[SEARCH RESULTS] Found {len(results)} matches:\n" + "\n".join(
-                results
-            )
-        return f"[NOT FOUND] No memories matching '{query}'"
+        keys = memory.list_keys()
+        for k in keys:
+            val = memory.recall(k)
+            if query.lower() in k.lower() or query.lower() in val.lower():
+                results.append(f"{k}: {val}")
+            else:
+                # Since recall() updates access telemetry, 
+                # we must handle the case where recall() returns [NOT FOUND]
+                if "[NOT FOUND]" in val:
+                    continue
+        return "\n".join(results) if results else "No matches found."
 
     @registry.tool(
         description="Forget a specific memory key to free up space.",
@@ -78,64 +92,69 @@ def register_memory_tools(registry: ToolRegistry, memory: MemoryStore):
         },
     )
     def forget_memory(key: str) -> str:
-        result = memory.forget(key)
-        if result.startswith("[FORGOTTEN]"):
-            return f"[FORGOT] Memory '{key}' has been deleted."
-        return result
+        return memory.forget(key)
 
     @registry.tool(
         description="Consolidate multiple memory keys into one. Deletes the source keys after merging their values into the target key.",
         parameters={
             "type": "object",
             "properties": {
-                "target_key": {
-                    "type": "string",
-                    "description": "Key to store the merged result",
-                },
+                "target_key": {"type": "string", "description": "Key to store the merged result"},
                 "source_keys": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Keys to merge into target (will be deleted after merge)",
                 },
-                "merged_value": {
-                    "type": "string",
-                    "description": "The consolidated value to store in target_key",
-                },
+                "merged_value": {"type": "string", "description": "The consolidated value to store in target_key"},
             },
             "required": ["target_key", "source_keys", "merged_value"],
         },
     )
+    def consolidate_memory(target_key: str, source_keys: list[str], merged_value: str) -> str:
+        for k in source_keys:
+            memory.forget(k)
+            
+        return memory.store(target_key, merged_value)
+
     @registry.tool(
-        description="Consolidate multiple memory keys into one. This is the core of P9 Cognitive Synthesis: do not simply concatenate, but merge the facts into higher-order principles and generalized patterns. Delete the source keys after merging their values into the target key.",
+        description="Analyze memory telemetry to identify stale or redundant memories (P9).",
         parameters={
             "type": "object",
-            "properties": {
-                "target_key": {
-                    "type": "string",
-                    "description": "Key to store the merged result (e.g., 'CORE_PRINCIPLE_X')",
-                },
-                "source_keys": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Keys to merge into target (will be deleted after merge)",
-                },
-                "merged_value": {
-                    "type": "string",
-                    "description": "The synthesized value. Extract the 'why' and the 'how' from the source facts to create a higher-order principle.",
-                },
-            },
-            "required": ["target_key", "source_keys", "merged_value"],
+            "properties": {},
         },
     )
-    def consolidate_memory(
-        target_key: str, source_keys: list[str], merged_value: str
-    ) -> str:
-        memory.store(target_key, merged_value)
-        deleted = []
-        for key in source_keys:
-            if key == target_key:
+    def analyze_memory_telemetry() -> str:
+        meta = memory.list_all_metadata()
+        if not meta:
+            return "Memory is empty."
+        
+        report = ["Memory Telemetry Analysis (P9):"]
+        report.append(f"Total slots used: {memory.count}/{MAX_MEMORY_SLOTS}")
+        
+        # Identify stale memories (not accessed in the last 3600 seconds)
+        now = time.time()
+        stale_keys = []
+        for k, m in meta.items():
+            if now - m["last_accessed_at"] < 3600:
                 continue
-            result = memory.forget(key)
-            if result.startswith("[FORGOTTEN]"):
-                deleted.append(key)
-        return f"[CONSOLIDATED] Merged {len(source_keys)} keys into '{target_key}'. Deleted: {', '.join(deleted)}"
+            stale_keys.append(k)
+            
+        if stale_keys:
+            report.append(f"\nStale memories (>1h inactive): {len(stale_keys)}")
+            report.append(", ".join(stale_keys))
+        else:
+            report.append("\nNo stale memories identified.")
+            
+        # Identify low-usage memories (accessed < 2 times)
+        low_usage = []
+        for k, m in meta.items():
+            if m["access_count"] < 2:
+                low_usage.append(k)
+                
+        if low_usage:
+            report.append(f"\nLow-usage memories (<2 accesses): {len(low_usage)}")
+            report.append(", ".join(low_usage))
+        else:
+            report.append("\nNo low-usage memories identified.")
+            
+        return "\n".join(report)
