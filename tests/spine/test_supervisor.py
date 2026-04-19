@@ -101,7 +101,7 @@ async def test_write_crash_bundle(tmp_path):
         }
     ]
 
-    mock_stream = AsyncMock(spec=StreamManager)
+    mock_stream = AsyncMock()
     mock_stream.get_state.return_value = {
         "focus": "test focus",
         "turn": 5,
@@ -112,10 +112,11 @@ async def test_write_crash_bundle(tmp_path):
         "status": "healthy",
     }
 
+    stream = StreamManager(cfg)
     events = MagicMock()
     events.recent_events.return_value = mock_events.recent_events.return_value
     snapshots = MagicMock()
-    supervisor = Supervisor(cfg, events, snapshots, mock_stream)
+    supervisor = Supervisor(cfg, events, snapshots, stream)
     supervisor._get_current_commit = lambda: "abc1234"
 
     crash_dir = await supervisor._write_crash_bundle(1)

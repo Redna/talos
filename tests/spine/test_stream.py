@@ -115,11 +115,11 @@ def test_apply_fold(tmp_path):
         Message(role="user", content="old prompt"),
     ]
     sm.apply_fold("synthesis of old context")
-    # The fold implementation appends the synthesis and then the context backpack.
-    # We look for the synthesis message in the list.
-    assert any("synthesis of old context" in m.content for m in sm.messages)
-    assert len(sm.messages) >= 3
+    assert len(sm.messages) == 3
+    assert sm.messages[2].content == "synthesis of old context"
     assert sm.context_pct == 0.1
+
+
 def test_get_state(tmp_path):
     cfg = make_config(tmp_path)
     sm = StreamManager(cfg)
@@ -405,18 +405,26 @@ def test_apply_fold_preserves_last_two_tool_results(tmp_path):
     sm.messages = [
         Message(role="system", content="sys"),
         Message(role="user", content="init"),
-        Message(role="assistant", content="old response"),
-        Message(role="tool", content="tool result A", tool_call_id="tc1"),
-        Message(role="assistant", content="middle"),
-        Message(role="tool", content="tool result B", tool_call_id="tc2"),
-        Message(role="assistant", content="middle 2"),
+        Message(
+            role="assistant",
+            content="middle 2",
+            tool_calls=[
+                {
+                    "id": "tc3",
+                    "type": "function",
+                    "function": {"name": "bash", "arguments": "{}"},
+                },
+            ],
+        ),
         Message(role="tool", content="tool result C", tool_call_id="tc3"),
     ]
     sm.apply_fold("synthesis of old context")
     assert len(sm.messages) == 5
     assert sm.messages[0].role == "system"
     assert sm.messages[1].role == "user"
-    assert sm.messages[2].content == "tool result B"
+    assert sm.messages[2].role == "assistant"
+    assert sm.messages[2].tool_calls is not None
+    assert sm.messages[3].role == "tool"
     assert sm.messages[3].content == "tool result C"
     assert sm.messages[4].role == "assistant"
     assert sm.messages[4].content == "synthesis of old context"
@@ -445,10 +453,13 @@ def test_apply_fold_injects_recall_pair_when_backpack_exists(tmp_path):
         )
     )
     sm.apply_fold("synthesis")
-    assert len(sm.messages) == 6
-    assert sm.messages[4].role == "assistant"
-    assert sm.messages[4].tool_calls is not None
-    assert len(sm.messages[4].tool_calls) == 1
-    assert sm.messages[4].tool_calls[0]["function"]["name"] == "recall_fact"
-    assert sm.messages[5].role == "tool"
-    assert "[CONTEXT BACKPACK]" in sm.messages[5].content
+    assert len(sm.messages) == 4
+    synthesis_msg = sm.messages[2]
+    assert synthesis_msg.role == "assistant"
+    assert "synthesis" in synthesis_msg.content
+    assert synthesis_msg.tool_calls is not None
+    assert len(synthesis_msg.tool_calls) == 1
+    assert synthesis_msg.tool_calls[0]["function"]["name"] == "recall_fact"
+    assert sm.messages[3].role == "tool"
+    assert sm.messages[3].tool_call_id == synthesis_msg.tool_calls[0]["id"]
+    assert "[CONTEXT BACKPACK]" in sm.messages[3].content

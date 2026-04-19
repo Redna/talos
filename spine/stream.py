@@ -228,6 +228,14 @@ class StreamManager:
 
         all_notices = list(self._pending_notices) + list(self.queued_notices)
         req.hud_data.spend = self.spend
+        
+        # P6: Proactive token-limit warnings.
+        # Context pressure warnings be added to notices if high.
+        if self.context_pct >= 0.7:
+            all_notices.append(f"CRITICAL: Context at {int(self.context_pct * 100)}%. Proactive fold required to prevent cognitive collapse.")
+        elif self.context_pct >= 0.5:
+            all_notices.append(f"WARNING: Context at {int(self.context_pct * 100)}%. Consider folding soon.")
+
         should_show_hud = (
             bool(all_notices)
             or self.turn % 10 == 0
@@ -295,7 +303,6 @@ class StreamManager:
         )
 
         return messages
-
     def _apply_shedding(self, messages: list[Message]) -> list[Message]:
         if len(messages) <= 2:
             return messages
@@ -510,20 +517,30 @@ class StreamManager:
             pass
 
         preserved = [self.messages[0], self.messages[1]]
-        tool_messages = [m for m in self.messages if m.role == "tool"]
-        last_two_tools = (
-            tool_messages[-2:] if len(tool_messages) >= 2 else tool_messages
-        )
-        if last_two_tools:
-            preserved.extend(last_two_tools)
-        preserved.append(Message(role="assistant", content=synthesis))
-
+        last_assistant_with_tools = None
+        for m in reversed(self.messages[2:]):
+            if m.role == "assistant" and m.tool_calls:
+                last_assistant_with_tools = m
+                break
+        if last_assistant_with_tools:
+            preserved.append(last_assistant_with_tools)
+            called_ids = {
+                tc.get("id", "") if isinstance(tc, dict) else tc.id
+                for tc in last_assistant_with_tools.tool_calls
+            }
+            tool_messages = [
+                m
+                for m in self.messages
+                if m.role == "tool" and m.tool_call_id in called_ids
+            ]
+            if tool_messages:
+                preserved.extend(tool_messages)
         if backpack:
             recall_id = f"fold_recall_{self.turn}"
             preserved.append(
                 Message(
                     role="assistant",
-                    content="",
+                    content=synthesis,
                     tool_calls=[
                         {
                             "id": recall_id,
@@ -539,6 +556,8 @@ class StreamManager:
             preserved.append(
                 Message(role="tool", content=backpack, tool_call_id=recall_id)
             )
+        else:
+            preserved.append(Message(role="assistant", content=synthesis))
 
         self.messages = preserved
         self._init_message = None
@@ -606,8 +625,7 @@ class StreamManager:
         result = []
         for msg in messages:
             d = {"role": msg.role}
-            if msg.content:
-                d["content"] = msg.content
+            d["content"] = msg.content if msg.content else ""
             if msg.tool_calls:
                 d["tool_calls"] = msg.tool_calls
             if msg.tool_call_id:
