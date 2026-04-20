@@ -1,60 +1,68 @@
-"""
-Tool Registry — Decorator-based tool registration with OpenAI JSON Schema generation.
-"""
-from typing import Callable, Any
+import inspect
+from typing import Any, Callable
 
 
 class ToolRegistry:
-    """Registry for agent tools. Generates OpenAI function-calling schemas."""
-
     def __init__(self):
         self._tools: dict[str, Callable] = {}
         self._schemas: list[dict] = []
 
     def tool(self, description: str, parameters: dict[str, Any]):
-        """Decorator to register a tool function.
-
-        Args:
-            description: Human-readable description of what the tool does.
-            parameters: JSON Schema object describing the tool's parameters.
-        """
-        def decorator(func: Callable) -> Callable:
-            name = func.__name__
-            self._tools[name] = func
-            self._schemas.append({
-                "type": "function",
-                "function": {
-                    "name": name,
-                    "description": description,
-                    "parameters": parameters,
+        def decorator(func: Callable):
+            self._tools[func.__name__] = func
+            self._schemas.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": func.__name__,
+                        "description": description,
+                        "parameters": {
+                            "type": "object",
+                            "properties": parameters,
+                        },
+                    },
                 }
-            })
+            )
             return func
+
         return decorator
 
     def get_schemas(self) -> list[dict]:
-        """Return all tool schemas in OpenAI function-calling format."""
         return list(self._schemas)
 
     def execute(self, name: str, kwargs: dict[str, Any]) -> str:
-        """Execute a tool by name with the given arguments.
-
-        Returns:
-            String result of the tool execution.
-        """
         if name not in self._tools:
             return f"[ERROR] Unknown tool: {name}"
         try:
             result = self._tools[name](**kwargs)
             return str(result)
+        except TypeError as e:
+            func = self._tools[name]
+            sig = inspect.signature(func)
+            required = [
+                p.name
+                for p in sig.parameters.values()
+                if p.default is inspect.Parameter.empty
+                and p.kind
+                in (
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.POSITIONAL_ONLY,
+                )
+            ]
+            missing = [p for p in required if p not in kwargs]
+            provided = list(kwargs.keys())
+            detail = (
+                f" Required: {required}, provided: {provided}, missing: {missing}"
+                if missing
+                else ""
+            )
+            return f"[ERROR] Tool {name} called with wrong arguments: {e}.{detail} Check the tool's parameter schema and ensure all required arguments are provided."
         except Exception as e:
             return f"[ERROR] Tool {name} failed: {e}"
 
     def has_tool(self, name: str) -> bool:
-        """Check if a tool is registered."""
         return name in self._tools
 
     @property
     def tool_names(self) -> list[str]:
-        """Return names of all registered tools."""
         return list(self._tools.keys())

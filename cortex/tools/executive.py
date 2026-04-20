@@ -1,14 +1,33 @@
-"""Executive Control tools — focus, fold, reflect."""
-
+import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
+from state import AgentState
+
+BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
+SPINE_PREFIX = "/app/spine/"
 
 
-def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
-    """Register executive control tools."""
+def _is_spine_write(command: str) -> bool:
+    if SPINE_PREFIX not in command:
+        return False
+    write_indicators = [">", ">>"]
+    for indicator in write_indicators:
+        if indicator in command:
+            return True
+    for cmd in ["tee ", "cp ", "mv ", "install "]:
+        if cmd in command:
+            parts = command.split()
+            for part in parts:
+                if part.startswith(SPINE_PREFIX):
+                    return True
+    return False
 
+
+def register_executive_tools(
+    registry: ToolRegistry, client: SpineClient, state: AgentState
+):
     @registry.tool(
-        description="Set current focus to a new objective.",
+        description="Set the current focus objective.",
         parameters={
             "type": "object",
             "properties": {
@@ -21,38 +40,36 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         },
     )
     def set_focus(objective: str) -> str:
-        old = state.set_focus(objective)
-        client.emit_event("cortex.focus_set", {"from": old, "to": objective})
-        return f"[FOCUS SET] Now focusing on: {objective}"
+        state.set_focus(objective)
+        client.emit_event("cortex.set_focus", {"objective": objective})
+        return "[FOCUS SET]"
 
     @registry.tool(
-        description="Resolve current focus with a synthesis.",
+        description="Resolve the current focus with a synthesis.",
         parameters={
             "type": "object",
             "properties": {
                 "synthesis": {
                     "type": "string",
-                    "description": "Summary of what was accomplished",
+                    "description": "Synthesis of completed focus",
                 },
             },
             "required": ["synthesis"],
         },
     )
     def resolve_focus(synthesis: str) -> str:
-        old = state.resolve_focus(synthesis)
-        client.emit_event(
-            "cortex.focus_resolved", {"focus": old, "synthesis": synthesis}
-        )
-        return f"[FOCUS RESOLVED] {old}: {synthesis}"
+        state.resolve_focus(synthesis)
+        client.emit_event("cortex.resolve_focus", {"synthesis": synthesis})
+        return "[FOCUS RESOLVED]"
 
     @registry.tool(
-        description="Fold context to free up space. Use the DELTA pattern: State Delta, Negative Knowledge, Handoff.",
+        description="Fold context to reduce token usage.",
         parameters={
             "type": "object",
             "properties": {
                 "synthesis": {
                     "type": "string",
-                    "description": "DELTA pattern synthesis of current context",
+                    "description": "Synthesis for the fold",
                 },
             },
             "required": ["synthesis"],
@@ -60,10 +77,10 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
     )
     def fold_context(synthesis: str) -> str:
         client.request_fold(synthesis)
-        return "[CONTEXT FOLDED] Synthesis saved. Context window refreshed."
+        return "[CONTEXT FOLDED]"
 
     @registry.tool(
-        description="Reflect and pause. Set sleep_duration to rest (1-120 seconds).",
+        description="Reflect on current status, optionally sleeping.",
         parameters={
             "type": "object",
             "properties": {
@@ -73,10 +90,9 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
                 },
                 "sleep_duration": {
                     "type": "integer",
-                    "description": "Seconds to pause (1-120)",
+                    "description": "Seconds to sleep (default: 0)",
                 },
             },
-            "required": ["status"],
         },
     )
     def reflect(status: str, sleep_duration: int = 0) -> str:
@@ -85,14 +101,6 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         )
         if sleep_duration > 0:
             import time
-            from pathlib import Path
-            import os
 
-            wake_path = Path(os.environ.get("SPINE_DIR", "/spine")) / ".wake"
-            deadline = time.time() + min(sleep_duration, 120)
-            while time.time() < deadline:
-                if wake_path.exists():
-                    wake_path.unlink(missing_ok=True)
-                    break
-                time.sleep(0.5)
-        return f"[REFLECT] {status}"
+            time.sleep(sleep_duration)
+        return "[REFLECT]"
