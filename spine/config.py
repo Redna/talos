@@ -1,57 +1,32 @@
-from __future__ import annotations
-
 import json
-import os
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass, fields
 
 
 @dataclass
 class SpineConfig:
-    memory_dir: str = "/memory"
+    gate_url: str = "http://localhost:4000/v1/chat/completions"
+    socket_path: str = "/tmp/spine.sock"
     spine_dir: str = "/spine"
+    app_dir: str = "/app"
+    memory_dir: str = "/memory"
     constitution_path: str = "/app/CONSTITUTION.md"
     identity_path: str = "/app/identity.md"
-    app_dir: str = "/app"
-    cortex_bin: str = "/venv/bin/python"
-    cortex_args: list[str] = field(
-        default_factory=lambda: ["/app/cortex/seed_agent.py"]
-    )
-    startup_timeout: float = 30.0
-    socket_path: str = "/tmp/spine.sock"
-    control_plane_port: int = 4001
-    context_threshold: float = 0.85
-    max_messages: int = 200
-    active_window: int = 5
-    max_context_tokens: int = 71680
-    gate_url: str = "http://gate:4000"
-    gate_model: str = "gemma4:31b-cloud"
+    context_threshold_pct: float = 0.85
     telegram_bot_token: str = ""
-    telegram_chat_id: int = 0
-    stall_timeout: float = 600.0
-    snapshot_interval: int = 10
-    max_reversal_depth: int = 5
-    shed_tool_output_max_chars: int = 500
+    telegram_chat_id: str = "0"
+    control_plane_port: int = 4001
+    snapshot_interval: int = 50
 
 
 def load_config(path: str) -> SpineConfig:
     cfg = SpineConfig()
-    config_file = Path(path)
-    if config_file.exists():
-        data = json.loads(config_file.read_text())
-        for key, value in data.items():
-            if hasattr(cfg, key):
-                setattr(cfg, key, value)
-    env_model = os.environ.get("TALOS_MODEL")
-    if env_model:
-        cfg.gate_model = env_model
-    env_token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    if env_token:
-        cfg.telegram_bot_token = env_token
-    env_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-    if env_chat_id:
-        try:
-            cfg.telegram_chat_id = int(env_chat_id)
-        except ValueError:
-            pass
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return cfg
+    valid_fields = {f.name for f in fields(SpineConfig)}
+    for k, v in data.items():
+        if k in valid_fields:
+            setattr(cfg, k, v)
     return cfg

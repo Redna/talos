@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass
@@ -13,8 +11,8 @@ class ToolDef:
 
 @dataclass
 class HUDData:
-    memory_keys: int
-    last_keys: list[str]
+    memory_file_count: int
+    last_files: list[str]
     urgency: str
     spend: float = 0.0
 
@@ -56,17 +54,6 @@ class EmitEventRequest:
 
 
 @dataclass
-class GetStateRequest:
-    keys: list[str]
-
-
-@dataclass
-class PushNotification:
-    type: str
-    payload: str
-
-
-@dataclass
 class ToolCallResult:
     id: str
     name: str
@@ -86,7 +73,7 @@ class ThinkResponse:
 @dataclass
 class JSONRPCRequest:
     jsonrpc: str
-    id: int
+    id: Any
     method: str
     params: dict[str, Any]
 
@@ -100,6 +87,6 @@ class RPCError:
 @dataclass
 class JSONRPCResponse:
     jsonrpc: str
-    id: int
-    result: Any = None
-    error: RPCError | None = None
+    id: Any
+    result: Optional[dict[str, Any]] = None
+    error: Optional[RPCError] = None
