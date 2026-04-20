@@ -1,19 +1,16 @@
 [project]
-name = "talos-cortex"
-version = "0.1.0"
-description = "Talos V2 Cortex — Self-evolving autonomous agent"
-requires-python = ">=3.10"
+name = "talos"
+version = "2.0.0"
+description = "Talos Bare Minimum — Self-evolving autonomous agent"
+requires-python = ">=3.12"
 dependencies = [
-    "aiohttp>=3.9",
-    "tree-sitter>=0.22",
-    "tree-sitter-python>=0.23",
+    "httpx>=0.27",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "hypothesis>=6.0",
 ]
 
-[project.optional-dependencies]
-dev = ["pytest>=8.0", "hypothesis>=6.0"]
-
 [tool.pytest.ini_options]
+asyncio_mode = "strict"
 pythonpath = ["."]
+testpaths = ["tests"]
