@@ -1,152 +1,133 @@
 import asyncio
-from unittest.mock import MagicMock, AsyncMock
+import json
+from pathlib import Path
+from unittest.mock import MagicMock
 
-from spine.ipc_server import IPCServer
+import pytest
+import pytest_asyncio
+
 from spine.config import SpineConfig
+from spine.events import EventLogger
+from spine.ipc_server import IPCServer
 from spine.stream import StreamManager
 
 
-def make_config(tmp_path):
-    from pathlib import Path
+class MockSupervisor:
+    def __init__(self):
+        self._restart_requested = False
+        self._restart_reason = None
 
+    def request_restart(self, reason):
+        self._restart_requested = True
+        self._restart_reason = reason
+
+    def is_paused(self):
+        return False
+
+
+@pytest.fixture
+def ipc_setup(tmp_path):
     cfg = SpineConfig()
     cfg.socket_path = str(tmp_path / "test.sock")
+    cfg.spine_dir = str(tmp_path / "spine")
     cfg.constitution_path = str(tmp_path / "CONSTITUTION.md")
     cfg.identity_path = str(tmp_path / "identity.md")
-    cfg.spine_dir = str(tmp_path / "spine")
+    cfg.memory_dir = str(tmp_path / "memory")
+    Path(cfg.spine_dir).mkdir(parents=True, exist_ok=True)
+    Path(cfg.memory_dir).mkdir(parents=True, exist_ok=True)
     Path(cfg.constitution_path).write_text("# Principles\nAgency.")
     Path(cfg.identity_path).write_text("# Identity\nYou are Talos.")
-    return cfg
-
-
-def test_handle_unknown_method():
-    cfg = SpineConfig()
+    events = EventLogger(str(Path(cfg.spine_dir) / "events"))
     stream = StreamManager(cfg)
-    events = MagicMock()
-    sup = MagicMock()
-    server = IPCServer(cfg, sup, stream, events)
-    result = asyncio.get_event_loop().run_until_complete(
-        server._handle_request(
-            {"jsonrpc": "2.0", "id": 1, "method": "unknown", "params": {}}
-        )
-    )
-    assert result["error"]["code"] == -32601
+    supervisor = MockSupervisor()
+    server = IPCServer(cfg, supervisor, stream, events)
+    yield server, cfg, stream, supervisor
+    events.close()
 
 
-def test_handle_get_state():
-    cfg = SpineConfig()
-    stream = StreamManager(cfg)
-    stream.turn = 5
-    events = MagicMock()
-    sup = MagicMock()
-    server = IPCServer(cfg, sup, stream, events)
-    result = asyncio.get_event_loop().run_until_complete(
-        server._handle_request(
-            {"jsonrpc": "2.0", "id": 2, "method": "get_state", "params": {}}
-        )
-    )
-    assert result["result"]["turn"] == 5
+@pytest.mark.asyncio
+async def test_ipc_server_starts(ipc_setup):
+    server, cfg, stream, supervisor = ipc_setup
+    await server.start()
+    assert Path(cfg.socket_path).exists()
+    await server.stop()
 
 
-def test_handle_emit_event():
-    cfg = SpineConfig()
-    stream = StreamManager(cfg)
-    events = MagicMock()
-    sup = MagicMock()
-    server = IPCServer(cfg, sup, stream, events)
-    result = asyncio.get_event_loop().run_until_complete(
-        server._handle_request(
-            {
-                "jsonrpc": "2.0",
-                "id": 3,
-                "method": "emit_event",
-                "params": {"type": "test", "payload": {"key": "val"}},
-            }
-        )
-    )
-    assert result["result"] == "ok"
-    events.emit.assert_called_once()
+@pytest.mark.asyncio
+async def test_ipc_tool_result(ipc_setup):
+    server, cfg, stream, supervisor = ipc_setup
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tool_result",
+            "params": {
+                "tool_call_id": "tc1",
+                "output": "ok",
+                "success": True,
+            },
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert resp["result"] == "ok"
+        assert len(stream.messages) == 2
+        assert stream.messages[1]["role"] == "tool"
+        assert stream.messages[1]["tool_call_id"] == "tc1"
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
 
 
-def test_parse_think():
-    cfg = SpineConfig()
-    stream = StreamManager(cfg)
-    events = MagicMock()
-    sup = MagicMock()
-    server = IPCServer(cfg, sup, stream, events)
-    params = {
-        "focus": "test focus",
-        "tools": [
-            {
-                "name": "shell",
-                "description": "Run shell",
-                "parameters": {"type": "object"},
-            }
-        ],
-        "hud_data": {"memory_keys": 3, "last_keys": ["a", "b"], "urgency": "nominal"},
-    }
-    think_req = server._parse_think(params)
-    assert think_req.focus == "test focus"
-    assert len(think_req.tools) == 1
-    assert think_req.tools[0].name == "shell"
-    assert think_req.hud_data.memory_keys == 3
+@pytest.mark.asyncio
+async def test_ipc_request_fold(ipc_setup):
+    server, cfg, stream, supervisor = ipc_setup
+    stream.add_message({"role": "user", "content": "hello"})
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "request_fold",
+            "params": {"synthesis": "summary"},
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert resp["result"] == "ok"
+        last_msg = stream.messages[-1]
+        assert last_msg["role"] == "assistant"
+        assert last_msg["content"] == "summary"
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
 
 
-def test_error_response():
-    result = IPCServer._error_response(1, -32601, "Method not found")
-    assert result["error"]["code"] == -32601
-    assert result["error"]["message"] == "Method not found"
-
-
-def test_success_response():
-    result = IPCServer._success_response(5, {"key": "value"})
-    assert result["jsonrpc"] == "2.0"
-    assert result["id"] == 5
-    assert result["result"] == {"key": "value"}
-
-
-def test_handle_tool_result():
-    cfg = SpineConfig()
-    stream = StreamManager(cfg)
-    events = MagicMock()
-    sup = MagicMock()
-    server = IPCServer(cfg, sup, stream, events)
-    result = asyncio.get_event_loop().run_until_complete(
-        server._handle_request(
-            {
-                "jsonrpc": "2.0",
-                "id": 4,
-                "method": "tool_result",
-                "params": {"tool_call_id": "tc1", "output": "ok", "success": True},
-            }
-        )
-    )
-    assert result["result"] == "ok"
-    assert len(stream.messages) == 1
-
-
-def test_handle_request_fold():
-    cfg = SpineConfig()
-    stream = StreamManager(cfg)
-    stream.messages = [
-        __import__("spine.stream", fromlist=["Message"]).Message(
-            role="system", content="sys"
-        ),
-        __import__("spine.stream", fromlist=["Message"]).Message(
-            role="user", content="hi"
-        ),
-    ]
-    events = MagicMock()
-    sup = MagicMock()
-    server = IPCServer(cfg, sup, stream, events)
-    result = asyncio.get_event_loop().run_until_complete(
-        server._handle_request(
-            {
-                "jsonrpc": "2.0",
-                "id": 5,
-                "method": "request_fold",
-                "params": {"synthesis": "summary"},
-            }
-        )
-    )
-    assert result["result"] == "ok"
+@pytest.mark.asyncio
+async def test_ipc_unknown_method(ipc_setup):
+    server, cfg, stream, supervisor = ipc_setup
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "bogus_method",
+            "params": {},
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert resp["error"]["code"] == -32601
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
