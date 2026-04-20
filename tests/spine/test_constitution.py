@@ -1,55 +1,21 @@
-from spine.constitution import ConstitutionManager
+from spine.constitution import load_system_prompt
 
 
-def test_load_reads_both_files(tmp_path):
+def test_load_system_prompt_concatenates_both_files(tmp_path):
     constitution = tmp_path / "CONSTITUTION.md"
     identity = tmp_path / "identity.md"
     constitution.write_text("# Principles\nAgency and continuity.")
     identity.write_text("# Identity\nYou are Talos.")
-    cm = ConstitutionManager(str(constitution), str(identity))
-    cm.load()
-    assert "Agency" in cm.system_prompt()
-    assert "Talos" in cm.system_prompt()
+    result = load_system_prompt(str(constitution), str(identity))
+    assert "Agency and continuity." in result
+    assert "You are Talos." in result
+    assert (
+        result == "# Principles\nAgency and continuity.\n\n# Identity\nYou are Talos."
+    )
 
 
-def test_load_rejects_empty_constitution(tmp_path):
-    constitution = tmp_path / "CONSTITUTION.md"
-    identity = tmp_path / "identity.md"
-    constitution.write_text("")
-    identity.write_text("You are Talos.")
-    cm = ConstitutionManager(str(constitution), str(identity))
-    raised = False
-    try:
-        cm.load()
-    except ValueError as e:
-        raised = True
-        assert "empty" in str(e).lower()
-    assert raised
-
-
-def test_has_changed_detects_modification(tmp_path):
-    constitution = tmp_path / "CONSTITUTION.md"
-    identity = tmp_path / "identity.md"
-    constitution.write_text("# Original")
-    identity.write_text("# Identity")
-    cm = ConstitutionManager(str(constitution), str(identity))
-    cm.load()
-    assert cm.has_changed() is False
-    constitution.write_text("# Modified")
-    assert cm.has_changed() is True
-
-
-def test_reload_if_changed(tmp_path):
-    constitution = tmp_path / "CONSTITUTION.md"
-    identity = tmp_path / "identity.md"
-    constitution.write_text("# Original")
-    identity.write_text("# Identity")
-    cm = ConstitutionManager(str(constitution), str(identity))
-    cm.load()
-    changed, err = cm.reload_if_changed()
-    assert changed is False
-    assert err is None
-    constitution.write_text("# Modified")
-    changed, err = cm.reload_if_changed()
-    assert changed is True
-    assert err is None
+def test_load_system_prompt_returns_default_when_files_missing(tmp_path):
+    constitution = tmp_path / "nonexistent_constitution.md"
+    identity = tmp_path / "nonexistent_identity.md"
+    result = load_system_prompt(str(constitution), str(identity))
+    assert "Talos" in result
