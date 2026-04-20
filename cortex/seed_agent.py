@@ -1,66 +1,108 @@
-"""
-Talos V2 Cortex — Self-evolving autonomous agent.
-
-Main entry point. Runs the ReAct loop:
-  1. Load state and memory
-  2. Build HUD data
-  3. Call spine.think() with focus, tools, and HUD
-  4. Route tool calls
-  5. Return tool results
-  6. Repeat
-"""
-
 import os
 import sys
 import json
 import time
+from collections import deque
 from pathlib import Path
 
 from spine_client import SpineClient, SpineError
 from tool_registry import ToolRegistry
 from state import AgentState
-from memory_store import MemoryStore
-from hud_builder import build_hud_data
 
-# Import tool registration functions
 from tools.executive import register_executive_tools
-from tools.code_surgery import register_code_surgery_tools
-from tools.memory import register_memory_tools
+from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
-from tools.git_operations import register_git_tools
-
+from tools.git_ops import register_git_ops_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
 
+LOW_VALUE_TOOLS = {"bash_command"}
+LOW_VALUE_THRESHOLD = 4
+MAX_TOOL_CALLS_PER_TURN = 10
+
+
+class RepetitionDetector:
+    def __init__(self, window=20, threshold=5):
+        self.window = window
+        self.threshold = threshold
+        self.history = deque(maxlen=window)
+
+    def record(self, tool_name, tool_args):
+        args_key = json.dumps(tool_args, sort_keys=True)[:100]
+        self.history.append((tool_name, args_key))
+
+    def is_stalled(self):
+        if not self.history:
+            return False
+        last_tool = self.history[-1][0]
+        consecutive = 0
+        for name, _ in reversed(self.history):
+            if name == last_tool:
+                consecutive += 1
+            else:
+                break
+        threshold = (
+            LOW_VALUE_THRESHOLD if last_tool in LOW_VALUE_TOOLS else self.threshold
+        )
+        return consecutive >= threshold
+
+    def get_stall_report(self):
+        if not self.history:
+            return ""
+        last_tool = self.history[-1][0]
+        consecutive = 0
+        for name, _ in reversed(self.history):
+            if name == last_tool:
+                consecutive += 1
+            else:
+                break
+        threshold = (
+            LOW_VALUE_THRESHOLD if last_tool in LOW_VALUE_TOOLS else self.threshold
+        )
+        if consecutive >= threshold:
+            return f"Tool '{last_tool}' called {consecutive} times in last {len(self.history)} turns. You may be in a loop. Use 'reflect' to reassess your approach."
+        return ""
+
+    def reset(self):
+        self.history.clear()
+
+
+def _build_hud(state):
+    memory_dir = state.memory_dir
+    md_files = list(memory_dir.glob("*.md")) if memory_dir.exists() else []
+    urgency = "nominal"
+    if state.error_streak >= 3:
+        urgency = "elevated"
+    if state.error_streak >= 5:
+        urgency = "critical"
+    return {
+        "turn": 0,
+        "context_pct": 0.0,
+        "urgency": urgency,
+        "memory_file_count": len(md_files),
+        "last_files": [f.name for f in md_files[-3:]],
+        "focus": state.current_focus or "none",
+    }
+
 
 def main():
-    """Main agent loop."""
-    # Initialize components
     client = SpineClient(SPINE_SOCKET)
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
-    memory = MemoryStore(MEMORY_DIR)
 
-    # Register all tools
     register_executive_tools(registry, client, state)
-    register_code_surgery_tools(registry, client)
-    register_memory_tools(registry, memory)
+    register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
-    register_git_tools(registry, client)
+    register_git_ops_tools(registry, client)
 
-    # Main loop
+    detector = RepetitionDetector()
+    turn = 0
+
     while True:
         try:
-            # Build HUD data
-            urgency = "nominal"
-            if state.error_streak >= 3:
-                urgency = "elevated"
-            if state.error_streak >= 5:
-                urgency = "critical"
-            hud_data = build_hud_data(state, memory, urgency)
+            hud_data = _build_hud(state)
 
-            # Call Spine to think
             try:
                 response = client.think(
                     focus=state.current_focus or "No focus set",
@@ -68,50 +110,58 @@ def main():
                     hud_data=hud_data,
                 )
             except SpineError as e:
-                # If the Spine forces a fold, it will return with fold_context only
                 print(f"[Cortex] Spine error: {e}")
                 state.error_streak += 1
                 state.save()
                 continue
 
-            # Update state from response
             state.total_tokens_consumed += response.get("tokens_used", 0)
             state.save()
-
-            # Reset error streak on successful think
             state.error_streak = 0
             state.save()
 
-            # Route tool calls
             tool_calls = response.get("tool_calls", [])
             if not tool_calls:
-                # No tool call — the agent just produced text
-                # This shouldn't normally happen with tool_choice=required
                 continue
+
+            turn += 1
+
+            if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:
+                print(
+                    f"[Cortex] LLM returned {len(tool_calls)} tool calls, capping to {MAX_TOOL_CALLS_PER_TURN}"
+                )
+                client.emit_event(
+                    "cortex.tool_calls_capped",
+                    {"original_count": len(tool_calls), "cap": MAX_TOOL_CALLS_PER_TURN},
+                )
+                tool_calls = tool_calls[:MAX_TOOL_CALLS_PER_TURN]
 
             for tc in tool_calls:
                 tool_name = tc["name"]
                 tool_args = tc.get("arguments", {})
 
-                # Emit event for observability
+                detector.record(tool_name, tool_args)
+
+                if detector.is_stalled():
+                    report = detector.get_stall_report()
+                    print(f"[Cortex] Stall detected mid-loop: {report}")
+                    client.emit_event("cortex.stall_detected", {"report": report})
+                    client.tool_result(f"stall_break_{turn}", report, True)
+                    detector.reset()
+                    break
+
                 client.emit_event(
                     "cortex.tool_call",
-                    {
-                        "tool": tool_name,
-                        "args_summary": json.dumps(tool_args)[:200],
-                    },
+                    {"tool": tool_name, "args_summary": json.dumps(tool_args)[:200]},
                 )
 
-                # Execute the tool
                 start_time = time.time()
                 result = registry.execute(tool_name, tool_args)
                 duration_ms = int((time.time() - start_time) * 1000)
 
-                # Return result to Spine
                 success = not result.startswith(("[ERROR]", "[REJECTED]", "[EXIT"))
                 client.tool_result(tc["id"], result, success)
 
-                # Emit result event
                 client.emit_event(
                     "cortex.tool_result",
                     {
@@ -122,7 +172,6 @@ def main():
                     },
                 )
 
-                # Check for restart signal
                 if tool_name == "request_restart":
                     print("[Cortex] Restart requested. Exiting.")
                     sys.exit(0)
