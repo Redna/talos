@@ -74,16 +74,19 @@ class IPCServer:
         if method == "think":
             if not self.gate_proxy:
                 return self._error(req_id, -32000, "No gate proxy configured")
+            hud = params.get("hud_data", {})
+            hud.setdefault("turn", self.stream.turn)
             payload = self.stream.build_payload(
                 params.get("tools", []),
-                params.get("hud_data", {}),
+                hud,
             )
-            try:
-                result = self.gate_proxy.call(
-                    messages=payload,
-                    tools=params.get("tools", []),
-                )
-            except Exception as e:
+        try:
+            result = self.gate_proxy.call(
+                messages=payload,
+                tools=params.get("tools", []),
+                turn=self.stream.turn,
+            )
+        except Exception as e:
                 self.events.emit("spine.gate_error", {"error": str(e)})
                 return self._error(req_id, -32000, f"Gate error: {e}")
             assistant_content = result.get("assistant_message", "")
@@ -108,6 +111,7 @@ class IPCServer:
                     "role": "assistant",
                     "content": assistant_content,
                     "tool_calls": openai_tool_calls,
+                    "_turn": self.stream.turn + 1,
                 }
             )
             self.stream.turn += 1

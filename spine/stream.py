@@ -18,7 +18,15 @@ class StreamManager:
     def __init__(self, cfg: SpineConfig):
         self.cfg = cfg
         self._messages: list[dict[str, Any]] = []
-        self.turn = 0
+        state_path = Path(cfg.spine_dir) / "state.json"
+        if state_path.exists():
+            try:
+                saved = json.loads(state_path.read_text())
+                self.turn = saved.get("turn", 0)
+            except Exception:
+                self.turn = 0
+        else:
+            self.turn = 0
         self._system_prompt = load_system_prompt(
             cfg.constitution_path, cfg.identity_path
         )
