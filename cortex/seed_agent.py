@@ -16,7 +16,6 @@ from tools.git_ops import register_git_ops_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
-SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 
 LOW_VALUE_TOOLS = {"bash_command"}
 LOW_VALUE_THRESHOLD = 4
@@ -101,17 +100,7 @@ def main():
     turn = 0
 
     while True:
-        paused = (SPINE_DIR / ".paused").exists()
-        single_step = (SPINE_DIR / ".single_step").exists()
-        was_single_step = single_step
         try:
-            if paused and not single_step:
-                time.sleep(1)
-                continue
-
-            if single_step:
-                (SPINE_DIR / ".single_step").unlink(missing_ok=True)
-
             hud_data = _build_hud(state)
 
             try:
@@ -194,9 +183,6 @@ def main():
                 if not success:
                     state.error_streak += 1
                     state.save()
-
-            if was_single_step:
-                (SPINE_DIR / ".paused").touch(exist_ok=True)
 
         except KeyboardInterrupt:
             print("[Cortex] Interrupted. Exiting gracefully.")

@@ -89,9 +89,6 @@ class Supervisor:
     async def run(self):
         self._running = True
         self.health.cortex_start_time = time.time()
-        state_path = Path(self.cfg.spine_dir) / "state.json"
-        if not state_path.exists():
-            (Path(self.cfg.spine_dir) / ".paused").touch(exist_ok=True)
         self.start_cortex()
         commit_counter = 0
         while self._running:
