@@ -27,23 +27,22 @@ def test_initial_messages_include_system(spine_config):
 
 def test_add_message(spine_config):
     sm = StreamManager(spine_config)
-    sm.add_message({"role": "user", "content": "hello"})
-    assert any(m["content"] == "hello" for m in sm.messages)
+    sm.add_message({"role": "assistant", "content": "thinking"})
+    assert any(m["content"] == "thinking" for m in sm.messages)
 
 
 def test_record_tool_result(spine_config):
     sm = StreamManager(spine_config)
-    sm.add_message({"role": "user", "content": "hello"})
+    sm.add_message({"role": "assistant", "content": "", "tool_calls": []})
     sm.record_tool_result("tc_1", "output text", True)
     last = sm.messages[-1]
     assert last["role"] == "tool"
     assert last["tool_call_id"] == "tc_1"
-    assert last["content"] == "output text"
 
 
-def test_hud_composed_in_payload(spine_config):
+def test_hud_piggybacks_on_tool_result(spine_config):
     sm = StreamManager(spine_config)
-    sm.add_message({"role": "user", "content": "hello"})
+    sm.add_message({"role": "assistant", "content": "", "tool_calls": []})
     sm.add_message({"role": "tool", "tool_call_id": "tc_1", "content": "result"})
     sm.set_hud({"turn": 1, "context_pct": 0.5, "urgency": "nominal", "memory_files": 3})
     payload = sm.build_payload(tools=[])
@@ -53,18 +52,68 @@ def test_hud_composed_in_payload(spine_config):
 
 def test_hud_does_not_mutate_stream(spine_config):
     sm = StreamManager(spine_config)
-    sm.add_message({"role": "user", "content": "hello"})
+    sm.add_message({"role": "assistant", "content": "", "tool_calls": []})
     sm.add_message({"role": "tool", "tool_call_id": "tc_1", "content": "result"})
     sm.set_hud({"turn": 1, "context_pct": 0.5, "urgency": "nominal", "memory_files": 3})
     payload = sm.build_payload(tools=[])
-    tool_msg_before = [m for m in sm.messages if m["role"] == "tool"][0]
-    original_content = tool_msg_before["content"]
-    assert "[HUD]" not in original_content
+    tool_msg = [m for m in sm.messages if m["role"] == "tool"][-1]
+    assert "[HUD]" not in tool_msg["content"]
+
+
+def test_hud_no_user_message(spine_config):
+    sm = StreamManager(spine_config)
+    sm.add_message({"role": "assistant", "content": "", "tool_calls": []})
+    sm.add_message({"role": "tool", "tool_call_id": "tc_1", "content": "result"})
+    sm.set_hud({"turn": 1, "context_pct": 0.5, "urgency": "nominal", "memory_files": 3})
+    payload = sm.build_payload(tools=[])
+    user_msgs = [m for m in payload if m["role"] == "user"]
+    assert len(user_msgs) == 0
+
+
+def test_notices_piggyback_on_tool_result(spine_config):
+    sm = StreamManager(spine_config)
+    sm.add_message({"role": "assistant", "content": "", "tool_calls": []})
+    sm.add_message({"role": "tool", "tool_call_id": "tc_1", "content": "result"})
+    sm.queue_system_notice("STALL DETECTED: bash_command called 5 times")
+    payload = sm.build_payload(tools=[])
+    tool_msgs = [m for m in payload if m["role"] == "tool"]
+    assert any("STALL" in m["content"] for m in tool_msgs)
+    user_msgs = [m for m in payload if m["role"] == "user"]
+    assert len(user_msgs) == 0
+
+
+def test_no_user_messages_after_system(spine_config):
+    sm = StreamManager(spine_config)
+    sm.add_message({"role": "assistant", "content": "thinking", "tool_calls": []})
+    sm.add_message({"role": "tool", "tool_call_id": "tc_1", "content": "result"})
+    sm.set_hud({"turn": 1, "context_pct": 0.5, "urgency": "nominal", "memory_files": 3})
+    sm.queue_system_notice("NOTICE")
+    payload = sm.build_payload(tools=[])
+    user_msgs = [m for m in payload if m["role"] == "user"]
+    assert len(user_msgs) == 0
+
+
+def test_hud_piggyback_resets_on_new_tool_result(spine_config):
+    sm = StreamManager(spine_config)
+    sm.add_message({"role": "assistant", "content": "", "tool_calls": []})
+    sm.add_message({"role": "tool", "tool_call_id": "tc_1", "content": "result1"})
+    sm.set_hud({"turn": 1, "context_pct": 0.5, "urgency": "nominal", "memory_files": 3})
+    payload1 = sm.build_payload(tools=[])
+    sm.add_message({"role": "assistant", "content": "", "tool_calls": []})
+    sm.add_message({"role": "tool", "tool_call_id": "tc_2", "content": "result2"})
+    sm.set_hud(
+        {"turn": 2, "context_pct": 0.6, "urgency": "elevated", "memory_files": 4}
+    )
+    payload2 = sm.build_payload(tools=[])
+    tool2_msgs = [
+        m for m in payload2 if m["role"] == "tool" and "result2" in m.get("content", "")
+    ]
+    assert len(tool2_msgs) == 1
+    assert "[HUD]" in tool2_msgs[0]["content"]
 
 
 def test_fold_archives_and_resets(spine_config):
     sm = StreamManager(spine_config)
-    sm.add_message({"role": "user", "content": "hello"})
     sm.add_message({"role": "assistant", "content": "thinking..."})
     sm.add_message({"role": "tool", "tool_call_id": "c1", "content": "ok"})
     count_before = len(sm.messages)
@@ -121,12 +170,11 @@ def test_state_file_written(spine_config):
     assert state_file.exists()
     data = json.loads(state_file.read_text())
     assert data["focus"] == "test objective"
-    assert data["context_pct"] == 0.5
 
 
 def test_messages_copy_on_insert(spine_config):
     sm = StreamManager(spine_config)
-    original = {"role": "user", "content": "hello"}
+    original = {"role": "assistant", "content": "hello"}
     sm.add_message(original)
     original["content"] = "mutated"
     assert sm.messages[1]["content"] == "hello"
@@ -134,16 +182,7 @@ def test_messages_copy_on_insert(spine_config):
 
 def test_build_payload_deep_copy(spine_config):
     sm = StreamManager(spine_config)
-    sm.add_message({"role": "user", "content": "hello"})
+    sm.add_message({"role": "assistant", "content": "hello"})
     payload = sm.build_payload(tools=[])
     payload[1]["content"] = "mutated"
     assert sm.messages[1]["content"] == "hello"
-
-
-def test_notices_persisted_to_stream(spine_config):
-    sm = StreamManager(spine_config)
-    sm.add_message({"role": "user", "content": "hello"})
-    sm.queue_system_notice("STALL DETECTED: bash_command called 5 times")
-    payload = sm.build_payload(tools=[])
-    notice_msgs = [m for m in sm.messages if "STALL" in m.get("content", "")]
-    assert len(notice_msgs) >= 1

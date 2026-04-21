@@ -25,6 +25,7 @@ class StreamManager:
         self._stall_notices_sent = 0
         self._hud_data: dict[str, Any] | None = None
         self._queued_notices: list[str] = []
+        self._hud_piggybacked = False
         self._init_messages()
 
     def _init_messages(self):
@@ -40,6 +41,7 @@ class StreamManager:
 
     def add_message(self, msg: dict):
         self._messages.append(dict(msg))
+        self._hud_piggybacked = False
 
     def record_tool_result(self, tool_call_id: str, output: str, success: bool):
         self.add_message(
@@ -48,6 +50,7 @@ class StreamManager:
 
     def set_hud(self, hud_data: dict[str, Any]):
         self._hud_data = dict(hud_data)
+        self._hud_piggybacked = False
 
     def fold(self, synthesis: str):
         traj_dir = Path(self.cfg.spine_dir) / "trajectories"
@@ -104,14 +107,11 @@ class StreamManager:
         self, tools: list[dict], hud_data: dict[str, Any] | None = None
     ) -> list[dict]:
         payload = copy.deepcopy(self._messages)
+        append_parts = []
         if self._queued_notices:
-            notice_text = "\n".join(self._queued_notices)
-            payload.append({"role": "user", "content": notice_text})
-            for notice in self._queued_notices:
-                self.add_message({"role": "user", "content": notice})
-            self._queued_notices.clear()
+            append_parts.extend(self._queued_notices)
         effective_hud = hud_data or self._hud_data
-        if effective_hud:
+        if effective_hud and not self._hud_piggybacked:
             hud_line = (
                 f"\n[HUD] turn={effective_hud.get('turn', 0)}"
                 f" context_pct={effective_hud.get('context_pct', 0.0):.2f}"
@@ -119,12 +119,16 @@ class StreamManager:
                 f" memory_files={effective_hud.get('memory_files', 0)}"
                 f" focus={effective_hud.get('focus', '')}"
             )
+            append_parts.append(hud_line)
+            self._hud_piggybacked = True
+        if append_parts:
+            suffix = "\n".join(append_parts)
             for msg in reversed(payload):
                 if msg.get("role") == "tool":
-                    msg["content"] += hud_line
+                    msg["content"] += "\n" + suffix
                     break
-            else:
-                payload.append({"role": "user", "content": hud_line.strip()})
+        if self._queued_notices:
+            self._queued_notices.clear()
         return payload
 
     def write_state(
