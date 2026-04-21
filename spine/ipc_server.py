@@ -114,7 +114,7 @@ class IPCServer:
             hud_data = params.get("hud_data", {})
             hud_data["turn"] = self.stream.turn
             hud_data["context_pct"] = result.get("context_pct", 0.0)
-            self.stream.piggyback_hud(hud_data)
+            self.stream.set_hud(hud_data)
             self.stream.write_state(
                 focus=hud_data.get("focus", ""),
                 context_pct=result.get("context_pct", 0.0),

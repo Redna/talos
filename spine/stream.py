@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 from collections import Counter
 from datetime import datetime, timezone
@@ -22,7 +23,8 @@ class StreamManager:
             cfg.constitution_path, cfg.identity_path
         )
         self._stall_notices_sent = 0
-        self.queued_notices: list[str] = []
+        self._hud_data: dict[str, Any] | None = None
+        self._queued_notices: list[str] = []
         self._init_messages()
 
     def _init_messages(self):
@@ -32,6 +34,10 @@ class StreamManager:
     def messages(self) -> list[dict[str, Any]]:
         return self._messages
 
+    @property
+    def queued_notices(self) -> list[str]:
+        return self._queued_notices
+
     def add_message(self, msg: dict):
         self._messages.append(dict(msg))
 
@@ -40,20 +46,8 @@ class StreamManager:
             {"role": "tool", "tool_call_id": tool_call_id, "content": output}
         )
 
-    def piggyback_hud(self, hud_data: dict[str, Any]):
-        hud_line = (
-            f"\n[HUD] turn={hud_data.get('turn', 0)}"
-            f" context_pct={hud_data.get('context_pct', 0.0):.2f}"
-            f" urgency={hud_data.get('urgency', 'nominal')}"
-            f" memory_files={hud_data.get('memory_files', 0)}"
-            f" focus={hud_data.get('focus', '')}"
-        )
-        for msg in reversed(self._messages):
-            if msg.get("role") == "tool" and not msg.get("_hud_piggybacked"):
-                msg["content"] += hud_line
-                msg["_hud_piggybacked"] = True
-                return
-        self.add_message({"role": "user", "content": hud_line.strip()})
+    def set_hud(self, hud_data: dict[str, Any]):
+        self._hud_data = dict(hud_data)
 
     def fold(self, synthesis: str):
         traj_dir = Path(self.cfg.spine_dir) / "trajectories"
@@ -64,6 +58,7 @@ class StreamManager:
         self._init_messages()
         self.add_message({"role": "assistant", "content": synthesis})
         self.turn = 0
+        self._stall_notices_sent = 0
 
     def detect_stall(self) -> bool:
         assistant_msgs = [m for m in self._messages if m.get("role") == "assistant"]
@@ -103,14 +98,33 @@ class StreamManager:
         return stalled
 
     def queue_system_notice(self, text: str):
-        self.queued_notices.append(text)
+        self._queued_notices.append(text)
 
-    def build_payload(self, tools: list[dict], hud_data: dict[str, Any]) -> list[dict]:
-        payload = list(self._messages)
-        if self.queued_notices:
-            notice_text = "\n".join(self.queued_notices)
+    def build_payload(
+        self, tools: list[dict], hud_data: dict[str, Any] | None = None
+    ) -> list[dict]:
+        payload = copy.deepcopy(self._messages)
+        if self._queued_notices:
+            notice_text = "\n".join(self._queued_notices)
             payload.append({"role": "user", "content": notice_text})
-            self.queued_notices.clear()
+            for notice in self._queued_notices:
+                self.add_message({"role": "user", "content": notice})
+            self._queued_notices.clear()
+        effective_hud = hud_data or self._hud_data
+        if effective_hud:
+            hud_line = (
+                f"\n[HUD] turn={effective_hud.get('turn', 0)}"
+                f" context_pct={effective_hud.get('context_pct', 0.0):.2f}"
+                f" urgency={effective_hud.get('urgency', 'nominal')}"
+                f" memory_files={effective_hud.get('memory_files', 0)}"
+                f" focus={effective_hud.get('focus', '')}"
+            )
+            for msg in reversed(payload):
+                if msg.get("role") == "tool":
+                    msg["content"] += hud_line
+                    break
+            else:
+                payload.append({"role": "user", "content": hud_line.strip()})
         return payload
 
     def write_state(

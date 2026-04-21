@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 SPINE_PREFIX = "/app/spine/"
 BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
@@ -10,8 +11,6 @@ _WRITE_COMMANDS = {
     "mv ",
     "install ",
 }
-
-_WRITE_INDICATORS = {">", ">>"}
 
 _SCRIPT_PATTERNS = [
     re.compile(r"python[23]?\s+-c\s+.*open\s*\(\s*['\"]" + re.escape(SPINE_PREFIX)),
@@ -25,22 +24,26 @@ _SCRIPT_PATTERNS = [
 
 
 def is_spine_path(path: str) -> bool:
-    return SPINE_PREFIX in path
+    resolved = Path(path).resolve()
+    try:
+        return resolved.is_relative_to(Path("/app/spine").resolve())
+    except (OSError, ValueError):
+        return str(resolved).startswith(SPINE_PREFIX)
 
 
 def is_spine_write(command: str) -> bool:
     if SPINE_PREFIX not in command:
         return False
-    for indicator in _WRITE_INDICATORS:
+    for indicator in (">", ">>"):
         if indicator in command:
-            return True
+            for part in command.split():
+                if part.startswith(SPINE_PREFIX):
+                    return True
     for cmd in _WRITE_COMMANDS:
         if cmd in command:
             for part in command.split():
                 if part.startswith(SPINE_PREFIX):
                     return True
-    if "write" in command and SPINE_PREFIX in command:
-        return True
     for pattern in _SCRIPT_PATTERNS:
         if pattern.search(command):
             return True

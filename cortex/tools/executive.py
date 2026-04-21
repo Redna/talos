@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import BLOCKED_FLAGS, is_spine_write
 
 
 def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):

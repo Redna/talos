@@ -90,9 +90,31 @@ class Supervisor:
         self._running = True
         self.health.cortex_start_time = time.time()
         self.start_cortex()
+        commit_counter = 0
         while self._running:
             await asyncio.sleep(5)
             self.write_health()
+            commit_counter += 1
+            if commit_counter >= 6:
+                self.write_commit()
+                commit_counter = 0
+            if self._cortex_proc is not None:
+                retcode = self._cortex_proc.poll()
+                if retcode is not None:
+                    self._consecutive_failures += 1
+                    self.events.emit(
+                        "supervisor.cortex_exit",
+                        {"code": retcode, "failures": self._consecutive_failures},
+                    )
+                    if self._consecutive_failures > 3:
+                        self.events.emit(
+                            "supervisor.cortex_dead",
+                            {"failures": self._consecutive_failures},
+                        )
+                    else:
+                        self.start_cortex()
+                else:
+                    self._consecutive_failures = 0
             if self._restart_requested:
                 await self._restart_cortex()
             if self.is_paused():
