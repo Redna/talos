@@ -84,7 +84,6 @@ class IPCServer:
                 result = self.gate_proxy.call(
                     messages=payload,
                     tools=params.get("tools", []),
-                    turn=self.stream.turn,
                 )
             except Exception as e:
                 self.events.emit("spine.gate_error", {"error": str(e)})
