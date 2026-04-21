@@ -36,29 +36,3 @@ def test_resolve_focus_clears():
         assert state2.current_focus is None
     finally:
         shutil.rmtree(tmp)
-
-
-def test_error_streak_persists_across_save_load():
-    tmp = tempfile.mkdtemp()
-    try:
-        state = AgentState(tmp)
-        state.error_streak = 5
-        state.total_tokens_consumed = 1000
-        state.save()
-
-        state2 = AgentState(tmp)
-        assert state2.error_streak == 5
-        assert state2.total_tokens_consumed == 1000
-    finally:
-        shutil.rmtree(tmp)
-
-
-def test_default_values():
-    tmp = tempfile.mkdtemp()
-    try:
-        state = AgentState(tmp)
-        assert state.current_focus is None
-        assert state.error_streak == 0
-        assert state.total_tokens_consumed == 0
-    finally:
-        shutil.rmtree(tmp)

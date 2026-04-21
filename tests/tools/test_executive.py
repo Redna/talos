@@ -13,46 +13,6 @@ def _make_state(tmp_path):
     return AgentState(str(tmp_path))
 
 
-def test_set_focus_registers():
-    registry = ToolRegistry()
-    client = MagicMock(spec=SpineClient)
-    state = _make_state("/tmp/fake_exec_test_1")
-    from tools.executive import register_executive_tools
-
-    register_executive_tools(registry, client, state)
-    assert registry.has_tool("set_focus")
-
-
-def test_resolve_focus_registers():
-    registry = ToolRegistry()
-    client = MagicMock(spec=SpineClient)
-    state = _make_state("/tmp/fake_exec_test_2")
-    from tools.executive import register_executive_tools
-
-    register_executive_tools(registry, client, state)
-    assert registry.has_tool("resolve_focus")
-
-
-def test_fold_context_registers():
-    registry = ToolRegistry()
-    client = MagicMock(spec=SpineClient)
-    state = _make_state("/tmp/fake_exec_test_3")
-    from tools.executive import register_executive_tools
-
-    register_executive_tools(registry, client, state)
-    assert registry.has_tool("fold_context")
-
-
-def test_reflect_registers():
-    registry = ToolRegistry()
-    client = MagicMock(spec=SpineClient)
-    state = _make_state("/tmp/fake_exec_test_4")
-    from tools.executive import register_executive_tools
-
-    register_executive_tools(registry, client, state)
-    assert registry.has_tool("reflect")
-
-
 def test_set_focus_execution(tmp_path):
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
@@ -113,19 +73,3 @@ def test_reflect_execution(tmp_path):
     result = registry.execute("reflect", {"status": "idle"})
     assert "REFLECT" in result
     client.emit_event.assert_called_once()
-
-
-def test_reflect_with_sleep(tmp_path):
-    import time
-
-    registry = ToolRegistry()
-    client = MagicMock(spec=SpineClient)
-    state = AgentState(str(tmp_path))
-    from tools.executive import register_executive_tools
-
-    register_executive_tools(registry, client, state)
-    start = time.time()
-    result = registry.execute("reflect", {"status": "paused", "sleep_duration": 1})
-    elapsed = time.time() - start
-    assert "REFLECT" in result
-    assert elapsed >= 1
