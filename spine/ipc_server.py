@@ -87,9 +87,9 @@ class IPCServer:
                 turn=self.stream.turn,
             )
         except Exception as e:
-                self.events.emit("spine.gate_error", {"error": str(e)})
-                return self._error(req_id, -32000, f"Gate error: {e}")
-            assistant_content = result.get("assistant_message", "")
+            self.events.emit("spine.gate_error", {"error": str(e)})
+            return self._error(req_id, -32000, f"Gate error: {e}")
+        assistant_content = result.get("assistant_message", "")
             raw_tool_calls = result.get("tool_calls", [])
             openai_tool_calls = (
                 [
