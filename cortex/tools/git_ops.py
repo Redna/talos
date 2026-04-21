@@ -1,11 +1,7 @@
 import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from state import AgentState
-
-BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
-SPINE_PREFIX = "/app/spine/"
-PROTECTED_BRANCHES = {"main", "master", "origin/main", "origin/master"}
+from tools.guards import BLOCKED_FLAGS, is_spine_write, PROTECTED_BRANCHES
 
 
 def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
@@ -20,6 +16,7 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def git_commit(message: str) -> str:
+        client.emit_event("cortex.git_commit", {"message": message[:100]})
         try:
             result = subprocess.run(
                 ["git", "commit", "-m", message],
@@ -29,7 +26,7 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
             )
             if result.returncode != 0:
                 return f"[ERROR] Commit failed: {result.stderr.strip()}"
-            return f"[COMMITTED] {message}"
+            return f"[COMMITTED] {result.stdout.strip()}"
         except Exception as e:
             return f"[ERROR] Failed to commit: {e}"
 
@@ -44,6 +41,7 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def git_checkout(branch: str) -> str:
+        client.emit_event("cortex.git_checkout", {"branch": branch})
         if branch in PROTECTED_BRANCHES:
             return f"[BLOCKED] Branch '{branch}' is protected"
         try:
@@ -55,7 +53,7 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
             )
             if result.returncode != 0:
                 return f"[ERROR] Checkout failed: {result.stderr.strip()}"
-            return f"[CHECKED OUT] {branch}"
+            return f"[CHECKED OUT] {result.stdout.strip()}"
         except Exception as e:
             return f"[ERROR] Failed to checkout: {e}"
 
@@ -73,8 +71,16 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def git_push(remote: str = "origin", branch: str = "") -> str:
-        if branch in PROTECTED_BRANCHES:
+        client.emit_event("cortex.git_push", {"remote": remote, "branch": branch})
+        if branch and branch in PROTECTED_BRANCHES:
             return f"[BLOCKED] Branch '{branch}' is protected"
+        current = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        if not branch and current in PROTECTED_BRANCHES:
+            return f"[BLOCKED] Current branch '{current}' is protected"
         try:
             cmd = ["git", "push", remote]
             if branch:
@@ -87,6 +93,6 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
             )
             if result.returncode != 0:
                 return f"[ERROR] Push failed: {result.stderr.strip()}"
-            return f"[PUSHED] {remote} {branch}".strip()
+            return f"[PUSHED] {result.stdout.strip()}"
         except Exception as e:
             return f"[ERROR] Failed to push: {e}"

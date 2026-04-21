@@ -61,7 +61,7 @@ def test_set_focus_execution(tmp_path):
 
     register_executive_tools(registry, client, state)
     result = registry.execute("set_focus", {"objective": "fix bug"})
-    assert result == "[FOCUS SET]"
+    assert "FOCUS SET" in result
     assert state.current_focus == "fix bug"
     client.emit_event.assert_called_once()
 
@@ -75,7 +75,7 @@ def test_resolve_focus_execution(tmp_path):
 
     register_executive_tools(registry, client, state)
     result = registry.execute("resolve_focus", {"synthesis": "done"})
-    assert result == "[FOCUS RESOLVED]"
+    assert "FOCUS RESOLVED" in result
     assert state.current_focus is None
     client.emit_event.assert_called_once()
 
@@ -88,7 +88,7 @@ def test_fold_context_execution(tmp_path):
 
     register_executive_tools(registry, client, state)
     result = registry.execute("fold_context", {"synthesis": "summarized"})
-    assert result == "[CONTEXT FOLDED]"
+    assert "CONTEXT FOLDED" in result
     client.request_fold.assert_called_once()
 
 
@@ -111,7 +111,7 @@ def test_reflect_execution(tmp_path):
 
     register_executive_tools(registry, client, state)
     result = registry.execute("reflect", {"status": "idle"})
-    assert result == "[REFLECT]"
+    assert "REFLECT" in result
     client.emit_event.assert_called_once()
 
 
@@ -127,5 +127,5 @@ def test_reflect_with_sleep(tmp_path):
     start = time.time()
     result = registry.execute("reflect", {"status": "paused", "sleep_duration": 1})
     elapsed = time.time() - start
-    assert result == "[REFLECT]"
+    assert "REFLECT" in result
     assert elapsed >= 1

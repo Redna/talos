@@ -14,8 +14,6 @@ class SpineConfig:
     context_threshold_pct: float = 0.85
     telegram_bot_token: str = ""
     telegram_chat_id: str = "0"
-    control_plane_port: int = 4001
-    snapshot_interval: int = 50
 
 
 def load_config(path: str) -> SpineConfig:

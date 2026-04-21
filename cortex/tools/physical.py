@@ -1,26 +1,7 @@
 import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from state import AgentState
-
-BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
-SPINE_PREFIX = "/app/spine/"
-
-
-def _is_spine_write(command: str) -> bool:
-    if SPINE_PREFIX not in command:
-        return False
-    write_indicators = [">", ">>"]
-    for indicator in write_indicators:
-        if indicator in command:
-            return True
-    for cmd in ["tee ", "cp ", "mv ", "install "]:
-        if cmd in command:
-            parts = command.split()
-            for part in parts:
-                if part.startswith(SPINE_PREFIX):
-                    return True
-    return False
+from tools.guards import BLOCKED_FLAGS, is_spine_write
 
 
 def register_physical_tools(registry: ToolRegistry, client: SpineClient):
@@ -38,7 +19,7 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
         for flag in BLOCKED_FLAGS:
             if flag in command:
                 return f"[BLOCKED] Flag {flag} is not allowed"
-        if _is_spine_write(command):
+        if is_spine_write(command):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
         result = subprocess.run(
             command,

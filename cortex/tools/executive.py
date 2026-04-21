@@ -1,31 +1,12 @@
-import subprocess
+import os
+import time
+from pathlib import Path
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from state import AgentState
-
-BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
-SPINE_PREFIX = "/app/spine/"
+from tools.guards import BLOCKED_FLAGS, is_spine_write
 
 
-def _is_spine_write(command: str) -> bool:
-    if SPINE_PREFIX not in command:
-        return False
-    write_indicators = [">", ">>"]
-    for indicator in write_indicators:
-        if indicator in command:
-            return True
-    for cmd in ["tee ", "cp ", "mv ", "install "]:
-        if cmd in command:
-            parts = command.split()
-            for part in parts:
-                if part.startswith(SPINE_PREFIX):
-                    return True
-    return False
-
-
-def register_executive_tools(
-    registry: ToolRegistry, client: SpineClient, state: AgentState
-):
+def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
     @registry.tool(
         description="Set the current focus objective.",
         parameters={
@@ -40,9 +21,9 @@ def register_executive_tools(
         },
     )
     def set_focus(objective: str) -> str:
-        state.set_focus(objective)
-        client.emit_event("cortex.set_focus", {"objective": objective})
-        return "[FOCUS SET]"
+        old = state.set_focus(objective)
+        client.emit_event("cortex.set_focus", {"from": old, "to": objective})
+        return f"[FOCUS SET] Now focusing on: {objective}"
 
     @registry.tool(
         description="Resolve the current focus with a synthesis.",
@@ -58,18 +39,20 @@ def register_executive_tools(
         },
     )
     def resolve_focus(synthesis: str) -> str:
-        state.resolve_focus(synthesis)
-        client.emit_event("cortex.resolve_focus", {"synthesis": synthesis})
-        return "[FOCUS RESOLVED]"
+        old = state.resolve_focus(synthesis)
+        client.emit_event(
+            "cortex.resolve_focus", {"focus": old, "synthesis": synthesis}
+        )
+        return f"[FOCUS RESOLVED] {old}: {synthesis}"
 
     @registry.tool(
-        description="Fold context to reduce token usage.",
+        description="Fold context to reduce token usage. The trajectory is archived and a fresh start begins from your synthesis.",
         parameters={
             "type": "object",
             "properties": {
                 "synthesis": {
                     "type": "string",
-                    "description": "Synthesis for the fold",
+                    "description": "Synthesis for the fold — all critical facts must be persisted to /memory/ before folding",
                 },
             },
             "required": ["synthesis"],
@@ -77,10 +60,10 @@ def register_executive_tools(
     )
     def fold_context(synthesis: str) -> str:
         client.request_fold(synthesis)
-        return "[CONTEXT FOLDED]"
+        return "[CONTEXT FOLDED] Trajectory archived. Context window refreshed from synthesis."
 
     @registry.tool(
-        description="Reflect on current status, optionally sleeping.",
+        description="Reflect and pause. Set sleep_duration to rest (1-120 seconds). Wake on Telegram message or .wake sentinel file.",
         parameters={
             "type": "object",
             "properties": {
@@ -90,9 +73,10 @@ def register_executive_tools(
                 },
                 "sleep_duration": {
                     "type": "integer",
-                    "description": "Seconds to sleep (default: 0)",
+                    "description": "Seconds to pause (1-120), 0 = no sleep",
                 },
             },
+            "required": ["status"],
         },
     )
     def reflect(status: str, sleep_duration: int = 0) -> str:
@@ -100,7 +84,11 @@ def register_executive_tools(
             "cortex.reflect", {"status": status, "sleep_duration": sleep_duration}
         )
         if sleep_duration > 0:
-            import time
-
-            time.sleep(sleep_duration)
-        return "[REFLECT]"
+            wake_path = Path(os.environ.get("SPINE_DIR", "/spine")) / ".wake"
+            deadline = time.time() + min(sleep_duration, 120)
+            while time.time() < deadline:
+                if wake_path.exists():
+                    wake_path.unlink(missing_ok=True)
+                    break
+                time.sleep(0.5)
+        return f"[REFLECT] {status}"

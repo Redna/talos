@@ -2,30 +2,7 @@ import os
 import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from state import AgentState
-
-BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
-SPINE_PREFIX = "/app/spine/"
-
-
-def _is_spine_write(command: str) -> bool:
-    if SPINE_PREFIX not in command:
-        return False
-    write_indicators = [">", ">>"]
-    for indicator in write_indicators:
-        if indicator in command:
-            return True
-    for cmd in ["tee ", "cp ", "mv ", "install "]:
-        if cmd in command:
-            parts = command.split()
-            for part in parts:
-                if part.startswith(SPINE_PREFIX):
-                    return True
-    return False
-
-
-def _is_spine_path(path: str) -> bool:
-    return "/app/spine/" in path
+from tools.guards import is_spine_path, is_spine_write
 
 
 def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
@@ -48,6 +25,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def read_file(path: str, start_line: int = 1, end_line: int = 0) -> str:
+        client.emit_event("cortex.read_file", {"path": path})
         try:
             with open(path, "r") as f:
                 lines = f.readlines()
@@ -62,7 +40,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Failed to read file: {e}"
 
     @registry.tool(
-        description="Write content to a file, creating directories if needed.",
+        description="Write content to a file, creating directories if needed. Cannot write to /app/spine/.",
         parameters={
             "type": "object",
             "properties": {
@@ -73,8 +51,11 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def write_file(path: str, content: str) -> str:
-        if _is_spine_path(path):
+        if is_spine_path(path):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
+        client.emit_event(
+            "cortex.write_file", {"path": path, "content_len": len(content)}
+        )
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w") as f:
@@ -84,7 +65,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Failed to write file: {e}"
 
     @registry.tool(
-        description="Apply a unified diff patch to a file.",
+        description="Apply a unified diff patch to a file. Cannot patch files in /app/spine/.",
         parameters={
             "type": "object",
             "properties": {
@@ -98,8 +79,9 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def patch_file(path: str, patch: str) -> str:
-        if _is_spine_path(path):
+        if is_spine_path(path):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
+        client.emit_event("cortex.patch_file", {"path": path})
         try:
             result = subprocess.run(
                 ["patch", "-p1"],

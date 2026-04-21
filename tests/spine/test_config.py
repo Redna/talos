@@ -19,22 +19,18 @@ def test_default_config():
     assert cfg.context_threshold_pct == 0.85
     assert cfg.telegram_bot_token == ""
     assert cfg.telegram_chat_id == "0"
-    assert cfg.control_plane_port == 4001
-    assert cfg.snapshot_interval == 50
 
 
 def test_load_config_overrides(tmp_path):
     config_data = {
         "socket_path": "/custom/spine.sock",
         "context_threshold_pct": 0.9,
-        "control_plane_port": 5000,
     }
     config_file = tmp_path / "spine_config.json"
     config_file.write_text(json.dumps(config_data))
     cfg = load_config(str(config_file))
     assert cfg.socket_path == "/custom/spine.sock"
     assert cfg.context_threshold_pct == 0.9
-    assert cfg.control_plane_port == 5000
     assert cfg.memory_dir == "/memory"
 
 

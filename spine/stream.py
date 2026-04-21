@@ -33,7 +33,7 @@ class StreamManager:
         return self._messages
 
     def add_message(self, msg: dict):
-        self._messages.append(msg)
+        self._messages.append(dict(msg))
 
     def record_tool_result(self, tool_call_id: str, output: str, success: bool):
         self.add_message(
@@ -49,8 +49,9 @@ class StreamManager:
             f" focus={hud_data.get('focus', '')}"
         )
         for msg in reversed(self._messages):
-            if msg.get("role") == "tool":
+            if msg.get("role") == "tool" and not msg.get("_hud_piggybacked"):
                 msg["content"] += hud_line
+                msg["_hud_piggybacked"] = True
                 return
         self.add_message({"role": "user", "content": hud_line.strip()})
 

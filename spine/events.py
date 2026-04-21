@@ -23,8 +23,11 @@ class EventLogger:
 
     def emit(self, event_type: str, payload: dict[str, object]):
         self._ensure_file()
-        event = {"type": event_type, "ts": datetime.now(timezone.utc).isoformat()}
-        event.update(payload)
+        event = {
+            "type": event_type,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "payload": payload,
+        }
         self._file.write(json.dumps(event) + "\n")
         self._file.flush()
 

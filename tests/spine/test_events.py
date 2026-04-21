@@ -23,5 +23,5 @@ def test_emit_writes_jsonl(tmp_path):
     assert len(lines) == 1
     event = json.loads(lines[0])
     assert event["type"] == "test_event"
-    assert event["key"] == "value"
+    assert event["payload"]["key"] == "value"
     assert "ts" in event

@@ -159,6 +159,32 @@ def test_bash_command_allows_reading_spine():
     assert "[BLOCKED]" not in result
 
 
+def test_bash_command_rejects_spine_python_write():
+    registry = ToolRegistry()
+    client = MagicMock(spec=SpineClient)
+    from tools.physical import register_physical_tools
+
+    register_physical_tools(registry, client)
+    result = registry.execute(
+        "bash_command",
+        {"command": "python3 -c \"open('/app/spine/config.py','w').write('hacked')\""},
+    )
+    assert "[BLOCKED]" in result
+
+
+def test_bash_command_rejects_spine_sed_i():
+    registry = ToolRegistry()
+    client = MagicMock(spec=SpineClient)
+    from tools.physical import register_physical_tools
+
+    register_physical_tools(registry, client)
+    result = registry.execute(
+        "bash_command",
+        {"command": "sed -i 's/old/new/' /app/spine/config.py"},
+    )
+    assert "[BLOCKED]" in result
+
+
 def test_send_message_execution():
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)

@@ -70,6 +70,13 @@ class IPCServer:
         params = raw.get("params", {})
 
         if method == "think":
+            # FIXME: The think handler currently returns a stub response.
+            # In production, this should:
+            # 1. Build the LLM payload via stream.build_payload(tools, hud_data)
+            # 2. Forward to gate for LLM inference
+            # 3. Parse the response, record messages, and return tool_calls
+            # Without this, the cortex agent loop is inert — it receives no
+            # tool calls and will spin doing nothing.
             return self._success(req_id, {"status": "stub"})
         elif method == "tool_result":
             self.stream.record_tool_result(
@@ -93,8 +100,7 @@ class IPCServer:
                 from spine.telegram import send_telegram_message
 
                 send_telegram_message(
-                    self.cfg.telegram_bot_token,
-                    self.cfg.telegram_chat_id,
+                    self.cfg,
                     params.get("text", ""),
                 )
             return self._success(req_id, "ok")

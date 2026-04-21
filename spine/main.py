@@ -8,11 +8,10 @@ from pathlib import Path
 
 from spine.config import load_config
 from spine.events import EventLogger
-from spine.snapshot import SnapshotManager
+from spine.health import HealthMonitor
 from spine.stream import StreamManager
 from spine.supervisor import Supervisor
 from spine.ipc_server import IPCServer
-from spine.control_plane import ControlPlane
 from spine.telegram import TelegramPoller
 
 logging.basicConfig(level=logging.INFO, format="[Spine] %(message)s")
@@ -25,23 +24,20 @@ async def main():
 
     for dir_path in [
         f"{cfg.spine_dir}/events",
-        f"{cfg.spine_dir}/snapshots",
-        f"{cfg.spine_dir}/crashes",
+        f"{cfg.spine_dir}/trajectories",
     ]:
         Path(dir_path).mkdir(parents=True, exist_ok=True)
 
-    logger.info(
-        f"[Spine] Starting with config: GateURL={cfg.gate_url} Socket={cfg.socket_path}"
-    )
+    logger.info(f"[Spine] Starting: GateURL={cfg.gate_url} Socket={cfg.socket_path}")
 
     event_logger = EventLogger(f"{cfg.spine_dir}/events")
-    snapshot_mgr = SnapshotManager(f"{cfg.spine_dir}/snapshots", cfg.snapshot_interval)
+    health = HealthMonitor(stall_timeout=600.0, startup_timeout=30.0)
     stream_mgr = StreamManager(cfg)
-    supervisor = Supervisor(cfg, event_logger, snapshot_mgr, stream_mgr)
-    control_plane = ControlPlane(cfg, supervisor, stream_mgr, event_logger)
+    supervisor = Supervisor(cfg, event_logger, health, stream_mgr)
     ipc_server = IPCServer(cfg, supervisor, stream_mgr, event_logger)
 
-    def on_telegram_message(text: str):
+    def on_telegram_message(msg):
+        text = msg.get("text", "") if isinstance(msg, dict) else str(msg)
         stream_mgr.queue_system_notice(f"[TELEGRAM | {text}]")
         wake_path = Path(cfg.spine_dir) / ".wake"
         wake_path.touch()
@@ -49,7 +45,6 @@ async def main():
     telegram_poller = TelegramPoller(cfg, on_telegram_message)
 
     await ipc_server.start()
-    await control_plane.start()
     await telegram_poller.start()
 
     loop = asyncio.get_event_loop()
@@ -69,8 +64,6 @@ async def main():
     logger.info("[Spine] Shutting down...")
     supervisor.stop()
     await ipc_server.stop()
-    await control_plane.stop()
-    await telegram_poller.stop()
     event_logger.close()
     logger.info("[Spine] Stopped.")
 
