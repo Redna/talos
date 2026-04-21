@@ -6,6 +6,8 @@ import signal
 import sys
 from pathlib import Path
 
+import os
+from spine.gate_proxy import GateProxy
 from spine.config import load_config
 from spine.events import EventLogger
 from spine.health import HealthMonitor
@@ -34,7 +36,8 @@ async def main():
     health = HealthMonitor(stall_timeout=600.0, startup_timeout=30.0)
     stream_mgr = StreamManager(cfg)
     supervisor = Supervisor(cfg, event_logger, health, stream_mgr)
-    ipc_server = IPCServer(cfg, supervisor, stream_mgr, event_logger)
+    gate_proxy = GateProxy(cfg.gate_url, model=os.environ.get("TALOS_MODEL", ""))
+    ipc_server = IPCServer(cfg, supervisor, stream_mgr, event_logger, gate_proxy)
 
     def on_telegram_message(msg):
         text = msg.get("text", "") if isinstance(msg, dict) else str(msg)

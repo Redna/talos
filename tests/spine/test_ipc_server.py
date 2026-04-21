@@ -45,6 +45,77 @@ def ipc_setup(tmp_path):
     events.close()
 
 
+def _make_think_setup(tmp_path, gate_proxy=None):
+    cfg = SpineConfig()
+    cfg.socket_path = str(tmp_path / "test.sock")
+    cfg.spine_dir = str(tmp_path / "spine")
+    cfg.constitution_path = str(tmp_path / "CONSTITUTION.md")
+    cfg.identity_path = str(tmp_path / "identity.md")
+    cfg.memory_dir = str(tmp_path / "memory")
+    Path(cfg.constitution_path).write_text("# Principles\nAgency.")
+    Path(cfg.identity_path).write_text("# Identity\nTalos.")
+    Path(cfg.spine_dir).mkdir(parents=True, exist_ok=True)
+    Path(cfg.memory_dir).mkdir(parents=True, exist_ok=True)
+    events = EventLogger(str(Path(cfg.spine_dir) / "events"))
+    stream = StreamManager(cfg)
+    supervisor = MockSupervisor()
+    server = IPCServer(cfg, supervisor, stream, events, gate_proxy=gate_proxy)
+    return server, cfg, stream, supervisor
+
+
+@pytest.mark.asyncio
+async def test_ipc_think_with_proxy(tmp_path):
+    mock_proxy = MagicMock()
+    mock_proxy.call.return_value = {
+        "assistant_message": "I'll help",
+        "tool_calls": [
+            {"id": "c1", "name": "bash_command", "arguments": {"command": "ls"}}
+        ],
+        "context_pct": 0.35,
+        "tokens_used": 120,
+        "finish_reason": "tool_calls",
+    }
+    server, cfg, stream, supervisor = _make_think_setup(tmp_path, gate_proxy=mock_proxy)
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "think",
+            "params": {"tools": [], "hud_data": {}},
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert resp["result"]["tool_calls"][0]["name"] == "bash_command"
+        assert resp["result"]["context_pct"] == 0.35
+        assert resp["result"]["turn"] == 1
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_ipc_think_no_proxy(tmp_path):
+    server, cfg, stream, supervisor = _make_think_setup(tmp_path, gate_proxy=None)
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {"jsonrpc": "2.0", "id": 1, "method": "think", "params": {}}
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert "error" in resp
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
+
+
 @pytest.mark.asyncio
 async def test_ipc_server_starts(ipc_setup):
     server, cfg, stream, supervisor = ipc_setup
