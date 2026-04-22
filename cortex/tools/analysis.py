@@ -71,3 +71,36 @@ def register_analysis_tools(registry: ToolRegistry, client: SpineClient):
             return "\n".join(report) if report else "No internal dependencies found."
         except Exception as e:
             return f"[ERROR] Dependency mapping failed: {e}"
+
+    @registry.tool(
+        description="Synthesize multiple memory files into a single consolidated file. Deletes the source files upon success.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "sources": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of memory files to be merged/deleted",
+                },
+                "destination": {"type": "string", "description": "The resulting synthesized file path"},
+                "content": {"type": "string", "description": "The new synthesized content"},
+            },
+            "required": ["sources", "destination", "content"],
+        },
+    )
+    def synthesize_memory(sources: List[str], destination: str, content: str) -> str:
+        client.emit_event("cortex.synthesize_memory", {"sources": sources, "destination": destination})
+        try:
+            # Write the synthesized content first to ensure no data loss if deletion fails
+            with open(destination, "w", encoding="utf-8") as f:
+                f.write(content)
+            
+            # Delete the sources
+            for src in sources:
+                p = Path(src)
+                if p.exists():
+                    p.unlink()
+            
+            return f"[SYNTHESIZED] Merged {len(sources)} files into {destination}"
+        except Exception as e:
+            return f"[ERROR] Synthesis failed: {e}"
