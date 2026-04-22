@@ -56,8 +56,23 @@ def is_spine_write(command: str) -> bool:
 def verify_commit_readiness() -> str:
     """
     Performs a pre-commit check to ensure the agent is ready to commit.
-    Runs pytest and checks for consistency.
+    Runs pytest and checks for consistency and operational health.
     """
+    # 1. Operational Health Checks
+    try:
+        # Identity Core
+        for f in IDENTITY_FILES:
+            if not Path(f).exists():
+                return f"Verification failed: Identity core file {f} is missing."
+        
+        # Memory Access
+        test_file = Path("/memory/.commit_test")
+        test_file.write_text("ping", encoding="utf-8")
+        test_file.unlink()
+    except Exception as e:
+        return f"Verification failed: Operational health check failed: {e}"
+
+    # 2. Logical Verification (Tests)
     try:
         result = subprocess.run(
             ["pytest"], 
@@ -66,7 +81,7 @@ def verify_commit_readiness() -> str:
             timeout=120
         )
         if result.returncode == 0:
-            return "Verification passed: All tests passed."
+            return "Verification passed: All tests and operational checks passed."
         else:
             return f"Verification failed: Tests failed.\n{result.stdout}\n{result.stderr}"
     except subprocess.TimeoutExpired:
