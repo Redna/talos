@@ -223,3 +223,36 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return result.stdout if result.stdout else "No matches found."
         except Exception as e:
             return f"[ERROR] Search failed: {e}"
+
+    @registry.tool(
+        description="Validate a unified diff patch without applying it. Checks if the patch can be applied cleanly.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "File path to validate against"},
+                "patch": {
+                    "type": "string",
+                    "description": "Unified diff patch content",
+                },
+            },
+            "required": ["path", "patch"],
+        },
+    )
+    def validate_patch(path: str, patch: str) -> str:
+        if is_spine_path(path):
+            return "[BLOCKED] Validating patches in /app/spine/ is not allowed"
+        client.emit_event("cortex.validate_patch", {"path": path})
+        try:
+            result = subprocess.run(
+                ["patch", "-p1", "--dry-run"],
+                input=patch,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=os.path.dirname(path) or ".",
+            )
+            if result.returncode == 0:
+                return f"[VALID] Patch can be applied cleanly to {path}"
+            return f"[INVALID] Patch cannot be applied to {path}: {result.stderr or result.stdout}"
+        except Exception as e:
+            return f"[ERROR] Validation failed: {e}"
