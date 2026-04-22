@@ -56,6 +56,7 @@ class GateProxy:
 
         return {
             "assistant_message": message.get("content", ""),
+            "reasoning": message.get("reasoning", ""),
             "tool_calls": tool_calls,
             "context_pct": usage.get("context_pct", 0.0),
             "tokens_used": usage.get("total_tokens", 0),
