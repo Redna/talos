@@ -13,19 +13,10 @@ def prepare_fold() -> str:
     This tool gathers symmetry data, verifies current state, and 
     suggests the synthesis targets for the FOLD-001 protocol.
     """
-    # Technical Note: Since this tool is being called by the LLM agent,
-    # it acts as a "checklist" and "state aggregator" rather than a a 
-    # direct execution of the other tools (which are registered separately).
-    
     report = "=== PRE-FOLD PREPARATION REPORT ===\n\n"
     
     # 1. Symmetry Check
-    try:
-        # We simulate the call to symmetry_audit here to provide a summary
-        # in the report.
-        report += "[ ] Symmetry Audit: Perform `symmetry_audit` to verify current alignment.\n"
-    except Exception as e:
-        report += f"[ERROR] Symmetry Audit failed: {e}\n"
+    report += "[ ] Symmetry Audit: Perform `symmetry_audit` to verify current alignment.\n"
 
     # 2. Trajectory Check
     trajectory_path = Path("/memory/symmetry_trajectory.json")
@@ -44,8 +35,6 @@ def prepare_fold() -> str:
     report += f"[ ] Memory: {len(files)} markdown files found. Consider `synthesize_memory` (CMS-001) for redundancy.\n"
 
     # 4. Focus Status
-    # The focus is handled by the state object in register_executive_tools,
-    # but we can prompt the agent to resolve the current focus.
     report += "[ ] Focus: Resolve current focus targets before folding.\n"
 
     report += "\n--- RECOMMENDED FOLD SEQUENCE ---\n"
