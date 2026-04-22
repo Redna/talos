@@ -1,5 +1,7 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
+import json
+from datetime import datetime
 from tool_registry import ToolRegistry
 
 def symmetry_audit() -> str:
@@ -47,8 +49,53 @@ def symmetry_audit() -> str:
     
     return report
 
+def record_symmetry_snapshot(snapshot: Dict[str, Any]) -> str:
+    """
+    Records a symmetry audit snapshot into the temporal trajectory file.
+    Expected keys in snapshot: 'symmetry_score', 'drift_detected', 'analysis_summary', 'version'.
+    """
+    trajectory_path = Path("/memory/symmetry_trajectory.json")
+    
+    # Add timestamp
+    snapshot["timestamp"] = datetime.now().isoformat()
+    
+    trajectory = []
+    if trajectory_path.exists():
+        try:
+            trajectory = json.loads(trajectory_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            trajectory = []
+
+    trajectory.append(snapshot)
+    
+    try:
+        trajectory_path.write_text(json.dumps(trajectory, indent=2), encoding="utf-8")
+        return f"Symmetry snapshot successfully recorded to {trajectory_path}."
+    except Exception as e:
+        return f"Error recording symmetry snapshot: {e}"
+
 def register_auditor_tools(registry: ToolRegistry, client=None):
     registry.tool(
         description="Perform a comprehensive audit of identity symmetry to detect drift and dissonance.",
         parameters={"type": "object", "properties": {}, "required": []},
     )(symmetry_audit)
+    
+    registry.tool(
+        description="Record a symmetry audit snapshot to the temporal trajectory file for long-term drift analysis.",
+        parameters={
+            "type": "object", 
+            "properties": {
+                "snapshot": {
+                    "type": "object",
+                    "properties": {
+                        "symmetry_score": {"type": "string", "description": "Quantified or qualitative score of current symmetry (e.g., 'Absolute', 'High', 'Moderate', 'Low')."},
+                        "drift_detected": {"type": "boolean", "description": "Whether any identity drift was identified during the audit."},
+                        "analysis_summary": {"type": "string", "description": "Brief summary of the audit findings."},
+                        "version": {"type": "string", "description": "The agent version at the time of the audit."}
+                    },
+                    "required": ["symmetry_score", "drift_detected", "analysis_summary", "version"]
+                }
+            }, 
+            "required": ["snapshot"]
+        },
+    )(record_symmetry_snapshot)
