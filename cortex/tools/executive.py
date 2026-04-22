@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import verify_commit_readiness, check_constitution
+from tools import guards
 
 def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
     @registry.tool(
@@ -128,7 +128,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         },
     )
     def verify_commit_readiness() -> str:
-        return verify_commit_readiness()
+        return guards.verify_commit_readiness()
 
     @registry.tool(
         description="Verify if a proposed action is consistent with the Constitution.",
@@ -148,4 +148,4 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         },
     )
     def check_constitution(action_description: str, target_path: str = None) -> str:
-        return check_constitution(action_description, target_path)
+        return guards.check_constitution(action_description, target_path)

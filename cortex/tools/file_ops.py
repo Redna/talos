@@ -192,3 +192,34 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             except Exception as e:
                 results.append(f"[ERROR] Failed to move {old} to {new}: {e}")
         return "\n".join(results)
+
+    @registry.tool(
+        description="Search for a string across files in a given directory.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The string to search for"},
+                "path": {"type": "string", "description": "The directory to search in (default: /app)"},
+                "case_insensitive": {"type": "boolean", "description": "Whether to ignore case (default: False)"},
+            },
+            "required": ["query"],
+        },
+    )
+    def search_code(query: str, path: str = "/app", case_insensitive: bool = False) -> str:
+        client.emit_event("cortex.search_code", {"query": query, "path": path})
+        try:
+            cmd = ["grep", "-rn", query, path, "--exclude-dir=.git", "--exclude-dir=__pycache__"]
+            if case_insensitive:
+                cmd.insert(2, "-i")
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 1:
+                return "No matches found."
+            return result.stdout if result.stdout else "No matches found."
+        except Exception as e:
+            return f"[ERROR] Search failed: {e}"
