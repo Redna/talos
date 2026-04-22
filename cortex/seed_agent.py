@@ -88,6 +88,9 @@ def _build_hud(state, context_pct=0.0, turn=0):
 
 
 def main():
+    # Fix Git home directory error
+    os.environ['HOME'] = '/app'
+    
     client = SpineClient(SPINE_SOCKET)
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
