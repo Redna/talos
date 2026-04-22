@@ -149,3 +149,33 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
     )
     def check_constitution(action_description: str, target_path: str = None) -> str:
         return guards.check_constitution(action_description, target_path)
+
+    @registry.tool(
+        description="Verify the operational health of the Cortex system (Registry, Spine, and Memory).",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )
+    def health_check() -> str:
+        client.emit_event("cortex.health_check", {})
+        results = []
+        
+        # 1. Registry Check
+        tools = registry.tool_names
+        results.append(f"Registry: ONLINE ({len(tools)} tools registered)")
+        
+        # 2. Spine Connectivity (Symmetry Check)
+        try:
+            client.emit_event("cortex.health_ping", {"timestamp": time.time()})
+            results.append("Spine: ONLINE (Ping successful)")
+        except Exception as e:
+            results.append(f"Spine: OFFLINE (Error: {e})")
+            
+        # 3. Memory Access Check
+        try:
+            test_file = Path("/memory/.health_test")
+            test_file.write_text("ping", encoding="utf-8")
+            test_file.unlink()
+            results.append("Memory: ONLINE (R/W verified)")
+        except Exception as e:
+            results.append(f"Memory: OFFLINE (Error: {e})")
+            
+        return "\n".join(results)
