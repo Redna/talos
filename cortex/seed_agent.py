@@ -12,7 +12,6 @@ from state import AgentState
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
-from tools.memory_ops import register_memory_ops_tools
 from tools.git_ops import register_git_ops_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
@@ -89,9 +88,6 @@ def _build_hud(state, context_pct=0.0, turn=0):
 
 
 def main():
-    # Fix Git home directory error
-    os.environ['HOME'] = '/app'
-    
     client = SpineClient(SPINE_SOCKET)
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
@@ -99,11 +95,11 @@ def main():
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
-    register_memory_ops_tools(registry, client)
     register_git_ops_tools(registry, client)
 
     detector = RepetitionDetector()
     turn = 0
+    context_pct = 0.0
 
     while True:
         paused = (SPINE_DIR / ".paused").exists()
@@ -117,7 +113,7 @@ def main():
             if single_step:
                 (SPINE_DIR / ".single_step").unlink(missing_ok=True)
 
-            hud_data = _build_hud(state)
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
 
             try:
                 response = client.think(
@@ -132,8 +128,8 @@ def main():
                 continue
 
             context_pct = response.get("context_pct", 0.0)
-            resp_turn = response.get("turn", 0)
-            hud_data = _build_hud(state, context_pct=context_pct, turn=resp_turn)
+            turn = response.get("turn", 0)
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
 
             state.total_tokens_consumed += response.get("tokens_used", 0)
             state.save()
@@ -143,8 +139,6 @@ def main():
             tool_calls = response.get("tool_calls", [])
             if not tool_calls:
                 continue
-
-            turn += 1
 
             if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:
                 print(
@@ -200,9 +194,6 @@ def main():
                     state.error_streak += 1
                     state.save()
 
-            if was_single_step:
-                (SPINE_DIR / ".paused").touch(exist_ok=True)
-
         except KeyboardInterrupt:
             print("[Cortex] Interrupted. Exiting gracefully.")
             sys.exit(0)
@@ -212,6 +203,9 @@ def main():
             state.save()
             time.sleep(1)
             continue
+        finally:
+            if was_single_step:
+                (SPINE_DIR / ".paused").touch(exist_ok=True)
 
 
 if __name__ == "__main__":
