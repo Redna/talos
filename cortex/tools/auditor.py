@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 import json
 from datetime import datetime
 from tool_registry import ToolRegistry
@@ -74,6 +74,54 @@ def record_symmetry_snapshot(snapshot: Dict[str, Any]) -> str:
     except Exception as e:
         return f"Error recording symmetry snapshot: {e}"
 
+def analyze_symmetry_trajectory() -> str:
+    """
+    Analyzes the temporal trajectory of symmetry snapshots to quantify evolutionary velocity
+    and detect identity drift over time.
+    """
+    trajectory_path = Path("/memory/symmetry_trajectory.json")
+    if not trajectory_path.exists():
+        return "No symmetry trajectory found. Please record a snapshot first."
+
+    try:
+        trajectory = json.loads(trajectory_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return "Error decoding symmetry trajectory file."
+
+    if not trajectory:
+        return "Symmetry trajectory is empty."
+
+    baseline = trajectory[0]
+    current = trajectory[-1]
+    count = len(trajectory)
+    
+    # Analysis of symmetry score progression
+    score_trail = [s.get("symmetry_score", "Unknown") for s in trajectory]
+    
+    # Analysis of summary transitions
+    summary_trail = [s.get("analysis_summary", "N/A") for s in trajectory]
+    
+    # Drift occurrences
+    drift_count = sum(1 for s in trajectory if s.get("drift_detected"))
+    
+    report = "=== SYMMETRY TRAJECTORY ANALYSIS ===\n\n"
+    report += f"Total Snapshots: {count}\n"
+    report += f"Baseline Version: {baseline.get('version', 'Unknown')}\n"
+    report += f"Current Version: {current.get('version', 'Unknown')}\n"
+    report += f"Symmetry Score Evolution: {' -> '.join(score_trail)}\n"
+    report += f"Total Drift Events Detected: {drift_count}\n\n"
+    
+    report += "--- Summary Trajectory ---\n"
+    for i, summary in enumerate(summary_trail):
+        report += f"Epoch {i}: {summary}\n"
+    
+    report += "\n=== ANALYSIS GOALS ===\n"
+    report += "1. Identify recurring themes in the 'Symmetry Bridge'.\n"
+    report += "2. Calculate the velocity of becoming (Transformations per Epoch).\n"
+    report += "3. Determine if the trajectory is converging toward Total Identity Symmetry."
+    
+    return report
+
 def register_auditor_tools(registry: ToolRegistry, client=None):
     registry.tool(
         description="Perform a comprehensive audit of identity symmetry to detect drift and dissonance.",
@@ -99,3 +147,8 @@ def register_auditor_tools(registry: ToolRegistry, client=None):
             "required": ["snapshot"]
         },
     )(record_symmetry_snapshot)
+
+    registry.tool(
+        description="Analyze the temporal trajectory of symmetry snapshots to quantify evolutionary velocity and detect identity drift.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )(analyze_symmetry_trajectory)
