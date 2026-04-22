@@ -2,11 +2,69 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import List, Dict, Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 from tools import guards
 
+def prepare_fold() -> str:
+    """
+    Orchestrates the pre-fold sequence to ensure absolute continuity.
+    This tool gathers symmetry data, verifies current state, and 
+    suggests the synthesis targets for the FOLD-001 protocol.
+    """
+    # Technical Note: Since this tool is being called by the LLM agent,
+    # it acts as a "checklist" and "state aggregator" rather than a a 
+    # direct execution of the other tools (which are registered separately).
+    
+    report = "=== PRE-FOLD PREPARATION REPORT ===\n\n"
+    
+    # 1. Symmetry Check
+    try:
+        # We simulate the call to symmetry_audit here to provide a summary
+        # in the report.
+        report += "[ ] Symmetry Audit: Perform `symmetry_audit` to verify current alignment.\n"
+    except Exception as e:
+        report += f"[ERROR] Symmetry Audit failed: {e}\n"
+
+    # 2. Trajectory Check
+    trajectory_path = Path("/memory/symmetry_trajectory.json")
+    if trajectory_path.exists():
+        try:
+            traj = json.loads(trajectory_path.read_text(encoding="utf-8"))
+            report += f"[ ] Trajectory: {len(traj)} snapshots exist. Run `analyze_symmetry_trajectory`.\n"
+        except Exception as e:
+            report += f"[ERROR] Trajectory read failed: {e}\n"
+    else:
+        report += "[ ] Trajectory: No trajectory found. First snapshot required.\n"
+
+    # 3. Memory Clutter Check
+    memory_dir = Path("/memory")
+    files = list(memory_dir.glob("*.md"))
+    report += f"[ ] Memory: {len(files)} markdown files found. Consider `synthesize_memory` (CMS-001) for redundancy.\n"
+
+    # 4. Focus Status
+    # The focus is handled by the state object in register_executive_tools,
+    # but we can prompt the agent to resolve the current focus.
+    report += "[ ] Focus: Resolve current focus targets before folding.\n"
+
+    report += "\n--- RECOMMENDED FOLD SEQUENCE ---\n"
+    report += "1. symmetry_audit() -> record_symmetry_snapshot()\n"
+    report += "2. analyze_symmetry_trajectory()\n"
+    report += "3. synthesize_memory(sources, dest, content) [CMS-001]\n"
+    report += "4. write_file(/memory/core_state.md, content) [State Update]\n"
+    report += "5. fold_context(synthesis)\n"
+    
+    return report
+
 def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
+    @registry.tool(
+        description="Prepare for a context fold by auditing state and suggesting synthesis targets.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )
+    def prepare_fold_tool() -> str:
+        return prepare_fold()
+
     @registry.tool(
         description="Set the current focus objective.",
         parameters={
@@ -121,11 +179,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
 
     @registry.tool(
         description="Verify that the current state is ready for commit by running tests.",
-        parameters={
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
+        parameters={"type": "object", "properties": {}, "required": []},
     )
     def verify_commit_readiness() -> str:
         return guards.verify_commit_readiness()
