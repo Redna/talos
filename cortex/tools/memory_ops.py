@@ -1,12 +1,66 @@
 import os
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
+import json
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
 MEMORY_DIR = Path("/memory")
 
+def synthesize_memory(sources: List[str], destination: str, content: str) -> str:
+    """
+    Synthesizes multiple memory files into a single consolidated file.
+    Deletes the source files upon success.
+    """
+    dest_path = Path(destination)
+    if not dest_path.absolute().is_relative_to(MEMORY_DIR):
+        return "[ERROR] Destination must be within /memory/"
+
+    try:
+        # Write the synthesized content to destination
+        dest_path.write_text(content, encoding="utf-8")
+        
+        # Delete source files
+        deleted_files = []
+        for source in sources:
+            src_path = Path(source)
+            if src_path.exists():
+                src_path.unlink()
+                deleted_files.append(source)
+            else:
+                # Just a notice if source doesn't exist
+                pass
+        
+        return f"[SYNTHESIS] Successfully synthesized {len(sources)} files into {destination}. Deleted: {', '.join(deleted_files)}"
+    except Exception as e:
+        return f"[ERROR] Synthesis failed: {e}"
+
 def register_memory_ops_tools(registry: ToolRegistry, client: SpineClient):
+    @registry.tool(
+        description="Synthesize multiple memory files into a single consolidated file. Deletes the source files upon success.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "sources": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of memory files to be merged/deleted"
+                },
+                "destination": {
+                    "type": "string", 
+                    "description": "The resulting synthesized file path"
+                },
+                "content": {
+                    "type": "string", 
+                    "description": "The new synthesized content"
+                }
+            },
+            "required": ["sources", "destination", "content"],
+        },
+    )
+    def synthesize_memory_tool(sources: List[str], destination: str, content: str) -> str:
+        return synthesize_memory(sources, destination, content)
+
     @registry.tool(
         description="Write a note to the internal scratchpad. Used for intermediate thoughts and complex problem drafting.",
         parameters={
