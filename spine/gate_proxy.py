@@ -19,12 +19,15 @@ class GateProxy:
         messages: list[dict],
         tools: list[dict],
         model: str = "",
+        turn: int | None = None,
     ) -> dict[str, Any]:
         body = {
             "messages": messages,
             "tools": tools if tools else None,
             "tool_choice": "auto" if tools else None,
         }
+        if turn is not None:
+            body["turn"] = turn
         effective_model = model or self.model
         if effective_model:
             body["model"] = effective_model
