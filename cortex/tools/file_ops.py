@@ -57,7 +57,9 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "cortex.write_file", {"path": path, "content_len": len(content)}
         )
         try:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
+            parent_dir = os.path.dirname(path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
             with open(path, "w") as f:
                 f.write(content)
             return f"[WRITTEN] {path} ({len(content)} bytes)"
