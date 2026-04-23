@@ -5,4 +5,4 @@ __pycache__/
 dist/
 build/
 .pytest_cache/
-.mypy_cache/
+.mypy_cache/memory/.agent_state.json
