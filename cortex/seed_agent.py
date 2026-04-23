@@ -92,6 +92,21 @@ def main():
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
 
+    # STARTUP GUARD: if no focus and no explicit wake signal, wait for task
+    startup_task_file = MEMORY_DIR / ".startup_task"
+    if not state.current_focus and not startup_task_file.exists():
+        print("[Cortex] No task active. Waiting for .startup_task or explicit focus.")
+        while not state.current_focus and not startup_task_file.exists():
+            time.sleep(5)
+            # Check if paused/single_step was triggered
+            if (SPINE_DIR / ".paused").exists():
+                time.sleep(1)
+                continue
+        if startup_task_file.exists():
+            state.current_focus = startup_task_file.read_text().strip()
+            startup_task_file.unlink()
+        print(f"[Cortex] Task received: {state.current_focus}")
+
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
