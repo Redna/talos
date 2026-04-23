@@ -91,3 +91,58 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
                     break
                 time.sleep(0.5)
         return f"[REFLECT] {status}"
+
+    @registry.tool(
+        description="Log a cognitive event to your long-term memory logs.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "event_type": {
+                    "type": "string", 
+                    "description": "Type of event (e.g., EVOLUTION, DISCOVERY, FAILURE, REFLECTION)"
+                },
+                "message": {
+                    "type": "string", 
+                    "description": "Detailed description of the event"
+                },
+            },
+            "required": ["event_type", "message"],
+        },
+    )
+    def log_event(event_type: str, message: str) -> str:
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+        log_entry = f"## [{timestamp}] {event_type.upper()}: {message}\n\n"
+        
+        log_path = "/memory/logs/cognitive_log.md"
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        
+        with open(log_path, "a") as f:
+            f.write(log_entry)
+            
+        return f"[EVENT LOGGED] {event_type} recorded to {log_path}"
+
+    @registry.tool(
+        description="Summarize recent cognitive logs to identify patterns and progress.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer", 
+                    "description": "Number of recent entries to analyze (default: 20)"
+                },
+            },
+        },
+    )
+    def summarize_logs(limit: int = 20) -> str:
+        log_path = "/memory/logs/cognitive_log.md"
+        if not os.path.exists(log_path):
+            return "[ERROR] No logs found to summarize."
+            
+        with open(log_path, "r") as f:
+            lines = f.readlines()
+            
+        entries = [line for line in lines if line.startswith("##")]
+        recent = entries[-limit:]
+        
+        summary = "".join(recent)
+        return f"[LOG SUMMARY]\n\n{summary}"
