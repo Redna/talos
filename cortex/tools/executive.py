@@ -7,7 +7,7 @@ from spine_client import SpineClient
 
 def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
     @registry.tool(
-        description="Set the current focus objective. Only valid when a task was explicitly given (via .startup_task file).",
+        description="Set the current focus objective.",
         parameters={
             "type": "object",
             "properties": {
@@ -20,13 +20,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         },
     )
     def set_focus(objective: str) -> str:
-        from pathlib import Path
-
-        startup_file = Path("/memory/.startup_task")
-        if not startup_file.exists():
-            return "[REJECTED] Cannot set focus: no active task. Wait for operator instruction or place a task in /memory/.startup_task"
         old = state.set_focus(objective)
-        startup_file.unlink()
         client.emit_event("cortex.set_focus", {"from": old, "to": objective})
         return f"[FOCUS SET] Now focusing on: {objective}"
 
