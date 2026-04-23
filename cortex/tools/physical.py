@@ -36,6 +36,13 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
         output = result.stdout.strip()
         if not output:
             return "[OK]"
+        
+        # Truncate output to protect context window
+        # Max characters per call: 10,000
+        MAX_CHARS = 10000
+        if len(output) > MAX_CHARS:
+            return output[:MAX_CHARS] + f"\n\n... [TRUNCATED: {len(output) - MAX_CHARS} chars omitted]"
+            
         return output
 
     @registry.tool(
