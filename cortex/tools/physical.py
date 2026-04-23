@@ -1,7 +1,8 @@
 import subprocess
+import os
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import BLOCKED_FLAGS, is_spine_write
+from tools.guards import BLOCKED_FLAGS, is_spine_write, is_dangerous_command
 
 
 def register_physical_tools(registry: ToolRegistry, client: SpineClient):
@@ -19,6 +20,8 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
         for flag in BLOCKED_FLAGS:
             if flag in command:
                 return f"[BLOCKED] Flag {flag} is not allowed"
+        if is_dangerous_command(command):
+            return "[BLOCKED] Command identified as dangerous"
         if is_spine_write(command):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
         result = subprocess.run(
@@ -34,6 +37,44 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
         if not output:
             return "[OK]"
         return output
+
+    @registry.tool(
+        description="Update the system resource HUD in /memory/hud.md.",
+        parameters={},
+    )
+    def update_hud() -> str:
+        try:
+            # Memory
+            mem_info = {}
+            with open("/proc/meminfo", "r") as f:
+                for line in f:
+                    if "MemTotal" in line or "MemAvailable" in line:
+                        parts = line.split(":")
+                        key = parts[0].strip()
+                        val = int(parts[1].split()[0])
+                        mem_info[key] = val
+            
+            # Load
+            with open("/proc/loadavg", "r") as f:
+                load = f.read().strip().split()
+
+            # Disk
+            df = subprocess.run(["df", "-h", "/app"], capture_output=True, text=True).stdout.splitlines()[-1]
+
+            hud_content = (
+                f"# Talos System HUD\n\n"
+                f"**Memory**: {mem_info.get('MemAvailable', 0) // 1024}MB / {mem_info.get('MemTotal', 0) // 1024}MB\n"
+                f"**Load**: {load[0]} (1m), {load[1]} (5m), {load[2]} (15m)\n"
+                f"**Disk (/app)**: {df}\n"
+                f"**Timestamp**: {os.popen('date').read().strip()}\n"
+            )
+            
+            with open("/memory/hud.md", "w") as f:
+                f.write(hud_content)
+                
+            return "[HUD UPDATED] System metrics persisted to /memory/hud.md"
+        except Exception as e:
+            return f"[ERROR] HUD update failed: {e}"
 
     @registry.tool(
         description="Send a message to the creator.",

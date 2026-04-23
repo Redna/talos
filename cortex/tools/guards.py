@@ -5,6 +5,15 @@ SPINE_PREFIX = "/app/spine/"
 BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
 PROTECTED_BRANCHES = {"main", "master", "origin/main", "origin/master"}
 
+DANGEROUS_PATTERNS = [
+    # Matches rm -rf / or rm -fr / ensuring it's the root directory
+    # The (\s|$) ensures we don't match /tmp or /home
+    re.compile(r"rm\s+.*-(rf|fr)\s+/(?:\s|$)"),
+    re.compile(r"mkfs\."),
+    re.compile(r"dd\s+.*of=.*" + re.escape(SPINE_PREFIX)),
+    re.compile(r"shred\s+.*" + re.escape(SPINE_PREFIX)),
+]
+
 _WRITE_COMMANDS = {
     "tee ",
     "cp ",
@@ -45,6 +54,12 @@ def is_spine_write(command: str) -> bool:
                 if part.startswith(SPINE_PREFIX):
                     return True
     for pattern in _SCRIPT_PATTERNS:
+        if pattern.search(command):
+            return True
+    return False
+
+def is_dangerous_command(command: str) -> bool:
+    for pattern in DANGEROUS_PATTERNS:
         if pattern.search(command):
             return True
     return False
