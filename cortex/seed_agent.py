@@ -21,6 +21,7 @@ SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 LOW_VALUE_TOOLS = {"bash_command"}
 LOW_VALUE_THRESHOLD = 4
 MAX_TOOL_CALLS_PER_TURN = 10
+CONTEXT_THRESHOLD_PCT = 0.85
 
 
 class RepetitionDetector:
@@ -113,7 +114,28 @@ def main():
             if single_step:
                 (SPINE_DIR / ".single_step").unlink(missing_ok=True)
 
-            # HARD GUARD: never exceed model context window
+            # HARD GUARD 1: auto-fold before threshold, pause at hard ceiling
+            if context_pct >= CONTEXT_THRESHOLD_PCT:
+                synthesis = state.current_focus or f"Autonomous session at turn {turn}"
+                print(
+                    f"[Cortex] CONTEXT FOLD ({context_pct:.1%} >= {CONTEXT_THRESHOLD_PCT:.0%}) — archiving via request_fold"
+                )
+                client.emit_event(
+                    "cortex.context_fold",
+                    {
+                        "context_pct": context_pct,
+                        "turn": turn,
+                        "threshold": CONTEXT_THRESHOLD_PCT,
+                    },
+                )
+                try:
+                    client.request_fold(synthesis)
+                except Exception as e:
+                    print(f"[Cortex] Fold failed: {e}")
+                    client.emit_event("cortex.fold_failed", {"error": str(e)})
+                # After fold, wait one tick then loop — the next turn will start fresh
+                continue
+
             if context_pct >= 1.0:
                 print(f"[Cortex] CONTEXT EXCEEDED ({context_pct:.1%}) — pausing agent")
                 client.emit_event(
