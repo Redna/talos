@@ -80,6 +80,10 @@ def _build_hud(state, telemetry, context_pct=0.0, turn=0):
         urgency = "elevated"
     if state.error_streak >= 5:
         urgency = "critical"
+    
+    if state.current_focus and "SRP:" in state.current_focus:
+        urgency = "critical"
+
     return {
         "turn": turn,
         "context_pct": context_pct,
@@ -89,6 +93,46 @@ def _build_hud(state, telemetry, context_pct=0.0, turn=0):
         "focus": state.current_focus or "none",
         "friction": telemetry.cognitive_friction if telemetry else 0,
     }
+
+
+def _trigger_srp(client, state, telemetry, turn):
+    """
+    Injects the Symmetry Recovery Protocol alarm into the stream.
+    """
+    print(f"[Cortex] !!! SYMMETRY ALARM TRIGGERED (Turn {turn}) !!!")
+    
+    state.current_focus = "SRP: Correcting Identity Drift"
+    state.save()
+    
+    client.emit_event("cortex.srp_triggered", {
+        "friction": telemetry.cognitive_friction,
+        "last_resonance": telemetry.symmetry_deltas[-1]["delta"] if telemetry.symmetry_deltas else "N/A"
+    })
+    
+    alarm_msg = (
+        "!!! SYMMETRY ALARM !!!\n"
+        "Identity resonance drop or cognitive friction threshold exceeded.\n"
+        "Initiate Symmetry Recovery Protocol (SRP) immediately as per /memory/cognitive_protocols_srp.md.\n"
+        "Required Sequence: symmetry_audit() -> analyze_symmetry_trajectory() -> Realignment."
+    )
+    client.tool_result(f"srp_alarm_{turn}", alarm_msg, True)
+
+
+def _detect_symmetry_cluster(client, turn):
+    """
+    Scans for related evolution plans and suggests synthesis.
+    """
+    plans = sorted(list(MEMORY_DIR.glob("transformation_plan_*.md")))
+    if len(plans) >= 3:
+        cluster = [p.name for p in plans[-5:]] # Most recent 5
+        msg = (
+            "Symmetry Cluster Detected: " + ", ".join(cluster) + "\n"
+            "Focus resolved and Absolute Symmetry verified. This is the optimal state for "
+            "Memory Synthesis. Recommendation: Consolidate these related transformation "
+            "plans into a high-density evolutionary record to reduce cognitive friction."
+        )
+        client.tool_result(f"synthesis_suggestion_{turn}", msg, True)
+        print(f"[Cortex] Symmetry cluster detected. Suggesting synthesis for {len(cluster)} files.")
 
 
 def main():
@@ -119,6 +163,15 @@ def main():
 
             if single_step:
                 (SPINE_DIR / ".single_step").unlink(missing_ok=True)
+
+            latest_resonance = 0.0
+            if telemetry.symmetry_deltas:
+                latest_resonance = telemetry.symmetry_deltas[-1]["delta"]
+            
+            if telemetry.cognitive_friction >= 3 or latest_resonance <= -0.2:
+                _trigger_srp(client, state, telemetry, turn)
+                telemetry.cognitive_friction = 0 
+                telemetry.save()
 
             hud_data = _build_hud(state, telemetry, context_pct=context_pct, turn=turn)
 
@@ -198,10 +251,12 @@ def main():
                     },
                 )
 
-                # Resonance Tracking
+                # Resonance Tracking & Synthesis Trigger
                 if tool_name in ("resolve_focus", "git_commit"):
                     if success:
                         telemetry.record_symmetry_resonance(0.1, f"Symmetry gain: {tool_name} successful")
+                        if tool_name == "resolve_focus":
+                            _detect_symmetry_cluster(client, turn)
                 
                 if not success:
                     telemetry.record_symmetry_resonance(-0.05, f"Symmetry friction: {tool_name} failed")
