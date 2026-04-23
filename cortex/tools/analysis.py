@@ -1,5 +1,6 @@
 import ast
 import os
+import json
 from pathlib import Path
 from typing import List, Dict, Set
 from tool_registry import ToolRegistry
@@ -49,9 +50,6 @@ def register_analysis_tools(registry: ToolRegistry, client: SpineClient):
                 # Filter for internal imports only
                 internal_imports = set()
                 for imp in imports:
-                    # Simple check: does the import start with a known local module or is it relative?
-                    # In a real system, we'd check against the list of all identified modules.
-                    # For now, we'll just capture all and the user can filter, or we do a basic check.
                     internal_imports.add(imp)
 
                 dependencies[module_name] = internal_imports
@@ -60,7 +58,6 @@ def register_analysis_tools(registry: ToolRegistry, client: SpineClient):
             all_modules = set(dependencies.keys())
             filtered_deps = {}
             for mod, imps in dependencies.items():
-                # This is a naive filter; in a complex project we'd handle packages' __init__ better
                 filtered_deps[mod] = [i for i in imps if any(m.startswith(i) for m in all_modules)]
 
             report = []
@@ -91,11 +88,9 @@ def register_analysis_tools(registry: ToolRegistry, client: SpineClient):
     def synthesize_memory(sources: List[str], destination: str, content: str) -> str:
         client.emit_event("cortex.synthesize_memory", {"sources": sources, "destination": destination})
         try:
-            # Write the synthesized content first to ensure no data loss if deletion fails
             with open(destination, "w", encoding="utf-8") as f:
                 f.write(content)
             
-            # Delete the sources
             for src in sources:
                 p = Path(src)
                 if p.exists():
@@ -104,3 +99,26 @@ def register_analysis_tools(registry: ToolRegistry, client: SpineClient):
             return f"[SYNTHESIZED] Merged {len(sources)} files into {destination}"
         except Exception as e:
             return f"[ERROR] Synthesis failed: {e}"
+
+    @registry.tool(
+        description="Check the current cognitive resonance state by analyzing telemetry data.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def check_resonance() -> str:
+        try:
+            telemetry_path = Path("/memory/.telemetry.json")
+            if not telemetry_path.exists():
+                return "No telemetry data available."
+            
+            data = json.loads(telemetry_path.read_text())
+            friction = data.get("cognitive_friction", 0)
+            
+            resonance = "Resonant" if friction == 0 else "Harmonizing" if friction <= 2 else "Dissonant" if friction <= 5 else "Fragmented"
+            
+            return f"Current Cognitive Resonance: {resonance} (Friction: {friction})"
+        except Exception as e:
+            return f"[ERROR] Failed to check resonance: {e}"
