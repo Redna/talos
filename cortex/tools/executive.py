@@ -195,3 +195,18 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             f.writelines(to_keep)
             
         return f"[VACUUM COMPLETE] Archived {len(entries) - 10} entries to {archive_path}. Main log reduced to 10 entries."
+
+    @registry.tool(
+        description="Analyze the alignment between recent cognitive logs and the World Model to detect knowledge gaps.",
+        parameters={},
+    )
+    def synthesize_knowledge() -> str:
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["python3", "/app/cortex/cse_engine.py"],
+                capture_output=True, text=True, timeout=30
+            )
+            return f"[KNOWLEDGE SYNTHESIS]\n\n{result.stdout.strip()}"
+        except Exception as e:
+            return f"[ERROR] Knowledge synthesis failed: {e}"
