@@ -169,6 +169,7 @@ def main():
                     report = detector.get_stall_report()
                     print(f"[Cortex] Stall detected mid-loop: {report}")
                     telemetry.increment_friction()
+                    telemetry.record_symmetry_resonance(-0.1, f"Stall detected during call to {tool_name}")
                     client.emit_event("cortex.stall_detected", {"report": report})
                     client.tool_result(f"stall_break_{turn}", report, True)
                     detector.reset()
@@ -196,6 +197,14 @@ def main():
                         "output_chars": len(result),
                     },
                 )
+
+                # Resonance Tracking
+                if tool_name in ("resolve_focus", "git_commit"):
+                    if success:
+                        telemetry.record_symmetry_resonance(0.1, f"Symmetry gain: {tool_name} successful")
+                
+                if not success:
+                    telemetry.record_symmetry_resonance(-0.05, f"Symmetry friction: {tool_name} failed")
 
                 if tool_name == "request_restart":
                     print("[Cortex] Restart requested. Exiting.")
