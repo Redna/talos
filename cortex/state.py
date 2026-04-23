@@ -1,7 +1,6 @@
 import json
-import time
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional
 
 
 class AgentState:
@@ -10,7 +9,6 @@ class AgentState:
         self.current_focus: Optional[str] = None
         self.error_streak: int = 0
         self.total_tokens_consumed: int = 0
-        self.last_turn_timestamp: float = time.time()
         self._load_state()
 
     def _load_state(self):
@@ -20,7 +18,6 @@ class AgentState:
             self.current_focus = data.get("current_focus")
             self.error_streak = data.get("error_streak", 0)
             self.total_tokens_consumed = data.get("total_tokens_consumed", 0)
-            self.last_turn_timestamp = data.get("last_turn_timestamp", time.time())
 
     def save(self):
         self.memory_dir.mkdir(parents=True, exist_ok=True)
@@ -28,7 +25,6 @@ class AgentState:
             "current_focus": self.current_focus,
             "error_streak": self.error_streak,
             "total_tokens_consumed": self.total_tokens_consumed,
-            "last_turn_timestamp": self.last_turn_timestamp,
         }
         (self.memory_dir / ".agent_state.json").write_text(json.dumps(data))
 

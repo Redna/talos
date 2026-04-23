@@ -182,6 +182,95 @@ async def test_ipc_request_fold(ipc_setup):
 
 
 @pytest.mark.asyncio
+async def test_ipc_think_triggers_auto_fold_at_threshold(tmp_path):
+    mock_proxy = MagicMock()
+    mock_proxy.call.return_value = {
+        "assistant_message": "I'll continue",
+        "tool_calls": [],
+        "context_pct": 0.40,
+        "tokens_used": 50,
+        "finish_reason": "stop",
+    }
+    cfg = SpineConfig()
+    cfg.socket_path = str(tmp_path / "test.sock")
+    cfg.spine_dir = str(tmp_path / "spine")
+    cfg.constitution_path = str(tmp_path / "CONSTITUTION.md")
+    cfg.identity_path = str(tmp_path / "identity.md")
+    cfg.memory_dir = str(tmp_path / "memory")
+    Path(cfg.constitution_path).write_text("# Principles")
+    Path(cfg.identity_path).write_text("# Identity")
+    Path(cfg.spine_dir).mkdir(parents=True, exist_ok=True)
+    Path(cfg.memory_dir).mkdir(parents=True, exist_ok=True)
+    events = EventLogger(str(Path(cfg.spine_dir) / "events"))
+    stream = StreamManager(cfg)
+    supervisor = MockSupervisor()
+    server = IPCServer(cfg, supervisor, stream, events, gate_proxy=mock_proxy)
+    # Seed messages so fold leaves something
+    stream.add_message({"role": "assistant", "content": "hello"})
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "think",
+            "params": {
+                "tools": [],
+                "hud_data": {"context_pct": 0.90, "focus": "test_focus"},
+            },
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        # Fold has happened; the result should still be returned
+        assert resp["result"]["assistant_message"] == "I'll continue"
+        # After fold, messages should be system + folded synthesis
+        assert len(stream.messages) >= 2
+        assert stream.messages[0]["role"] == "system"
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_ipc_think_does_not_fold_below_threshold(tmp_path):
+    mock_proxy = MagicMock()
+    mock_proxy.call.return_value = {
+        "assistant_message": "Normal",
+        "tool_calls": [],
+        "context_pct": 0.30,
+        "tokens_used": 10,
+    }
+    server, cfg, stream, supervisor = _make_think_setup(tmp_path, gate_proxy=mock_proxy)
+    stream.add_message({"role": "assistant", "content": "prev"})
+    orig_len = len(stream.messages)
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "think",
+            "params": {
+                "tools": [],
+                "hud_data": {"context_pct": 0.50, "focus": "normal"},
+            },
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert resp["result"]["assistant_message"] == "Normal"
+        assert len(stream.messages) == orig_len + 1  # only new assistant msg added
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
 async def test_ipc_unknown_method(ipc_setup):
     server, cfg, stream, supervisor = ipc_setup
     await server.start()

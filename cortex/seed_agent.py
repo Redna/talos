@@ -13,6 +13,9 @@ from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
 from tools.git_ops import register_git_ops_tools
+from tools.analysis import register_analysis_tools
+from tools.auditor import register_auditor_tools
+from tools.memory_ops import register_memory_ops_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -96,6 +99,9 @@ def main():
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
     register_git_ops_tools(registry, client)
+    register_analysis_tools(registry, client)
+    register_auditor_tools(registry, client)
+    register_memory_ops_tools(registry, client)
 
     detector = RepetitionDetector()
     turn = 0

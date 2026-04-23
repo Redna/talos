@@ -30,7 +30,7 @@ class FakeGateProxy(GateProxy):
         self._responses = list(responses)
         self._idx = 0
 
-    def call(self, messages, tools, model=""):
+    def call(self, messages, tools, model="", **kwargs):
         if self._idx >= len(self._responses):
             raise RuntimeError("FakeGateProxy ran out of scripted responses")
         resp = self._responses[self._idx]
