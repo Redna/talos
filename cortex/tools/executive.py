@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 from tools import guards
+from telemetry import TelemetryCollector
 
 def prepare_fold() -> str:
     """
@@ -47,6 +48,9 @@ def prepare_fold() -> str:
     return report
 
 def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
+    # Initialize Telemetry
+    telemetry = TelemetryCollector(memory_dir=Path("/memory"))
+
     @registry.tool(
         description="Prepare for a context fold by auditing state and suggesting synthesis targets.",
         parameters={"type": "object", "properties": {}, "required": []},
@@ -222,3 +226,11 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             results.append(f"Memory: OFFLINE (Error: {e})")
             
         return "\n".join(results)
+
+    @registry.tool(
+        description="Generate a real-time telemetry report of system vitals (latency, friction, resonance).",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )
+    def telemetry_report() -> str:
+        telemetry.save()
+        return telemetry.generate_report()

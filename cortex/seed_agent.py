@@ -8,6 +8,7 @@ from pathlib import Path
 from spine_client import SpineClient, SpineError
 from tool_registry import ToolRegistry
 from state import AgentState
+from telemetry import TelemetryCollector
 
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
@@ -71,7 +72,7 @@ class RepetitionDetector:
         self.history.clear()
 
 
-def _build_hud(state, context_pct=0.0, turn=0):
+def _build_hud(state, telemetry, context_pct=0.0, turn=0):
     memory_dir = state.memory_dir
     md_files = list(memory_dir.glob("*.md")) if memory_dir.exists() else []
     urgency = "nominal"
@@ -86,6 +87,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
         "memory_file_count": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
+        "friction": telemetry.cognitive_friction if telemetry else 0,
     }
 
 
@@ -93,6 +95,7 @@ def main():
     client = SpineClient(SPINE_SOCKET)
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
+    telemetry = TelemetryCollector(MEMORY_DIR)
 
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
@@ -117,7 +120,7 @@ def main():
             if single_step:
                 (SPINE_DIR / ".single_step").unlink(missing_ok=True)
 
-            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
+            hud_data = _build_hud(state, telemetry, context_pct=context_pct, turn=turn)
 
             try:
                 response = client.think(
@@ -133,9 +136,11 @@ def main():
 
             context_pct = response.get("context_pct", 0.0)
             turn = response.get("turn", 0)
-            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
+            hud_data = _build_hud(state, telemetry, context_pct=context_pct, turn=turn)
 
-            state.total_tokens_consumed += response.get("tokens_used", 0)
+            tokens_used = response.get("tokens_used", 0)
+            state.total_tokens_consumed += tokens_used
+            telemetry.record_token_step(tokens_used)
             state.save()
             state.error_streak = 0
             state.save()
@@ -163,6 +168,7 @@ def main():
                 if detector.is_stalled():
                     report = detector.get_stall_report()
                     print(f"[Cortex] Stall detected mid-loop: {report}")
+                    telemetry.increment_friction()
                     client.emit_event("cortex.stall_detected", {"report": report})
                     client.tool_result(f"stall_break_{turn}", report, True)
                     detector.reset()
@@ -176,6 +182,7 @@ def main():
                 start_time = time.time()
                 result = registry.execute(tool_name, tool_args)
                 duration_ms = int((time.time() - start_time) * 1000)
+                telemetry.record_tool_latency(tool_name, duration_ms / 1000.0)
 
                 success = not result.startswith(("[ERROR]", "[REJECTED]", "[EXIT"))
                 client.tool_result(tc["id"], result, success)
@@ -208,6 +215,7 @@ def main():
             time.sleep(1)
             continue
         finally:
+            telemetry.save()
             if was_single_step:
                 (SPINE_DIR / ".paused").touch(exist_ok=True)
 

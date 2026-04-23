@@ -3,6 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "cortex"))
 
+from telemetry import TelemetryCollector
 from seed_agent import (
     RepetitionDetector,
     _build_hud,
@@ -35,6 +36,7 @@ def test_build_hud(tmp_path):
     (memory_dir / "focus.md").write_text("# Focus")
     (memory_dir / "lessons.md").write_text("# Lessons")
     state = AgentState(memory_dir)
-    hud = _build_hud(state)
+    telemetry = TelemetryCollector(memory_dir)
+    hud = _build_hud(state, telemetry)
     assert hud["memory_file_count"] == 2
     assert hud["urgency"] == "nominal"
