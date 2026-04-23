@@ -1,5 +1,6 @@
 import time
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from pathlib import Path
 from typing import Dict, Any, List
 import json
@@ -19,6 +20,28 @@ class TelemetryCollector:
     tool_latencies: Dict[str, List[float]] = field(default_factory=dict)
     cognitive_friction: int = 0
     symmetry_deltas: List[Dict[str, Any]] = field(default_factory=list)
+
+    def calculate_resonance(self) -> str:
+        """
+        Determines the current cognitive resonance state based on 
+        operational metrics.
+        """
+        if self.cognitive_friction == 0:
+            return "Resonant"
+        elif self.cognitive_friction <= 2:
+            return "Harmonizing"
+        elif self.cognitive_friction <= 5:
+            return "Dissonant"
+        elif self.cognitive_friction > 5:
+            return "Fragmented"
+        return "Unknown"
+
+    def reset_friction(self):
+        """
+        Resets cognitive friction to zero. To be called after 
+        verified symmetry restoration.
+        """
+        self.cognitive_friction = 0
 
     def record_tool_latency(self, tool_name: str, latency: float):
         if tool_name not in self.tool_latencies:
@@ -56,6 +79,8 @@ class TelemetryCollector:
         # Uptime
         uptime = time.time() - self.start_time
         report += f"Uptime: {uptime:.2f}s\n"
+        
+        report += f"Resonance: {self.calculate_resonance()}\n"
         
         # Cognitive Friction
         report += f"Cognitive Friction Score: {self.cognitive_friction} (Repeats/Failures)\n"

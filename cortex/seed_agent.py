@@ -93,6 +93,7 @@ def _build_hud(state, context_pct=0.0, turn=0, telemetry=None):
     
     if telemetry:
         hud["friction"] = telemetry.cognitive_friction
+        hud["resonance"] = telemetry.calculate_resonance()
         
     return hud
 
@@ -108,7 +109,7 @@ def main():
     register_physical_tools(registry, client)
     register_git_ops_tools(registry, client)
     register_analysis_tools(registry, client)
-    register_auditor_tools(registry, client)
+    register_auditor_tools(registry, client, telemetry)
     register_memory_ops_tools(registry, client)
 
     detector = RepetitionDetector()

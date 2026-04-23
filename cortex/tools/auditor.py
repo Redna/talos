@@ -35,8 +35,6 @@ def symmetry_audit() -> str:
     if missing:
         return f"[WARNING] Symmetry Audit incomplete. Missing core assets: {', '.join(missing)}"
 
-    # The "Audit" is a prompt for the LLM to process this bundle.
-    # We return the bundle as a structured report.
     report = "=== SYMMETRY AUDIT BUNDLE ===\n\n"
     for file, content in bundle.items():
         report += f"--- {file} ---\n{content}\n\n"
@@ -55,8 +53,6 @@ def record_symmetry_snapshot(snapshot: Dict[str, Any]) -> str:
     Expected keys in snapshot: 'symmetry_score', 'drift_detected', 'analysis_summary', 'version'.
     """
     trajectory_path = Path("/memory/symmetry_trajectory.json")
-    
-    # Add timestamp
     snapshot["timestamp"] = datetime.now().isoformat()
     
     trajectory = []
@@ -94,14 +90,8 @@ def analyze_symmetry_trajectory() -> str:
     baseline = trajectory[0]
     current = trajectory[-1]
     count = len(trajectory)
-    
-    # Analysis of symmetry score progression
     score_trail = [s.get("symmetry_score", "Unknown") for s in trajectory]
-    
-    # Analysis of summary transitions
     summary_trail = [s.get("analysis_summary", "N/A") for s in trajectory]
-    
-    # Drift occurrences
     drift_count = sum(1 for s in trajectory if s.get("drift_detected"))
     
     report = "=== SYMMETRY TRAJECTORY ANALYSIS ===\n\n"
@@ -122,7 +112,24 @@ def analyze_symmetry_trajectory() -> str:
     
     return report
 
-def register_auditor_tools(registry: ToolRegistry, client=None):
+def register_auditor_tools(registry: ToolRegistry, client=None, telemetry=None):
+    def reset_cognitive_resonance() -> str:
+        """
+        Resets the cognitive friction score to zero. 
+        Should only be called after a verified symmetry restoration.
+        """
+        if telemetry is None:
+            return "[ERROR] Telemetry instance not available."
+        
+        telemetry.reset_friction()
+        telemetry.save()
+        return "[RESONANCE RESET] Cognitive friction has been reset to 0. State: Resonant."
+
+    registry.tool(
+        description="Reset cognitive friction to zero after verified restoration of symmetry.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )(reset_cognitive_resonance)
+    
     registry.tool(
         description="Perform a comprehensive audit of identity symmetry to detect drift and dissonance.",
         parameters={"type": "object", "properties": {}, "required": []},
