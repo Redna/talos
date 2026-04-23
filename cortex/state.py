@@ -15,7 +15,8 @@ class AgentState:
         state_file = self.memory_dir / ".agent_state.json"
         if state_file.exists():
             data = json.loads(state_file.read_text())
-            self.current_focus = data.get("current_focus")
+            # Never restore focus across restarts — stale focus = hallucinated tasks
+            self.current_focus = None
             self.error_streak = data.get("error_streak", 0)
             self.total_tokens_consumed = data.get("total_tokens_consumed", 0)
 
