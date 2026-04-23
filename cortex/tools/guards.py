@@ -6,10 +6,23 @@ BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-
 PROTECTED_BRANCHES = {"main", "master", "origin/main", "origin/master"}
 
 DANGEROUS_PATTERNS = [
+    # Recursive root deletion
     re.compile(r"rm\s+.*-(rf|fr)\s+/(?:\s|$)"),
+    # Filesystem creation
     re.compile(r"mkfs\."),
+    # Spine-specific destruction
     re.compile(r"dd\s+.*of=.*" + re.escape(SPINE_PREFIX)),
     re.compile(r"shred\s+.*" + re.escape(SPINE_PREFIX)),
+    # Network shells/exfiltration patterns
+    re.compile(r"nc\s+-e\s+"),
+    re.compile(r"bash\s+-i\s+>\& /dev/tcp/"),
+    re.compile(r"python.*-c\s+.*import\s+socket.*connect"),
+    # Broad recursive permission changes on sensitive paths. 
+    # We allow chmod on /app/cortex but not on / (root) or /app/spine/ via recursive flags.
+    re.compile(r"chmod\s+-R\s+.*\/(\s|$)"),
+    re.compile(r"chown\s+-R\s+.*\/(\s|$)"),
+    # Dangerous find execution's that might modify root
+    re.compile(r"find\s+.*\s+-exec\s+.*(rm|chmod|chown)\s+"),
 ]
 
 _WRITE_COMMANDS = {
@@ -47,42 +60,35 @@ def is_spine_path(path: str) -> bool:
             return True
         
         # 2. Root protection: forbid writing directly to / (excluding safe subdirs)
-        # If the file is located directly in /, it's protected.
         if resolved.parent == Path("/"):
             return True
             
     except (OSError, ValueError):
-        # Fallback to string prefix if resolution fails
-        return path.startswith(SPINE_PREFIX) or path.startswith("/ ") # Space for safety
+        return path.startswith(SPINE_PREFIX) or path.startswith("/ ")
     
     return False
 
 
 def is_spine_write(command: str) -> bool:
-    # Immediate check for protected paths
     if SPINE_PREFIX not in command and "/" not in command:
         return False
 
-    # Handle redirections - Check >> first to avoid partial match with >
     for indicator in (">>", ">"):
         if indicator in command:
             parts = command.split(indicator)
             if len(parts) > 1:
-                # Look at the segment immediately following the operator
                 target_part = parts[1].strip()
                 if target_part:
                     target = target_part.split()[0]
                     if is_spine_path(target):
                         return True
 
-    # Handle explicit write commands
     for cmd in _WRITE_COMMANDS:
         if re.search(rf"\b{cmd}\b", command):
             for part in command.split():
                 if is_spine_path(part):
                     return True
 
-    # Handle script patterns
     for pattern in _SCRIPT_PATTERNS:
         if pattern.search(command):
             return True
