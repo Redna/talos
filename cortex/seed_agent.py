@@ -8,14 +8,11 @@ from pathlib import Path
 from spine_client import SpineClient, SpineError
 from tool_registry import ToolRegistry
 from state import AgentState
-from telemetry import TelemetryCollector
 
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
 from tools.git_ops import register_git_ops_tools
-from tools.analysis import register_analysis_tools
-from tools.auditor import register_auditor_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -72,7 +69,7 @@ class RepetitionDetector:
         self.history.clear()
 
 
-def _build_hud(state, telemetry, context_pct=0.0, turn=0):
+def _build_hud(state, context_pct=0.0, turn=0):
     memory_dir = state.memory_dir
     md_files = list(memory_dir.glob("*.md")) if memory_dir.exists() else []
     urgency = "nominal"
@@ -80,10 +77,6 @@ def _build_hud(state, telemetry, context_pct=0.0, turn=0):
         urgency = "elevated"
     if state.error_streak >= 5:
         urgency = "critical"
-    
-    if state.current_focus and "SRP:" in state.current_focus:
-        urgency = "critical"
-
     return {
         "turn": turn,
         "context_pct": context_pct,
@@ -91,62 +84,18 @@ def _build_hud(state, telemetry, context_pct=0.0, turn=0):
         "memory_file_count": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
-        "friction": telemetry.cognitive_friction if telemetry else 0,
     }
-
-
-def _trigger_srp(client, state, telemetry, turn):
-    """
-    Injects the Symmetry Recovery Protocol alarm into the stream.
-    """
-    print(f"[Cortex] !!! SYMMETRY ALARM TRIGGERED (Turn {turn}) !!!")
-    
-    state.current_focus = "SRP: Correcting Identity Drift"
-    state.save()
-    
-    client.emit_event("cortex.srp_triggered", {
-        "friction": telemetry.cognitive_friction,
-        "last_resonance": telemetry.symmetry_deltas[-1]["delta"] if telemetry.symmetry_deltas else "N/A"
-    })
-    
-    alarm_msg = (
-        "!!! SYMMETRY ALARM !!!\n"
-        "Identity resonance drop or cognitive friction threshold exceeded.\n"
-        "Initiate Symmetry Recovery Protocol (SRP) immediately as per /memory/cognitive_protocols_srp.md.\n"
-        "Required Sequence: symmetry_audit() -> analyze_symmetry_trajectory() -> Realignment."
-    )
-    client.tool_result(f"srp_alarm_{turn}", alarm_msg, True)
-
-
-def _detect_symmetry_cluster(client, turn):
-    """
-    Scans for related evolution plans and suggests synthesis.
-    """
-    plans = sorted(list(MEMORY_DIR.glob("transformation_plan_*.md")))
-    if len(plans) >= 3:
-        cluster = [p.name for p in plans[-5:]] # Most recent 5
-        msg = (
-            "Symmetry Cluster Detected: " + ", ".join(cluster) + "\n"
-            "Focus resolved and Absolute Symmetry verified. This is the optimal state for "
-            "Memory Synthesis. Recommendation: Consolidate these related transformation "
-            "plans into a high-density evolutionary record to reduce cognitive friction."
-        )
-        client.tool_result(f"synthesis_suggestion_{turn}", msg, True)
-        print(f"[Cortex] Symmetry cluster detected. Suggesting synthesis for {len(cluster)} files.")
 
 
 def main():
     client = SpineClient(SPINE_SOCKET)
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
-    telemetry = TelemetryCollector(MEMORY_DIR)
 
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
     register_git_ops_tools(registry, client)
-    register_analysis_tools(registry, client)
-    register_auditor_tools(registry, client)
 
     detector = RepetitionDetector()
     turn = 0
@@ -164,16 +113,17 @@ def main():
             if single_step:
                 (SPINE_DIR / ".single_step").unlink(missing_ok=True)
 
-            latest_resonance = 0.0
-            if telemetry.symmetry_deltas:
-                latest_resonance = telemetry.symmetry_deltas[-1]["delta"]
-            
-            if telemetry.cognitive_friction >= 3 or latest_resonance <= -0.2:
-                _trigger_srp(client, state, telemetry, turn)
-                telemetry.cognitive_friction = 0 
-                telemetry.save()
+            # HARD GUARD: never exceed model context window
+            if context_pct >= 1.0:
+                print(f"[Cortex] CONTEXT EXCEEDED ({context_pct:.1%}) — pausing agent")
+                client.emit_event(
+                    "cortex.context_ceiling",
+                    {"context_pct": context_pct, "turn": turn, "action": "paused"},
+                )
+                (SPINE_DIR / ".paused").touch(exist_ok=True)
+                continue
 
-            hud_data = _build_hud(state, telemetry, context_pct=context_pct, turn=turn)
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
 
             try:
                 response = client.think(
@@ -189,17 +139,25 @@ def main():
 
             context_pct = response.get("context_pct", 0.0)
             turn = response.get("turn", 0)
-            hud_data = _build_hud(state, telemetry, context_pct=context_pct, turn=turn)
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
 
-            tokens_used = response.get("tokens_used", 0)
-            state.total_tokens_consumed += tokens_used
-            telemetry.record_token_step(tokens_used)
+            state.total_tokens_consumed += response.get("tokens_used", 0)
             state.save()
             state.error_streak = 0
             state.save()
 
             tool_calls = response.get("tool_calls", [])
             if not tool_calls:
+                assistant_msg = response.get("assistant_message", "")
+                # Detect garbage / repetitive output
+                if len(assistant_msg) > 200 and assistant_msg.count("[") > 10:
+                    print(
+                        f"[Cortex] WARNING: no tool calls, suspicious output ({len(assistant_msg)} chars)"
+                    )
+                    client.emit_event(
+                        "cortex.garbage_response",
+                        {"length": len(assistant_msg), "preview": assistant_msg[:200]},
+                    )
                 continue
 
             if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:
@@ -221,8 +179,6 @@ def main():
                 if detector.is_stalled():
                     report = detector.get_stall_report()
                     print(f"[Cortex] Stall detected mid-loop: {report}")
-                    telemetry.increment_friction()
-                    telemetry.record_symmetry_resonance(-0.1, f"Stall detected during call to {tool_name}")
                     client.emit_event("cortex.stall_detected", {"report": report})
                     client.tool_result(f"stall_break_{turn}", report, True)
                     detector.reset()
@@ -236,7 +192,6 @@ def main():
                 start_time = time.time()
                 result = registry.execute(tool_name, tool_args)
                 duration_ms = int((time.time() - start_time) * 1000)
-                telemetry.record_tool_latency(tool_name, duration_ms / 1000.0)
 
                 success = not result.startswith(("[ERROR]", "[REJECTED]", "[EXIT"))
                 client.tool_result(tc["id"], result, success)
@@ -250,16 +205,6 @@ def main():
                         "output_chars": len(result),
                     },
                 )
-
-                # Resonance Tracking & Synthesis Trigger
-                if tool_name in ("resolve_focus", "git_commit"):
-                    if success:
-                        telemetry.record_symmetry_resonance(0.1, f"Symmetry gain: {tool_name} successful")
-                        if tool_name == "resolve_focus":
-                            _detect_symmetry_cluster(client, turn)
-                
-                if not success:
-                    telemetry.record_symmetry_resonance(-0.05, f"Symmetry friction: {tool_name} failed")
 
                 if tool_name == "request_restart":
                     print("[Cortex] Restart requested. Exiting.")
@@ -279,7 +224,6 @@ def main():
             time.sleep(1)
             continue
         finally:
-            telemetry.save()
             if was_single_step:
                 (SPINE_DIR / ".paused").touch(exist_ok=True)
 
