@@ -33,7 +33,15 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 selected = lines[start_line - 1 : end_line]
             else:
                 selected = lines[start_line - 1 :]
-            return "".join(selected)
+            
+            content = "".join(selected)
+            
+            # Prevent context overflow for oversized files
+            MAX_CHARS = 10000
+            if len(content) > MAX_CHARS:
+                return content[:MAX_CHARS] + f"\n\n... [TRUNCATED: {len(content) - MAX_CHARS} chars omitted]"
+                
+            return content
         except FileNotFoundError:
             return f"[ERROR] File not found: {path}"
         except Exception as e:

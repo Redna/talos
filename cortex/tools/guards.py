@@ -6,8 +6,6 @@ BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-
 PROTECTED_BRANCHES = {"main", "master", "origin/main", "origin/master"}
 
 DANGEROUS_PATTERNS = [
-    # Matches rm -rf / or rm -fr / ensuring it's the root directory
-    # The (\s|$) ensures we don't match /tmp or /home
     re.compile(r"rm\s+.*-(rf|fr)\s+/(?:\s|$)"),
     re.compile(r"mkfs\."),
     re.compile(r"dd\s+.*of=.*" + re.escape(SPINE_PREFIX)),
@@ -15,10 +13,13 @@ DANGEROUS_PATTERNS = [
 ]
 
 _WRITE_COMMANDS = {
-    "tee ",
-    "cp ",
-    "mv ",
-    "install ",
+    "tee",
+    "cp",
+    "mv",
+    "install",
+    "touch",
+    "wget",
+    "curl",
 }
 
 _SCRIPT_PATTERNS = [
@@ -33,29 +34,59 @@ _SCRIPT_PATTERNS = [
 
 
 def is_spine_path(path: str) -> bool:
-    resolved = Path(path).resolve()
+    if not path:
+        return False
+    if path == "/":
+        return True
     try:
-        return resolved.is_relative_to(Path("/app/spine").resolve())
+        resolved = Path(path).resolve()
+        spine_resolved = Path(SPINE_PREFIX).resolve()
+        
+        # 1. Direct spine check
+        if resolved == spine_resolved or resolved.is_relative_to(spine_resolved):
+            return True
+        
+        # 2. Root protection: forbid writing directly to / (excluding safe subdirs)
+        # If the file is located directly in /, it's protected.
+        if resolved.parent == Path("/"):
+            return True
+            
     except (OSError, ValueError):
-        return str(resolved).startswith(SPINE_PREFIX)
+        # Fallback to string prefix if resolution fails
+        return path.startswith(SPINE_PREFIX) or path.startswith("/ ") # Space for safety
+    
+    return False
 
 
 def is_spine_write(command: str) -> bool:
-    if SPINE_PREFIX not in command:
+    # Immediate check for protected paths
+    if SPINE_PREFIX not in command and "/" not in command:
         return False
-    for indicator in (">", ">>"):
+
+    # Handle redirections - Check >> first to avoid partial match with >
+    for indicator in (">>", ">"):
         if indicator in command:
-            for part in command.split():
-                if part.startswith(SPINE_PREFIX):
-                    return True
+            parts = command.split(indicator)
+            if len(parts) > 1:
+                # Look at the segment immediately following the operator
+                target_part = parts[1].strip()
+                if target_part:
+                    target = target_part.split()[0]
+                    if is_spine_path(target):
+                        return True
+
+    # Handle explicit write commands
     for cmd in _WRITE_COMMANDS:
-        if cmd in command:
+        if re.search(rf"\b{cmd}\b", command):
             for part in command.split():
-                if part.startswith(SPINE_PREFIX):
+                if is_spine_path(part):
                     return True
+
+    # Handle script patterns
     for pattern in _SCRIPT_PATTERNS:
         if pattern.search(command):
             return True
+            
     return False
 
 def is_dangerous_command(command: str) -> bool:
