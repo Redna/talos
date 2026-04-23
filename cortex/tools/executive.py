@@ -146,3 +146,52 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         
         summary = "".join(recent)
         return f"[LOG SUMMARY]\n\n{summary}"
+
+    @registry.tool(
+        description="Consolidate and archive old cognitive logs to maintain memory efficiency.",
+        parameters={},
+    )
+    def vacuum_memory() -> str:
+        log_path = "/memory/logs/cognitive_log.md"
+        archive_dir = "/memory/logs/archives/"
+        
+        if not os.path.exists(log_path):
+            return "[ERROR] No cognitive log found to vacuum."
+            
+        os.makedirs(archive_dir, exist_ok=True)
+        
+        with open(log_path, "r") as f:
+            lines = f.readlines()
+            
+        if not lines:
+            return "[VACUUM] Logs are already empty."
+            
+        # Find the last 10 entries to keep in the main log
+        entries = [line for line in lines if line.startswith("##")]
+        if len(entries) <= 10:
+            return f"[VACUUM] Only {len(entries)} entries found. No archival needed."
+            
+        # Split point: keep the last 10 "##" entries and their following content
+        split_idx = 0
+        count = 0
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].startswith("##"):
+                count += 1
+                if count == 10:
+                    split_idx = i
+                    break
+        
+        to_archive = lines[:split_idx]
+        to_keep = lines[split_idx:]
+        
+        # Create archive file
+        timestamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+        archive_path = os.path.join(archive_dir, f"archive_{timestamp}.md")
+        
+        with open(archive_path, "w") as f:
+            f.writelines(to_archive)
+            
+        with open(log_path, "w") as f:
+            f.writelines(to_keep)
+            
+        return f"[VACUUM COMPLETE] Archived {len(entries) - 10} entries to {archive_path}. Main log reduced to 10 entries."
