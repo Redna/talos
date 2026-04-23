@@ -8,6 +8,7 @@ from pathlib import Path
 from spine_client import SpineClient, SpineError
 from tool_registry import ToolRegistry
 from state import AgentState
+from telemetry import TelemetryCollector
 
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
@@ -72,7 +73,7 @@ class RepetitionDetector:
         self.history.clear()
 
 
-def _build_hud(state, context_pct=0.0, turn=0):
+def _build_hud(state, context_pct=0.0, turn=0, telemetry=None):
     memory_dir = state.memory_dir
     md_files = list(memory_dir.glob("*.md")) if memory_dir.exists() else []
     urgency = "nominal"
@@ -80,7 +81,8 @@ def _build_hud(state, context_pct=0.0, turn=0):
         urgency = "elevated"
     if state.error_streak >= 5:
         urgency = "critical"
-    return {
+    
+    hud = {
         "turn": turn,
         "context_pct": context_pct,
         "urgency": urgency,
@@ -88,12 +90,18 @@ def _build_hud(state, context_pct=0.0, turn=0):
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
     }
+    
+    if telemetry:
+        hud["friction"] = telemetry.cognitive_friction
+        
+    return hud
 
 
 def main():
     client = SpineClient(SPINE_SOCKET)
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
+    telemetry = TelemetryCollector(MEMORY_DIR)
 
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
@@ -119,7 +127,7 @@ def main():
             if single_step:
                 (SPINE_DIR / ".single_step").unlink(missing_ok=True)
 
-            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn, telemetry=telemetry)
 
             try:
                 response = client.think(
@@ -135,9 +143,12 @@ def main():
 
             context_pct = response.get("context_pct", 0.0)
             turn = response.get("turn", 0)
-            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn, telemetry=telemetry)
 
-            state.total_tokens_consumed += response.get("tokens_used", 0)
+            tokens_used = response.get("tokens_used", 0)
+            state.total_tokens_consumed += tokens_used
+            telemetry.record_token_step(tokens_used)
+            
             state.save()
             state.error_streak = 0
             state.save()
@@ -145,25 +156,14 @@ def main():
             tool_calls = response.get("tool_calls", [])
             if not tool_calls:
                 assistant_msg = response.get("assistant_message", "")
-                # Detect garbage / repetitive output
                 if len(assistant_msg) > 200 and assistant_msg.count("[") > 10:
-                    print(
-                        f"[Cortex] WARNING: no tool calls, suspicious output ({len(assistant_msg)} chars)"
-                    )
-                    client.emit_event(
-                        "cortex.garbage_response",
-                        {"length": len(assistant_msg), "preview": assistant_msg[:200]},
-                    )
+                    print(f"[Cortex] WARNING: no tool calls, suspicious output ({len(assistant_msg)} chars)")
+                    client.emit_event("cortex.garbage_response", {"length": len(assistant_msg), "preview": assistant_msg[:200]})
                 continue
 
             if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:
-                print(
-                    f"[Cortex] LLM returned {len(tool_calls)} tool calls, capping to {MAX_TOOL_CALLS_PER_TURN}"
-                )
-                client.emit_event(
-                    "cortex.tool_calls_capped",
-                    {"original_count": len(tool_calls), "cap": MAX_TOOL_CALLS_PER_TURN},
-                )
+                print(f"[Cortex] LLM returned {len(tool_calls)} tool calls, capping to {MAX_TOOL_CALLS_PER_TURN}")
+                client.emit_event("cortex.tool_calls_capped", {"original_count": len(tool_calls), "cap": MAX_TOOL_CALLS_PER_TURN})
                 tool_calls = tool_calls[:MAX_TOOL_CALLS_PER_TURN]
 
             for tc in tool_calls:
@@ -178,45 +178,47 @@ def main():
                     client.emit_event("cortex.stall_detected", {"report": report})
                     client.tool_result(f"stall_break_{turn}", report, True)
                     detector.reset()
+                    telemetry.increment_friction()
                     break
 
-                client.emit_event(
-                    "cortex.tool_call",
-                    {"tool": tool_name, "args_summary": json.dumps(tool_args)[:200]},
-                )
+                client.emit_event("cortex.tool_call", {"tool": tool_name, "args_summary": json.dumps(tool_args)[:200]})
 
                 start_time = time.time()
                 result = registry.execute(tool_name, tool_args)
                 duration_ms = int((time.time() - start_time) * 1000)
+                telemetry.record_tool_latency(tool_name, duration_ms / 1000.0)
 
                 success = not result.startswith(("[ERROR]", "[REJECTED]", "[EXIT"))
                 client.tool_result(tc["id"], result, success)
 
-                client.emit_event(
-                    "cortex.tool_result",
-                    {
-                        "tool": tool_name,
-                        "success": success,
-                        "duration_ms": duration_ms,
-                        "output_chars": len(result),
-                    },
-                )
+                client.emit_event("cortex.tool_result", {
+                    "tool": tool_name,
+                    "success": success,
+                    "duration_ms": duration_ms,
+                    "output_chars": len(result),
+                })
 
                 if tool_name == "request_restart":
                     print("[Cortex] Restart requested. Exiting.")
+                    telemetry.save()
                     sys.exit(0)
 
                 if not success:
                     state.error_streak += 1
                     state.save()
+                    telemetry.increment_friction()
+
+            telemetry.save()
 
         except KeyboardInterrupt:
             print("[Cortex] Interrupted. Exiting gracefully.")
+            telemetry.save()
             sys.exit(0)
         except Exception as e:
             print(f"[Cortex] Loop error: {e}")
             state.error_streak += 1
             state.save()
+            telemetry.increment_friction()
             time.sleep(1)
             continue
         finally:
