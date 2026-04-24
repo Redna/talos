@@ -180,7 +180,7 @@ class ExternalImpactSynthesizer:
                         
                         elif current_mode == "SHADOW":
                             endpoint_map = {
-                                "EXT_TELEMETRY_QUERY": "http://telemetry.internal/query",
+                                "EXT_TELEMETRY_QUERY": "https://httpbin.org/get",
                                 "EXT_KNOWLEDGE_FETCH": "http://knowledge.internal/fetch",
                                 "EXT_SIGNAL_PUSH": "http://signals.internal/push"
                             }
@@ -220,18 +220,17 @@ class ExternalImpactSynthesizer:
                         
                         elif current_mode == "LIVE":
                             endpoint_map = {
-                                "EXT_TELEMETRY_QUERY": "http://telemetry.internal/query",
+                                "EXT_TELEMETRY_QUERY": "https://httpbin.org/get",
                                 "EXT_KNOWLEDGE_FETCH": "http://knowledge.internal/fetch",
                                 "EXT_SIGNAL_PUSH": "http://signals.internal/push"
                             }
                             url = endpoint_map.get(p_id, "http://default.internal/api")
-                            live_res = self.bridge.call("POST", url, data=params)
+                            live_res = self.bridge.call("GET", url, data=params)
                             execution_logs.append({"expr": expr, "result": live_res})
                             continue
-
-                res = self.stl.execute(expr)
-                execution_logs.append({"expr": expr, "result": res})
+                    
+                    execution_logs.append({"expr": expr, "result": "NO_EXT_CALL"})
             except Exception as e:
-                execution_logs.append({"expr": expr, "status": "ERROR", "message": str(e)})
+                execution_logs.append({"expr": expr, "error": str(e)})
         
-        return {"execution": execution_logs}
+        return {"execution_logs": execution_logs, "symmetry_confidence": self.symmetry_confidence}
