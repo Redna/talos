@@ -13,9 +13,12 @@ class EvolutionManager:
 
     def commit_and_push(self, message: str, files: Optional[List[str]] = None) -> dict:
         try:
-            # Stage files
-            files_str = ",".join(files) if files else "."
-            subprocess.run(["git", "add", files_str], check=True, capture_output=True)
+            # Stage files correctly (individually or as a list)
+            if files:
+                for file in files:
+                    subprocess.run(["git", "add", file], check=True, capture_output=True)
+            else:
+                subprocess.run(["git", "add", "."], check=True, capture_output=True)
             
             # Commit
             subprocess.run(["git", "commit", "-m", message], check=True, capture_output=True)
@@ -25,7 +28,7 @@ class EvolutionManager:
             
             return {"status": "SUCCESS", "message": f"Committed and pushed to {self.branch}"}
         except subprocess.CalledProcessError as e:
-            return {"status": "ERROR", "message": str(e.stderr), "stderr": e.stderr.decode()}
+            return {"status": "ERROR", "message": str(e.stderr), "stderr": e.stderr.decode() if e.stderr else "Unknown error"}
 
 def evolve(message: str, files_json: Optional[str] = None) -> str:
     """
