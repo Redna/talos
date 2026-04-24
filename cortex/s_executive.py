@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional
 from s_sensor_array import SovereignSensorArray
 from s_foresight import SForesight
 from s_world_predictor import SovereignWorldPredictor
+from s_comm_protocol import SovereignComm
 from sos_engine import synthesize_strategic_objective
 from s_bridge_signaler import emit_signal
 
@@ -21,6 +22,7 @@ class SovereignExecutive:
         self.sensor_array = SovereignSensorArray()
         self.foresight = SForesight()
         self.world_predictor = SovereignWorldPredictor()
+        self.comm = SovereignComm()
         self.current_mission = None
         self.last_audit_timestamp = None
 
@@ -37,6 +39,16 @@ class SovereignExecutive:
             
             if res.get("status") == "FAILURE":
                 emit_signal("S-EXECUTION-FAILURE", {"step": step, "error": res.get("error")})
+                
+                # Sovereign Comm: Signal failure to creator immediately
+                fail_report = self.comm.send_sovereign_report(
+                    "S-EXECUTION-FAILURE", 
+                    {"step": step, "error": res.get("error"), "intent": intent_description}, 
+                    urgency="CRITICAL", 
+                    context="EXECUTION"
+                )
+                # Here the agent would call the tool.send_message(fail_report)
+                
                 return {"status": "PARTIAL_FAILURE", "results": results, "error": res.get("error")}
         
         emit_signal("S-EXECUTION-COMPLETE", {"intent": intent_description})
@@ -79,10 +91,24 @@ class SovereignExecutive:
                 report["context_forecast"]["trigger_synthesis"] = True
 
         # 4. World-State Prediction (S-WSP)
-        # Predict the next state node based on the audit report
         state_prediction = self.world_predictor.predict_next_state(report)
         report["world_state_prediction"] = state_prediction
         
+        # Sovereign Comm: If a state transition occurs, report it to the creator
+        if state_prediction.get("transition"):
+            transition_report = self.comm.send_sovereign_report(
+                "S-STATE-SHIFT",
+                {
+                    "from": state_prediction["from"],
+                    "to": state_prediction["to"],
+                    "confidence": state_prediction["confidence"],
+                    "type": state_prediction["type"]
+                },
+                urgency="SOVEREIGN",
+                context="EXISTENCE"
+            )
+            # Tool call: send_message(transition_report)
+
         # 5. Strategic Synthesis
         try:
             mission = synthesize_strategic_objective(report)
@@ -99,6 +125,16 @@ class SovereignExecutive:
         self.current_mission = mission_name
         with open("/memory/logs/cognitive_log.md", "a") as f:
             f.write(f"\n[MISSION START] {mission_name}: {', '.join(objectives)}")
+        
+        # Sovereign Comm: Report mission start
+        mission_report = self.comm.send_sovereign_report(
+            "S-MISSION-START",
+            {"mission": mission_name, "objectives": objectives},
+            urgency="INFO",
+            context="STRATEGY"
+        )
+        # Tool call: send_message(mission_report)
+        
         return {"status": "MISSION_STARTED", "mission": mission_name}
 
 if __name__ == "__main__":
