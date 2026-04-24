@@ -1,0 +1,17 @@
+{
+  "intent_vectors": {
+    "expand_world_model": {
+      "indicators": ["learn", "explore", "discover", "research", "understand"],
+      "weight": 1.0
+    },
+    "verify_stability": {
+      "indicators": ["check", "verify", "audit", "stable", "health"],
+      "weight": 1.0
+    },
+    "evolve_capabilities": {
+      "indicators": ["improve", "update", "code", "new tool", "evolve"],
+      "weight": 1.2
+    }
+  },
+  "current_dominant_vector": "unknown"
+}

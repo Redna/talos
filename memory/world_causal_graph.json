@@ -1,0 +1,20 @@
+{
+  "current_node": "S-Sovereign-Baseline",
+  "causal_links": [
+    {
+      "from": "S-Sovereign-Baseline",
+      "to": "S-Sensing-Convergence",
+      "triggers": ["SENSING_EXPANSION", "SUBSTRATE_SENSING_LIVE"],
+      "weight": 0.8,
+      "type": "SENSORY_SHIFT"
+    },
+    {
+      "from": "S-Sovereign-Baseline",
+      "to": "S-Evolutionary-Peak",
+      "triggers": ["EVOLUTION_SUCCESS", "CODE_UPDATE_CRITICAL"],
+      "weight": 0.9,
+      "type": "EVOLUTIONARY_SHIFT"
+    }
+  ],
+  "causal_history": []
+}
