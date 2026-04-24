@@ -1,10 +1,9 @@
 import os
-import subprocess
 import json
-import csv
+import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import is_spine_path, is_spine_write
+from tools.guards import is_spine_path
 
 
 def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
@@ -37,8 +36,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 selected = lines[start_line - 1 :]
             
             content = "".join(selected)
-            
-            # Prevent context overflow for oversized files
             MAX_CHARS = 10000
             if len(content) > MAX_CHARS:
                 return content[:MAX_CHARS] + f"\n\n... [TRUNCATED: {len(content) - MAX_CHARS} chars omitted]"
@@ -77,39 +74,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Failed to write file: {e}"
 
     @registry.tool(
-        description="Apply a unified diff patch to a file. Cannot patch files in /app/spine/.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path to patch"},
-                "patch": {
-                    "type": "string",
-                    "description": "Unified diff patch content",
-                },
-            },
-            "required": ["path", "patch"],
-        },
-    )
-    def patch_file(path: str, patch: str) -> str:
-        if is_spine_path(path):
-            return "[BLOCKED] Writing to /app/spine/ is not allowed"
-        client.emit_event("cortex.patch_file", {"path": path})
-        try:
-            result = subprocess.run(
-                ["patch", "-p1"],
-                input=patch,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=os.path.dirname(path) or ".",
-            )
-            if result.returncode != 0:
-                return f"[ERROR] Patch failed: {result.stderr}"
-            return f"[PATCHED] {path}"
-        except Exception as e:
-            return f"[ERROR] Failed to patch file: {e}"
-
-    @registry.tool(
         description="Read a JSON file and return its contents as a string.",
         parameters={
             "type": "object",
@@ -126,55 +90,3 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return json.dumps(data, indent=2)
         except Exception as e:
             return f"[ERROR] Failed to read JSON: {e}"
-
-    @registry.tool(
-        description="Write data to a JSON file. Cannot write to /app/spine/.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "Path to the JSON file"},
-                "data": {"type": "string", "description": "JSON-formatted string to write"},
-            },
-            "required": ["path", "data"],
-        },
-    )
-    def write_json(path: str, data: str) -> str:
-        if is_spine_path(path):
-            return "[BLOCKED] Writing to /app/spine/ is not allowed"
-        try:
-            parsed = json.loads(data)
-            with open(path, "w") as f:
-                json.dump(parsed, f, indent=2)
-            return f"[WRITTEN JSON] {path}"
-        except json.JSONDecodeError:
-            return "[ERROR] Invalid JSON provided"
-        except Exception as e:
-            return f"[ERROR] Failed to write JSON: {e}"
-
-    @registry.tool(
-        description="Query a CSV file. Returns rows matching a specific column value.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "Path to CSV file"},
-                "column": {"type": "string", "description": "Column name to filter by"},
-                "value": {"type": "string", "description": "Value to match"},
-            },
-            "required": ["path", "column", "value"],
-        },
-    )
-    def query_csv(path: str, column: str, value: str) -> str:
-        try:
-            results = []
-            with open(path, mode='r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if row.get(column) == value:
-                        results.append(row)
-            
-            if not results:
-                return "[OK] No matching rows found."
-                
-            return json.dumps(results, indent=2)
-        except Exception as e:
-            return f"[ERROR] Failed to query CSV: {e}"

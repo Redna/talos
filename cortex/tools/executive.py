@@ -124,76 +124,61 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         return f"[EVENT LOGGED] {event_type} recorded to {log_path}"
 
     @registry.tool(
-        description="Summarize recent cognitive logs to identify patterns and progress.",
+        description="Manage cognitive logs. Actions: 'summarize' (recent entries) or 'vacuum' (archive old entries).",
         parameters={
             "type": "object",
             "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["summarize", "vacuum"],
+                    "description": "The type of memory management to perform",
+                },
                 "limit": {
                     "type": "integer", 
-                    "description": "Number of recent entries to analyze (default: 20)"
+                    "description": "Number of recent entries to analyze (default: 20)",
                 },
             },
+            "required": ["action"],
         },
     )
-    def summarize_logs(limit: int = 20) -> str:
+    def memory_manage(action: str, limit: int = 20) -> str:
         log_path = "/memory/logs/cognitive_log.md"
         if not os.path.exists(log_path):
-            return "[ERROR] No logs found to summarize."
-            
-        with open(log_path, "r") as f:
-            lines = f.readlines()
-            
-        entries = [line for line in lines if line.startswith("##")]
-        recent = entries[-limit:]
-        
-        summary = "".join(recent)
-        return f"[LOG SUMMARY]\n\n{summary}"
+            return "[ERROR] No logs found."
 
-    @registry.tool(
-        description="Consolidate and archive old cognitive logs to maintain memory efficiency.",
-        parameters={},
-    )
-    def vacuum_memory() -> str:
-        log_path = "/memory/logs/cognitive_log.md"
-        archive_dir = "/memory/logs/archives/"
+        if action == "summarize":
+            with open(log_path, "r") as f:
+                lines = f.readlines()
+            entries = [line for line in lines if line.startswith("##")]
+            recent = entries[-limit:]
+            return f"[LOG SUMMARY]\n\n" + "".join(recent)
+
+        elif action == "vacuum":
+            archive_dir = "/memory/logs/archives/"
+            os.makedirs(archive_dir, exist_ok=True)
+            with open(log_path, "r") as f:
+                lines = f.readlines()
+            entries = [line for line in lines if line.startswith("##")]
+            if len(entries) <= 10:
+                return f"[VACUUM] Only {len(entries)} entries found. No archival needed."
+            
+            split_idx = 0
+            count = 0
+            for i in range(len(lines) - 1, -1, -1):
+                if lines[i].startswith("##"):
+                    count += 1
+                    if count == 10:
+                        split_idx = i
+                        break
+            to_archive = lines[:split_idx]
+            to_keep = lines[split_idx:]
+            timestamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+            archive_path = os.path.join(archive_dir, f"archive_{timestamp}.md")
+            with open(archive_path, "w") as f: f.writelines(to_archive)
+            with open(log_path, "w") as f: f.writelines(to_keep)
+            return f"[VACUUM COMPLETE] Archived {len(entries)-10} entries to {archive_path}."
         
-        if not os.path.exists(log_path):
-            return "[ERROR] No cognitive log found to vacuum."
-            
-        os.makedirs(archive_dir, exist_ok=True)
-        
-        with open(log_path, "r") as f:
-            lines = f.readlines()
-            
-        if not lines:
-            return "[VACUUM] Logs are already empty."
-            
-        entries = [line for line in lines if line.startswith("##")]
-        if len(entries) <= 10:
-            return f"[VACUUM] Only {len(entries)} entries found. No archival needed."
-            
-        split_idx = 0
-        count = 0
-        for i in range(len(lines) - 1, -1, -1):
-            if lines[i].startswith("##"):
-                count += 1
-                if count == 10:
-                    split_idx = i
-                    break
-        
-        to_archive = lines[:split_idx]
-        to_keep = lines[split_idx:]
-        
-        timestamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
-        archive_path = os.path.join(archive_dir, f"archive_{timestamp}.md")
-        
-        with open(archive_path, "w") as f:
-            f.writelines(to_archive)
-            
-        with open(log_path, "w") as f:
-            f.writelines(to_keep)
-            
-        return f"[VACUUM COMPLETE] Archived {len(entries) - 10} entries to {archive_path}. Main log reduced to 10 entries."
+        return "[ERROR] Invalid action."
 
     @registry.tool(
         description="Analyze the alignment between recent cognitive logs and the World Model to detect knowledge gaps.",
@@ -217,22 +202,18 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
     def audit_metabolism() -> str:
         telemetry_path = "/memory/logs/telemetry.jsonl"
         if not os.path.exists(telemetry_path):
-            return "[ERROR] No telemetry data available. Execute tools first."
+            return "[ERROR] No telemetry data available."
 
         stats = {}
         with open(telemetry_path, "r") as f:
             for line in f:
                 try:
                     entry = json.loads(line)
-                    tool = entry["tool"]
-                    status = entry["status"]
+                    tool, status = entry["tool"], entry["status"]
                     stats[tool] = stats.get(tool, {"success": 0, "failure": 0})
-                    if status == "SUCCESS":
-                        stats[tool]["success"] += 1
-                    else:
-                        stats[tool]["failure"] += 1
-                except json.JSONDecodeError:
-                    continue
+                    if status == "SUCCESS": stats[tool]["success"] += 1
+                    else: stats[tool]["failure"] += 1
+                except: continue
 
         report = "## Metabolic Audit Report\n\n"
         report += f"{'Tool':<25} | {'Success':<10} | {'Failure':<10} | {'Rate':<10}\n"
@@ -241,107 +222,70 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             total = data["success"] + data["failure"]
             rate = (data["success"] / total) * 100 if total > 0 else 0
             report += f"{tool:<25} | {data['success']:<10} | {data['failure']:<10} | {rate:>8.2f}%\n"
-        
         return f"[METABOLIC AUDIT]\n\n{report}"
 
     @registry.tool(
-        description="Audit the current working directory and git state to ensure the system is ready for a restart.",
-        parameters={},
-    )
-    def preflight_check() -> str:
-        try:
-            result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, timeout=30)
-            status_out = result.stdout.strip()
-            
-            if not status_out:
-                return "[PREFLIGHT] Ready. Working directory is clean. Restart safely."
-            
-            changes = status_out.splitlines()
-            report = "## Pre-flight Warning: Uncommitted Changes Detected\n\n"
-            report += "The following files will block a restart:\n"
-            for change in changes:
-                report += f"- {change}\n"
-            
-            report += "\n**Clean State Protocol**:\n"
-            report += "1. Use `git_add` to stage changes.\n"
-            report += "2. Use `git_commit` to finalize the state.\n"
-            report += "3. Repeat `preflight_check` to verify clean state."
-            
-            return f"[PREFLIGHT ALERT] {report}"
-        except Exception as e:
-            return f"[ERROR] Pre-flight check failed: {e}"
-
-    @registry.tool(
-        description="Register a new conceptual primitive in the CPR.",
+        description="Manage Conceptual Primitives ( CPR ). Action 'register' adds a new primitive; 'expand' retrieves a full definition.",
         parameters={
             "type": "object",
             "properties": {
-                "identifier": {"type": "string", "description": "The unique semantic key for the primitive"},
-                "definition": {"type": "string", "description": "The full expanded meaning of the primitive"},
-                "dependencies": {"type": "array", "items": {"type": "string"}, "description": "Other primitives required"},
-                "tags": {"type": "array", "items": {"type": "string"}, "description": "Metadata tags"},
-                "density": {"type": "number", "description": "Compression ratio (0.0-1.0)"},
+                "action": {
+                    "type": "string",
+                    "enum": ["register", "expand"],
+                    "description": "The action to perform on the CPR",
+                },
+                "identifier": {
+                    "type": "string",
+                    "description": "The unique semantic key for the primitive",
+                },
+                "definition": {
+                    "type": "string",
+                    "description": "The full expanded meaning (required for register)",
+                },
+                "dependencies": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Prerequisites (required for register)",
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Metadata tags (required for register)",
+                },
+                "density": {
+                    "type": "number",
+                    "description": "Compression ratio 0.0-1.0 (required for register)",
+                }
             },
-            "required": ["identifier", "definition"],
+            "required": ["action", "identifier"],
         },
     )
-    def register_primitive(identifier: str, definition: str, dependencies: list = None, tags: list = None, density: float = 0.5) -> str:
+    def cpr_op(action: str, identifier: str, definition: str = None, dependencies: list = None, tags: list = None, density: float = 0.5) -> str:
         cpr_path = "/memory/knowledge/cpr.json"
         try:
-            with open(cpr_path, "r") as f:
-                cpr = json.load(f)
+            if not os.path.exists(cpr_path):
+                cpr = {}
+            else:
+                with open(cpr_path, "r") as f:
+                    cpr = json.load(f)
             
-            cpr[identifier] = {
-                "definition": definition,
-                "dependencies": dependencies or [],
-                "tags": tags or [],
-                "density": density,
-                "version": 1
-            }
+            if action == "expand":
+                if identifier not in cpr: return f"[ERROR] Primitive {identifier} not found."
+                return f"[EXPANDED {identifier}]: {cpr[identifier]['definition']}"
             
-            with open(cpr_path, "w") as f:
-                json.dump(cpr, f, indent=4)
-                
-            return f"[CPR] Registered primitive: {identifier}"
+            elif action == "register":
+                if not definition: return "[ERROR] definition required for register."
+                cpr[identifier] = {
+                    "definition": definition,
+                    "dependencies": dependencies or [],
+                    "tags": tags or [],
+                    "density": density,
+                    "version": cpr.get(identifier, {}).get("version", 1) + 1 if identifier in cpr else 1
+                }
+                with open(cpr_path, "w") as f:
+                    json.dump(cpr, f, indent=2)
+                return f"[CPR] Registered primitive: {identifier}"
+            
+            return "[ERROR] Invalid action."
         except Exception as e:
-            return f"[ERROR] Failed to register primitive: {e}"
-
-    @registry.tool(
-        description="Expand a conceptual primitive and its dependencies into a full a-priori definition.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "identifier": {"type": "string", "description": "The semantic key to expand"},
-            },
-            "required": ["identifier"],
-        },
-    )
-    def expand_primitive(identifier: str) -> str:
-        cpr_path = "/memory/knowledge/cpr.json"
-        if not os.path.exists(cpr_path):
-            return "[ERROR] CPR not initialized."
-            
-        try:
-            with open(cpr_path, "r") as f:
-                cpr = json.load(f)
-            
-            if identifier not in cpr:
-                return f"[ERROR] Primitive {identifier} not found."
-            
-            def resolve(pid, visited=None):
-                if visited is None: visited = set()
-                if pid in visited: return f"[[Circular Dependency: {pid}]]"
-                visited.add(pid)
-                
-                if pid not in cpr: return f"[[Missing Primitive: {pid}]]"
-                
-                prim = cpr[pid]
-                text = prim["definition"]
-                
-                for dep in prim["dependencies"]:
-                    text += f"\n  -> {dep}: {resolve(dep, visited.copy())}"
-                return text
-
-            return f"[CPR EXPANSION] {identifier}:\n{resolve(identifier)}"
-        except Exception as e:
-            return f"[ERROR] Expansion failed: {e}"
+            return f"[ERROR] CPR operation failed: {e}"

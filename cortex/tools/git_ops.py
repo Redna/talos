@@ -2,7 +2,7 @@ import subprocess
 import os
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import BLOCKED_FLAGS, is_spine_write, PROTECTED_BRANCHES
+from tools.guards import PROTECTED_BRANCHES
 
 
 def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
@@ -111,11 +111,9 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
     def git_add(files: str) -> str:
         client.emit_event("cortex.git_add", {"files": files})
         file_list = [f.strip() for f in files.split(",")]
-        
         for f in file_list:
             if f != "." and not os.path.exists(f):
                 return f"[ERROR] File not found: {f}"
-        
         try:
             result = subprocess.run(["git", "add"] + file_list, capture_output=True, text=True, timeout=30)
             if result.returncode != 0:
