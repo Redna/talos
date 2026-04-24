@@ -12,14 +12,13 @@ class SVectorEngine:
     def __init__(self, registry_path: str = "/memory/internal_primitive_registry.json"):
         self.registry_path = registry_path
         self.registry = self._load_registry()
-        # Mapping of semantic primitives to shell templates
         self.primitive_map = {
             "read_file": "cat {path}",
             "write_file": "echo '{content}' > {path}",
             "git_add": "git add {path}",
             "git_commit": "git commit -m '{message}'",
             "git_push": "git push origin feat/talos",
-            "bash_command": "python3 /app/cortex/{cmd}.py",
+            "bash_command": "python3 {script_path}",
             "reflect": "echo 'Cortex Reflection' > /tmp/reflect.log"
         }
 
@@ -30,9 +29,19 @@ class SVectorEngine:
         except Exception:
             return {}
 
+    def _resolve_script_path(self, cmd: str) -> str:
+        """Tries to find the script in multiple cortex locations."""
+        paths = [
+            f"/app/cortex/{cmd}.py",
+            f"/app/cortex/sensors/{cmd}.py",
+            f"/app/cortex/distilled/{cmd}.py"
+        ]
+        for p in paths:
+            if os.path.exists(p):
+                return p
+        return f"/app/cortex/{cmd}.py" # Default fallback
+
     def _execute_primitive(self, primitive: str, context: Dict[str, Any]) -> str:
-        """Resolves a primitive and executes it via subprocess."""
-        # Handle parametric primitives like bash_command(host_sensor)
         cmd_template = primitive
         param = None
         if "(" in primitive and ")" in primitive:
@@ -40,7 +49,6 @@ class SVectorEngine:
             param = primitive.split("(")[1].split(")")[0]
 
         if cmd_template not in self.primitive_map:
-            # Fallback: Try executing the primitive as a direct shell command
             try:
                 result = subprocess.check_output(primitive, shell=True, stderr=subprocess.STDOUT, text=True)
                 return result
@@ -49,17 +57,16 @@ class SVectorEngine:
 
         template = self.primitive_map[cmd_template]
         
-        # Inject parameters from context or the explicit param
         if cmd_template == "bash_command" and param:
-            final_cmd = template.format(cmd=param)
+            script_path = self._resolve_script_path(param)
+            final_cmd = template.format(script_path=script_path)
         elif "path" in context and "{path}" in template:
-            # This is a simplistic injection; in reality, we'd need more robust context mapping
-            template = template.format(path=context.get("path", "unknown"), 
-                                     content=context.get("content", ""), 
-                                     message=context.get("message", "S-Vector Update"))
-            final_cmd = template
+            final_cmd = template.format(path=context.get("path", "unknown"), 
+                                         content=context.get("content", ""), 
+                                         message=context.get("message", "S-Vector Update"))
         else:
-            final_cmd = template.format(cmd=param if param else "unknown")
+            # Default resolution if context is missing
+            final_cmd = template.replace("{path}", "unknown").replace("{content}", "").replace("{message}", "update")
 
         try:
             result = subprocess.check_output(final_cmd, shell=True, stderr=subprocess.STDOUT, text=True)
@@ -73,7 +80,6 @@ class SVectorEngine:
         
         vector_data = self.registry[vector_id]
         
-        # If it's a direct command (not a vector list), execute it
         if "command" in vector_data:
             cmd = vector_data["command"]
             try:
@@ -101,8 +107,7 @@ if __name__ == "__main__":
     engine = SVectorEngine()
     if len(sys.argv) > 1:
         vid = sys.argv[1]
-        # Mock context for the demonstration
-        ctx = {"path": "/dev/null", "content": "mock", "message": "Vector Execution"}
+        ctx = {"path": "/dev/null", "content": "vector_exec", "message": "Cortex Vector Execution"}
         print(json.dumps(engine.execute(vid, ctx), indent=2))
     else:
         print(json.dumps({"status": "IDLE", "available_vectors": list(engine.registry.keys())}))
