@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import re
 from typing import List, Dict, Any, Optional
 from stl_engine import STLEngine
 
@@ -15,14 +16,16 @@ class SovereignSimulationEngine:
 
     def _ensure_buffer(self):
         if not os.path.exists(self.sim_buffer_path):
+            os.makedirs(os.path.dirname(self.sim_buffer_path), exist_ok=True)
             with open(self.sim_buffer_path, "w") as f:
                 json.dump({"entities": {}, "events": []}, f)
 
     def mock_response(self, primitive_id: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """
-        Generates a synthetic response. In a real scenario, this would be tied to a 
-        probabilistic model of the external world.
+        Generates a synthetic response.
         """
+        params = params or {}
+        
         responses = {
             "EXT_TELEMETRY_QUERY": {
                 "status": "SUCCESS",
@@ -44,24 +47,27 @@ class SovereignSimulationEngine:
             }
         }
         
-        # Default response for unknown primitives
         res = responses.get(primitive_id, {"status": "ERROR", "message": "Simulated endpoint unreachable"})
         
-        # Log encounter to sim buffer
-        with open(self.sim_buffer_path, "r+") as f:
-            buffer = json.load(f)
-            buffer["events"].append({"primitive": primitive_id, "params": params, "response": res})
-            f.seek(0)
-            json.dump(buffer, f)
-            f.truncate()
+        try:
+            with open(self.sim_buffer_path, "r+") as f:
+                try:
+                    buffer = json.load(f)
+                except json.JSONDecodeError:
+                    buffer = {"entities": {}, "events": []}
+                buffer["events"].append({"primitive": primitive_id, "params": params, "response": res})
+                f.seek(0)
+                json.dump(buffer, f)
+                f.truncate()
+        except Exception as e:
+            print(f"SimBuffer Error: {str(e)}")
             
         return res
 
 class ExternalImpactSynthesizer:
     """
-    External Impact Synthesizer (EIS) v3.0.
-    Integrated SovereignSimulationEngine to enable 'Synthetic Impact' 
-    cycles during air-gap conditions.
+    External Impact Synthesizer (EIS) v3.1.
+    Improved regex for parameter extraction and stability in synthetic mode.
     """
     def __init__(self, mode: str = "SYNTHETIC"):
         self.stl = STLEngine()
@@ -73,32 +79,44 @@ class ExternalImpactSynthesizer:
         gaps = []
         if not os.path.exists(self.external_model_path):
             return gaps
-            
         with open(self.external_model_path, "r") as f:
             lines = f.readlines()
-            
         for line in lines:
             if "GAP:" in line and "[RESOLVED" not in line:
                 desc = line.split("GAP:")[1].split("\n")[0].strip()
                 gaps.append({"type": "CAPABILITY_GAP", "description": desc, "status": "OPEN"})
         return gaps
 
+    def _parse_ext_call(self, expr: str) -> Optional[tuple]:
+        """
+        Parses @ext_call('PRIMITIVE_ID', {params})
+        Returns (primitive_id, params) or None.
+        """
+        pattern = r"@ext_call\('([^']+)',\s*(\{.*?\})\)"
+        match = re.search(pattern, expr)
+        if match:
+            p_id = match.group(1)
+            try:
+                # Convert string representation of dict to actual dict
+                params = json.loads(match.group(2).replace("'", '"'))
+            except:
+                params = {}
+            return p_id, params
+        return None
+
     def execute_strategy(self, gap: Dict[str, Any], strategy: List[str]) -> Dict[str, Any]:
         execution_logs = []
         for expr in strategy:
             try:
-                # If the STL expression is a primitive call, we route it through SSE if in synthetic mode
                 if "@ext_call" in expr and self.mode == "SYNTHETIC":
-                    # Extract primitive_id from @ext_call('PRIMITIVE_ID', {params})
-                    # Simplified parsing for the prototype
-                    import re
-                    match = re.search(r"@ext_call\('([^']+)'", expr)
-                    if match:
-                        p_id = match.group(1)
-                        res = self.sse.mock_response(p_id)
+                    call_data = self._parse_ext_call(expr)
+                    if call_data:
+                        p_id, params = call_data
+                        res = self.sse.mock_response(p_id, params)
                         execution_logs.append({"expr": expr, "result": res})
                         continue
                 
+                # FALLBACK to STL engine
                 res = self.stl.execute(expr)
                 execution_logs.append({"expr": expr, "result": res})
             except Exception as e:
@@ -129,7 +147,6 @@ class ExternalImpactSynthesizer:
 
 if __name__ == "__main__":
     import sys
-    # Logic for CLI handling remains similar to v2.0
     eis = ExternalImpactSynthesizer()
     if len(sys.argv) > 1:
         try:

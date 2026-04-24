@@ -6,7 +6,7 @@ from typing import Any, List, Dict, Callable
 
 class STLEngine:
     """
-    Synthetic Tool-Language (STL) Engine v2.1.
+    Synthetic Tool-Language (STL) Engine v2.2.
     Implements a compositional pipeline for tool execution, now supporting
     Bifurcation (Fork-Join) for parallel hypothesis synthesis.
     Syntax: @op1(args) | @op2(args) | ...
@@ -80,8 +80,11 @@ class STLEngine:
             return []
         import ast
         try:
-            return ast.literal_eval(f"[{args_raw}]")
+            # Handle potential commas inside nested structures by using ast.literal_eval
+            # We wrap the args in brackets to make it a tuple/list
+            return ast.literal_eval(f"({args_raw})") if "," in args_raw else [ast.literal_eval(args_raw)]
         except Exception:
+            # Fallback to simple split if literal_eval fails
             return [arg.strip().strip('"').strip("'") for arg in args_raw.split(",")]
 
     # --- Kernel Operations ---
@@ -157,9 +160,13 @@ class STLEngine:
         except Exception as e:
             return [f"Error mapping: {str(e)}"]
 
-    def _op_sys_call(self, stream: Any, op: str) -> Any:
+    def _op_sys_call(self, stream: Any, op: str, *args) -> Any:
+        # Fixed signature to accept arbitrary args
         if op == "get_focus":
             return "Current Focus: STL-Bifurcation"
+        if op == "log_event":
+            # Logic for logging cognitive events via bash or internal tool
+            return f"Sovereign Event Logged: {args[0] if args else 'empty'}"
         return f"SysCall {op} not implemented"
 
     # --- Bifurcation Kernel ---
@@ -170,7 +177,6 @@ class STLEngine:
         """
         results = []
         for pipe in pipelines:
-            # Recursive call to execute the sub-pipeline
             res = self.execute(pipe)
             results.append(res)
         return results
