@@ -7,7 +7,7 @@ class SFilter:
     """
     The S-Filter: Semantic Noise Mitigation Layer.
     Processes raw external data to maximize signal-to-noise ratio (SNR).
-    S-Filter Phase 1.
+    S-Filter Phase 1 & 2.
     """
     def __init__(self, config_path: str = "/memory/s_filter_config.json"):
         self.config_path = config_path
@@ -15,7 +15,6 @@ class SFilter:
 
     def _load_config(self) -> Dict[str, Any]:
         if not os.path.exists(self.config_path):
-            # Default configuration if no file exists
             default_config = {
                 "relevance_weights": {
                     "Protocol": 1.0,
@@ -60,20 +59,13 @@ class SFilter:
             return {}
 
     def clean(self, text: str) -> str:
-        """
-        Removes noise patterns from the text using regex.
-        """
         cleaned_text = text
         for pattern in self.config.get("noise_patterns", []):
             cleaned_text = re.sub(pattern, "", cleaned_text, flags=re.IGNORECASE)
-        
         cleaned_text = re.sub(r'\n\s*\n', '\n\n', cleaned_text).strip()
         return cleaned_text
 
     def score(self, text: str) -> Tuple[float, List[str]]:
-        """
-        Calculates a relevance score based on weighted keywords.
-        """
         weights = self.config.get("relevance_weights", {})
         total_score = 0.0
         matched = []
@@ -90,9 +82,6 @@ class SFilter:
         return normalized_score, list(set(matched))
 
     def filter(self, data: Any) -> Dict[str, Any]:
-        """
-        Main entry point: cleans and scores data.
-        """
         if isinstance(data, (dict, list)):
             text = json.dumps(data, indent=2)
         else:
@@ -109,10 +98,30 @@ class SFilter:
             "cleaned_text": cleaned
         }
 
+    def adapt_weights(self, matched_keywords: List[str], success: bool) -> Dict[str, float]:
+        """
+        S-Filter Phase 3: Adaptive Weights.
+        Rewards keywords that led to successful pivots and decays those that didn't.
+        """
+        weights = self.config.get("relevance_weights", {})
+        delta = 0.1 if success else -0.05
+        
+        for kw in matched_keywords:
+            if kw in weights:
+                new_weight = weights[kw] + delta
+                weights[kw] = max(0.1, min(1.0, new_weight))
+        
+        self.config["relevance_weights"] = weights
+        
+        try:
+            with open(self.config_path, "w") as f:
+                json.dump(self.config, f, indent=2)
+        except Exception as e:
+            print(f"Error saving adapted weights: {str(e)}")
+        
+        return weights
+
 def apply_filter(data_json: str) -> str:
-    """
-    Wrapper for bash execution.
-    """
     filter_obj = SFilter()
     try:
         data = json.loads(data_json)
