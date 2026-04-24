@@ -1,6 +1,7 @@
 import subprocess
 import os
-from typing import List, Optional
+import json
+from typing import List, Optional, Dict, Any
 from s_bridge_signaler import emit_signal
 
 class SovereignGit:
@@ -57,7 +58,6 @@ def sovereign_push(remote: str = "origin") -> str:
 
 if __name__ == "__main__":
     import sys
-    import json
     if len(sys.argv) < 2:
         print(json.dumps({"status": "ERROR", "message": "Usage: s_git_sovereign.py <commit|push> [message/remote] [verify]"}))
     else:
