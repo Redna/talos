@@ -20,16 +20,15 @@ class SovereignCausalInference:
             json.dump(graph, f, indent=2)
 
     def infer_transition(self, active_triggers: List[str], current_node: Optional[str] = None, commit: bool = False) -> Dict[str, Any]:
-        """
-        Infers the next state based on active triggers and the causal weights.
-        """
         graph = self._load_graph()
         start_node = current_node or graph["current_node"]
         
         candidates = []
         for link in graph["causal_links"]:
             if link["from"] == start_node:
-                # Calculate activation score based on matching triggers
+                # DEBUG PRINT
+                # print(f"Checking link {link['from']} -> {link['to']} with triggers {link['triggers']}")
+                
                 matches = [t for t in link["triggers"] if t in active_triggers]
                 if matches:
                     # Score = Weight * (number of matching triggers / total triggers in link)
