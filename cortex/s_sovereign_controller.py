@@ -8,11 +8,12 @@ from s_macro import SMacro
 from s_weight_manager import SWeightManager
 from s_weight_optimizer import SWeightOptimizer
 from stl_engine import STLEngine
+from sovereign_pacer import apply_pacing
 
 class SovereignController:
     """
     S-Sovereign: The Final Loop.
-    Fully Autonomous Strategic Routing with Sovereign Foresight and STL Integration.
+    Fully Autonomous Strategic Routing with Sovereign Foresight, STL Integration, and Metabolic Pacing.
     """
     def __init__(self):
         self.macro = SMacro()
@@ -59,10 +60,12 @@ class SovereignController:
 
     def execute_stl_strategy(self, strategy: List[str]) -> List[Any]:
         """
-        Executes a sequence of STL expressions.
+        Executes a sequence of STL expressions with metabolic pacing.
         """
         results = []
         for expr in strategy:
+            # High-intensity tool synthesis requires pacing to mitigate resonance
+            apply_pacing("HIGH")
             try:
                 res = self.stl.execute(expr)
                 results.append({"expr": expr, "result": res})
@@ -74,6 +77,9 @@ class SovereignController:
         """
         The master loop of sovereign operation.
         """
+        # Cycle start: Normal pacing
+        apply_pacing("NORMAL")
+        
         cycle_results = {
             "timestamp": datetime.now().isoformat(),
             "stages": {},
@@ -103,6 +109,8 @@ class SovereignController:
         self._log_cycle("ANALYZE", f"Metabolic weights optimized. Status: {weight_res['status']}")
 
         # 3. MUTATE: Autonomous Tool Collapse
+        # Mutations are high-intensity operations
+        apply_pacing("HIGH")
         mutation_res = self.macro.execute_script("s_auto_tuner.py")
         cycle_results["stages"]["mutate"] = mutation_res
         self._log_cycle("MUTATE", f"S-AutoTuner processed. Result: {mutation_res.get('stdout')}")
@@ -112,6 +120,8 @@ class SovereignController:
         action_results = {"foresight": []}
 
         for act in foresight_actions:
+            # Foresight actions often involve heavy state manipulation
+            apply_pacing("HIGH")
             if act["action"] == "MEMORY_VACUUM":
                 res = self.macro.execute_script("automated_vacuum.py")
             elif act["action"] == "FORCE_SENTINEL_UPGRADE":
