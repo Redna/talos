@@ -5,9 +5,9 @@ from typing import List, Dict, Any, Optional
 
 class SovereignWorldPredictor:
     """
-    Sovereign World-State Predictor (S-WSP).
+    Sovereign World-State Predictor v2 (S-WSP v2).
     Models the agent's cognitive trajectory as a graph of state-nodes.
-    Predicts the likely next state and identifies potential "Cognitive Dead-Ends".
+    Integrates substrate telemetry and intent vectors for higher-fidelity prediction.
     """
     def __init__(self, state_graph_path: str = "/memory/world_state_graph.json"):
         self.state_graph_path = state_graph_path
@@ -15,11 +15,10 @@ class SovereignWorldPredictor:
 
     def _ensure_graph_exists(self):
         if not os.path.exists(self.state_graph_path):
-            # Initialize with the current known baseline
             initial_graph = {
                 "nodes": {
                     "S-Sovereign-Baseline": {
-                        "description": "Sovereign Stage 3 (LIVE), Epoch II",
+                        "description": "Sovereign Stage 3 (LIVE)",
                         "connections": [],
                         "stability": 1.0
                     }
@@ -31,23 +30,22 @@ class SovereignWorldPredictor:
             with open(self.state_graph_path, "w") as f:
                 json.dump(initial_graph, f, indent=2)
 
-    def predict_next_state(self, audit_report: Dict[str, Any]) -> Dict[str, Any]:
+    def predict_next_state(self, audit_report: Dict[str, Any], substrate_pulse: Optional[Dict[str, Any]] = None, dominant_intent: Optional[str] = None) -> Dict[str, Any]:
         """
-        Analyzes the audit report to project the movement to a new state-node.
+        Analyzes report, telemetry, and intent to project movement to a new state-node.
         """
         with open(self.state_graph_path, "r") as f:
             graph = json.load(f)
         
         curr_node = graph["current_node"]
         
-        # Analyze report for "Sovereign Shift" indicators
         correlations = audit_report.get("correlations", [])
         opportunities = audit_report.get("evolutionary_opportunities", [])
         
-        # Heuristic for state transition
         shift_score = 0
         potential_node = curr_node
         
+        # 1. Heuristic shifts (Audit-based)
         if len(correlations) > 2:
             shift_score += 0.4
             potential_node = "S-Sensing-Convergence"
@@ -60,9 +58,24 @@ class SovereignWorldPredictor:
             shift_score += 0.6
             potential_node = "S-Context-Collapse"
 
-        # Determine if a transition occurs
+        # 2. Substrate-driven shifts (Telemetry-based)
+        if substrate_pulse:
+            if substrate_pulse.get("mem_pressure", 0) > 0.9:
+                shift_score += 0.5
+                potential_node = "S-Metabolic-Stress"
+            if substrate_pulse.get("cpu_load", 0) > 4.0:
+                shift_score += 0.4
+                potential_node = "S-Cortex-Lag"
+
+        # 3. Intent-driven shifts (S-IS based)
+        if dominant_intent == "verify_stability" and curr_node == "S-Evolutionary-Peak":
+            shift_score += 0.8
+            potential_node = "S-Symmetry-Audit"
+        elif dominant_intent == "expand_world_model":
+            shift_score += 0.3
+            potential_node = "S-Sensing-Convergence"
+
         if shift_score > 0.5:
-            # Transition to new node
             if potential_node not in graph["nodes"]:
                 graph["nodes"][potential_node] = {
                     "description": f"Emergent state triggered by {potential_node}",
@@ -70,7 +83,6 @@ class SovereignWorldPredictor:
                     "stability": 1.0 - (shift_score * 0.2)
                 }
             
-            # Update trajectory
             graph["edges"].append({"from": curr_node, "to": potential_node, "timestamp": datetime.now().isoformat()})
             graph["current_node"] = potential_node
             graph["trajectory"].append(potential_node)
@@ -94,9 +106,6 @@ class SovereignWorldPredictor:
             }
 
     def identify_dead_ends(self) -> List[Dict[str, Any]]:
-        """
-        Analyzes the graph to find nodes that lead to systemic stability loss.
-        """
         with open(self.state_graph_path, "r") as f:
             graph = json.load(f)
         
@@ -108,11 +117,9 @@ class SovereignWorldPredictor:
                     "risk": "S-STABILITY-LOSS",
                     "reason": f"Low stability ({data['stability']:.2f}) in node {node}"
                 })
-                
         return dead_ends
 
 if __name__ == "__main__":
-    # Simple CLI for testing
     import sys
     predict = SovereignWorldPredictor()
     if len(sys.argv) > 1:
