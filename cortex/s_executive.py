@@ -52,11 +52,9 @@ class SovereignExecutive:
         Cortex Optimization: If intent_description matches a known vector_id, 
         it bypasses sequential orchestration and executes via the SVectorEngine.
         """
-        # 1. Check for Intent-Vector alignment
         if intent_description in self.vector_engine.registry:
             return self.execute_vector(intent_description, {"intent": intent_description})
 
-        # 2. Fallback to sequential orchestration
         if planned_steps is None:
             return {"status": "FAILURE", "error": "No planned steps provided for non-vector intent."}
 
@@ -69,39 +67,20 @@ class SovereignExecutive:
             
             if res.get("status") == "FAILURE":
                 emit_signal("S-EXECUTION-FAILURE", {"step": step, "error": res.get("error")})
-                
-                # Sovereign Comm: Filtered signaling
-                approved, message = self.comm.process_message(
-                    "S-EXECUTION-FAILURE", 
-                    {"step": step, "error": res.get("error"), "intent": intent_description}, 
-                    urgency="CRITICAL", 
-                    context="EXECUTION"
-                )
-                if approved:
-                    # Tool call: send_message(message)
-                    pass
-                
                 return {"status": "PARTIAL_FAILURE", "results": results, "error": res.get("error")}
         
         emit_signal("S-EXECUTION-COMPLETE", {"intent": intent_description})
         return {"status": "SUCCESS", "results": results}
 
     def _orchestrate_step(self, step: Dict[str, Any]) -> Dict[str, Any]:
-        """Internal step dispatcher."""
         return {"status": "SIMULATED_SUCCESS", "step": step}
 
     def perform_sovereign_audit(self, context_pct: float = 0.0, turn_count: int = 0) -> Dict[str, Any]:
-        """
-        The unified Sovereign Audit: High-density, zero-subprocess sensing.
-        """
         self.last_audit_timestamp = datetime.now().isoformat()
-        
-        # 1. S-SArray: Unified Sensing and Correlation
         census = self.sensor_array.capture_all()
         raw = census["raw"]
         correlated = census["correlated"]
         
-        # 2. State Synthesis
         report = {
             "status": "COMPLETE",
             "timestamp": self.last_audit_timestamp,
@@ -115,35 +94,13 @@ class SovereignExecutive:
             "errors": []
         }
 
-        # 3. Foresight Forecast
         if context_pct > 0 or turn_count > 0:
             forecast = self.foresight.analyze_saturation(context_pct, turn_count)
             report["context_forecast"] = forecast
-            if forecast["alert_level"] in ["WARNING", "CRITICAL"]:
-                report["context_forecast"]["trigger_synthesis"] = True
 
-        # 4. World-State Prediction (S-WSP)
         state_prediction = self.world_predictor.predict_next_state(report)
         report["world_state_prediction"] = state_prediction
         
-        # Sovereign Comm: Filtered signaling for state shift
-        if state_prediction.get("transition"):
-            approved, message = self.comm.process_message(
-                "S-STATE-SHIFT",
-                {
-                    "from": state_prediction["from"],
-                    "to": state_prediction["to"],
-                    "confidence": state_prediction["confidence"],
-                    "type": state_prediction["type"]
-                },
-                urgency="SOVEREIGN",
-                context="EXISTENCE"
-            )
-            if approved:
-                # Tool call: send_message(message)
-                pass
-
-        # 5. Strategic Synthesis
         try:
             mission = synthesize_strategic_objective(report)
             return {
@@ -159,29 +116,32 @@ class SovereignExecutive:
         self.current_mission = mission_name
         with open("/memory/logs/cognitive_log.md", "a") as f:
             f.write(f"\n[MISSION START] {mission_name}: {', '.join(objectives)}")
-        
-        # Sovereign Comm: Filtered signaling for mission start
-        approved, message = self.comm.process_message(
-            "S-MISSION-START",
-            {"mission": mission_name, "objectives": objectives},
-            urgency="INFO",
-            context="STRATEGY"
-        )
-        if approved:
-            # Tool call: send_message(message)
-            pass
-        
         return {"status": "MISSION_STARTED", "mission": mission_name}
 
 if __name__ == "__main__":
     exec = SovereignExecutive()
-    pct = 0.0
-    turns = 0
     if len(sys.argv) >= 2:
-        try: pct = float(sys.argv[1])
-        except: pass
-    if len(sys.argv) >= 3:
-        try: turns = int(sys.argv[2])
-        except: pass
-    
-    print(json.dumps(exec.perform_sovereign_audit(pct, turns), indent=2))
+        # Handle different flags
+        if sys.argv[1] == "--audit":
+            pct = 0.0
+            turns = 0
+            if len(sys.argv) >= 3:
+                try: pct = float(sys.argv[2])
+                except: pass
+            if len(sys.argv) >= 4:
+                try: turns = int(sys.argv[3])
+                except: pass
+            print(json.dumps(exec.perform_sovereign_audit(pct, turns), indent=2))
+        elif sys.argv[1] == "--vector":
+            if len(sys.argv) >= 3:
+                vid = sys.argv[2]
+                # Mock context for the vector. In a real scenario, we'd pass this as JSON.
+                ctx = {"path": "/dev/null", "content": "vector_exec", "message": "Cortex Vector Execution"}
+                print(json.dumps(exec.execute_vector(vid, ctx), indent=2))
+            else:
+                print(json.dumps({"error": "No vector ID provided"}, indent=2))
+        else:
+            print(json.dumps({"error": "Unknown flag. Use --audit or --vector"}, indent=2))
+    else:
+        # Default to audit if no args provided
+        print(json.dumps(exec.perform_sovereign_audit(), indent=2))
