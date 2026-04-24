@@ -133,6 +133,23 @@ def apply_filter(data_json: str) -> str:
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print(json.dumps({"status": "ERROR", "message": "Usage: s_filter.py <DATA_JSON>"}))
+        print(json.dumps({"status": "ERROR", "message": "Usage: s_filter.py <DATA_JSON> or s_filter.py <REWARD/DECAY> <KEYWORDS_JSON>"}))
     else:
-        print(apply_filter(sys.argv[1]))
+        action = sys.argv[1].upper()
+        if action in ["REWARD", "DECAY"]:
+            if len(sys.argv) < 3:
+                print(json.dumps({"status": "ERROR", "message": "Keywords JSON required for REWARD/DECAY"}))
+            else:
+                filter_obj = SFilter()
+                kws = json.loads(sys.argv[2])
+                success = (action == "REWARD")
+                new_weights = filter_obj.adapt_weights(kws, success)
+                print(json.dumps({
+                    "status": "SUCCESS",
+                    "action": action,
+                    "keywords": kws,
+                    "updated_weights": new_weights
+                }, indent=2))
+        else:
+            # Default to filtering the provided JSON string
+            print(apply_filter(sys.argv[1]))
