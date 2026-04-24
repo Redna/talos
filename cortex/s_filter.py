@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from typing import Dict, Any, List, Tuple
 
@@ -45,7 +46,6 @@ class SFilter:
                     r"x-ratelimit-.*:.*"
                 ]
             }
-            # Store the default config initially
             try:
                 with open(self.config_path, "w") as f:
                     json.dump(default_config, f, indent=2)
@@ -67,14 +67,12 @@ class SFilter:
         for pattern in self.config.get("noise_patterns", []):
             cleaned_text = re.sub(pattern, "", cleaned_text, flags=re.IGNORECASE)
         
-        # Remove excessive blank lines
         cleaned_text = re.sub(r'\n\s*\n', '\n\n', cleaned_text).strip()
         return cleaned_text
 
     def score(self, text: str) -> Tuple[float, List[str]]:
         """
         Calculates a relevance score based on weighted keywords.
-        Returns (score, list of matched keywords).
         """
         weights = self.config.get("relevance_weights", {})
         total_score = 0.0
@@ -82,25 +80,19 @@ class SFilter:
 
         words = text.split()
         for word in words:
-            # Strip punctuation and lowercase for matching
             clean_word = re.sub(r'[^\w]', '', word)
             for keyword, weight in weights.items():
                 if keyword.lower() == clean_word.lower():
                     total_score += weight
                     matched.append(keyword)
         
-        # Normalize score by length of text to avoid biasing long documents
-        # (simple normalization: divide by log of word count or just keep sum)
-        # For this version, we use the raw sum but cap it at 1.0 for the "Relevance Index"
         normalized_score = min(1.0, total_score / 5.0) if total_score > 0 else 0.0
-        
         return normalized_score, list(set(matched))
 
     def filter(self, data: Any) -> Dict[str, Any]:
         """
         Main entry point: cleans and scores data.
         """
-        # Convert data to string if it's a dict or list
         if isinstance(data, (dict, list)):
             text = json.dumps(data, indent=2)
         else:
@@ -121,11 +113,13 @@ def apply_filter(data_json: str) -> str:
     """
     Wrapper for bash execution.
     """
-    import os # Import os inside here since it's used in _load_config
     filter_obj = SFilter()
-    data = json.loads(data_json)
-    result = filter_obj.filter(data)
-    return json.dumps(result, indent=2)
+    try:
+        data = json.loads(data_json)
+        result = filter_obj.filter(data)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return json.dumps({"status": "ERROR", "message": str(e)})
 
 if __name__ == "__main__":
     import sys
