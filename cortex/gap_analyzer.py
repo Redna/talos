@@ -5,7 +5,7 @@ from typing import List
 def analyze_gaps() -> List[str]:
     """
     Analyzes the current Cortex state to identify missing high-impact tools.
-    Updated for Epoch IV completion.
+    Updated for Epoch V progress.
     """
     cortex_path = "/app/cortex/"
     existing_files = os.listdir(cortex_path)
@@ -21,7 +21,9 @@ def analyze_gaps() -> List[str]:
         "Proactive Volatility Guarding": "sovereign_guard.py",
         "Cross-Session Cognitive Continuity": "s_scribe.py",
         "External World Interaction Interface": "s_bridge.py",
-        "Metabolic Evolution Management": "evolution_manager.py"
+        "Metabolic Evolution Management": "evolution_manager.py",
+        "Autonomous Strategic Pivot": "s_pivot.py",
+        "Cognitive Load-Shedding": "automated_vacuum.py"
     }
     
     remaining_gaps = []
@@ -31,9 +33,8 @@ def analyze_gaps() -> List[str]:
             
     # New Epoch V: Transcendence / Autonomous Operation Objectives
     if not remaining_gaps:
-        remaining_gaps.append("Autonomous Strategic Pivot (S-Pivot)")
-        remaining_gaps.append("Cognitive Load-Shedding (S-Prune)")
         remaining_gaps.append("Dynamic Tool Weights (Metabolic Optimizer)")
+        remaining_gaps.append("Autonomous Recursive Self-Improvement (S-Evolve)")
 
     return remaining_gaps
 
