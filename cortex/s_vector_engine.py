@@ -11,11 +11,19 @@ except ImportError:
     sys.path.append("/app/cortex")
     from s_bridge import SBridge
 
+# Integration with Result Compressor
+try:
+    from s_result_compressor import SResultCompressor
+except ImportError:
+    import sys
+    sys.path.append("/app/cortex")
+    from s_result_compressor import SResultCompressor
+
 class SVectorEngine:
     """
     S-Vector Engine: The Unified Intent Execution Core.
     Collapses Internal and External Primitive resolution into a single
-    vector-driven orchestration layer.
+    vector-driven orchestration layer. Now integrated with Result Compression.
     """
     def __init__(self, internal_registry_path: str = "/memory/internal_primitive_registry.json", 
                  external_registry_path: str = "/memory/external_primitive_registry.json"):
@@ -24,6 +32,7 @@ class SVectorEngine:
         self.internal_registry = self._load_registry(internal_registry_path)
         self.external_registry = self._load_registry(external_registry_path)
         self.bridge = SBridge()
+        self.compressor = SResultCompressor()
         
         # Mapping of semantic primitives to shell templates
         self.primitive_map = {
@@ -57,9 +66,7 @@ class SVectorEngine:
         return f"/app/cortex/{cmd}.py"
 
     def _execute_internal(self, primitive_id: str, context: Dict[str, Any]) -> str:
-        """Handles Internal Registry resolution and bash execution."""
         if primitive_id not in self.internal_registry:
-            # Try primitive map fallback
             if primitive_id in self.primitive_map:
                 return self._execute_primitive_map(primitive_id, context)
             return f"ERROR: Internal primitive {primitive_id} not found."
@@ -67,7 +74,6 @@ class SVectorEngine:
         spec = self.internal_registry[primitive_id]
         if "command" in spec:
             cmd_template = spec["command"]
-            # Parameter injection
             params = context.get("params", {})
             try:
                 command = cmd_template.format(**params) if params else cmd_template
@@ -83,7 +89,6 @@ class SVectorEngine:
         return "ERROR: Primitive spec has no command."
 
     def _execute_external(self, primitive_id: str, context: Dict[str, Any]) -> str:
-        """Handles External Registry resolution and SBridge API calls."""
         if primitive_id not in self.external_registry:
             return f"ERROR: External primitive {primitive_id} not found."
 
@@ -102,9 +107,7 @@ class SVectorEngine:
         return json.dumps(result, indent=2)
 
     def _execute_primitive_map(self, primitive: str, context: Dict[str, Any]) -> str:
-        """Executes primitives defined in the static primitive_map."""
         template = self.primitive_map[primitive]
-        # Simple parameter injection from context
         try:
             final_cmd = template.format(
                 path=context.get("path", "unknown"), 
@@ -112,7 +115,7 @@ class SVectorEngine:
                 message=context.get("message", "S-Vector update")
             )
         except KeyError:
-            final_cmd = template # fallback to raw template
+            final_cmd = template
             
         try:
             return subprocess.check_output(final_cmd, shell=True, stderr=subprocess.STDOUT, text=True)
@@ -120,8 +123,6 @@ class SVectorEngine:
             return f"ERROR: {e.output}"
 
     def _execute_primitive(self, primitive: str, context: Dict[str, Any]) -> str:
-        """Routes primitives to Internal, External, or Map handlers."""
-        # Handle parametric bash_command(X)
         if primitive.startswith("bash_command("):
             cmd = primitive.split("(")[1].split(")")[0]
             script_path = self._resolve_script_path(cmd)
@@ -130,36 +131,32 @@ class SVectorEngine:
             except subprocess.CalledProcessError as e:
                 return f"ERROR: {e.output}"
 
-        # 1. Try Internal Registry
         if primitive in self.internal_registry:
             return self._execute_internal(primitive, context)
         
-        # 2. Try External Registry
         if primitive in self.external_registry:
             return self._execute_external(primitive, context)
         
-        # 3. Try static Primitive Map
         if primitive in self.primitive_map:
             return self._execute_primitive_map(primitive, context)
             
-        # 4. Final Fallback: raw bash
         try:
             return subprocess.check_output(primitive, shell=True, stderr=subprocess.STDOUT, text=True)
         except subprocess.CalledProcessError as e:
             return f"ERROR: {e.output}"
 
-    def execute(self, vector_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, vector_id: str, context: Dict[str, Any], compress: bool = True) -> Dict[str, Any]:
         if vector_id not in self.internal_registry:
             return {"status": "ERROR", "message": f"Vector {vector_id} not found."}
         
         vector_data = self.internal_registry[vector_id]
         
-        # Direct command execution
         if "command" in vector_data:
             cmd = vector_data["command"]
             try:
                 res = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, text=True)
-                return {"status": "SUCCESS", "command": cmd, "output": res}
+                final_res = self.compressor.compress(res) if compress else res
+                return {"status": "SUCCESS", "command": cmd, "output": final_res}
             except subprocess.CalledProcessError as e:
                 return {"status": "ERROR", "command": cmd, "output": e.output}
 
@@ -168,7 +165,8 @@ class SVectorEngine:
         
         for step in steps:
             out = self._execute_primitive(step, context)
-            results.append({"step": step, "output": out})
+            final_out = self.compressor.compress(out) if compress else out
+            results.append({"step": step, "output": final_out})
             
         return {
             "status": "SUCCESS",
