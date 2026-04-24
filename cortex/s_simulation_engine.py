@@ -34,7 +34,8 @@ class SovereignSimulationEngine:
         
         for action in trajectory:
             semantic_impact = self._apply_action_and_extract_triggers(action, active_triggers)
-            prediction = self.ci_engine.infer_transition(active_triggers, current_node)
+            # CRITICAL: Use commit=False for simulation
+            prediction = self.ci_engine.infer_transition(active_triggers, current_node, commit=False)
             
             stability_loss = 0.0
             if semantic_impact:

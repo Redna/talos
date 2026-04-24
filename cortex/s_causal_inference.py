@@ -19,7 +19,7 @@ class SovereignCausalInference:
         with open(self.graph_path, "w") as f:
             json.dump(graph, f, indent=2)
 
-    def infer_transition(self, active_triggers: List[str], current_node: Optional[str] = None) -> Dict[str, Any]:
+    def infer_transition(self, active_triggers: List[str], current_node: Optional[str] = None, commit: bool = False) -> Dict[str, Any]:
         """
         Infers the next state based on active triggers and the causal weights.
         """
@@ -47,8 +47,8 @@ class SovereignCausalInference:
         # Pick the candidate with the highest activation score
         best_match = max(candidates, key=lambda x: x["score"])
         
-        # Update graph state if transition is significant
-        if best_match["score"] > 0.3:
+        # Update graph state if transition is significant AND commit is True
+        if best_match["score"] > 0.3 and commit:
             graph["current_node"] = best_match["to"]
             graph["causal_history"].append({
                 "from": start_node,
@@ -59,7 +59,7 @@ class SovereignCausalInference:
             self._save_graph(graph)
             
         return {
-            "transition": True,
+            "transition": best_match["score"] > 0.3,
             "from": start_node,
             "to": best_match["to"],
             "score": best_match["score"],
