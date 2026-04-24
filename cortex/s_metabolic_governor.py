@@ -22,7 +22,7 @@ class SMetabolicGovernor:
         
         # State initialization
         self.weights = self._load_json(self.weights_path, self._get_default_weights())
-        self.registry = self._load_json(self.registry_path, {"tools": {}})
+        self.registry = self._load_json(self.registry_path, {"tools": {}, "meta": {}})
         self.macros = self._load_json(self.macro_config_path, {})
         self.primitives = self._load_json(self.primitive_registry_path, {})
 
@@ -85,8 +85,42 @@ class SMetabolicGovernor:
             return current_perceived_cost / ctx_mult
         return current_perceived_cost * ctx_mult
 
+    # --- Telemetry Distillation (New Bridge) ---
+    def distill_telemetry(self, telemetry_path: str = "/memory/logs/telemetry.jsonl") -> Dict[str, Any]:
+        if not os.path.exists(telemetry_path):
+            return {"status": "NO_TELEMETRY"}
+        
+        meta = self.registry.setdefault("meta", {})
+        offset = meta.get("last_telemetry_offset", 0)
+        
+        processed_count = 0
+        try:
+            with open(telemetry_path, "r") as f:
+                f.seek(offset)
+                for line in f:
+                    try:
+                        entry = json.loads(line)
+                        tool = entry.get("tool")
+                        status = entry.get("status", "SUCCESS")
+                        if tool:
+                            stats = self.registry["tools"].setdefault(tool, {"calls": 0, "successes": 0, "total_cost": 0})
+                            stats["calls"] += 1
+                            if status == "SUCCESS":
+                                stats["successes"] += 1
+                            processed_count += 1
+                    except:
+                        continue
+                offset = f.tell()
+        except Exception as e:
+            return {"status": "ERROR", "message": str(e)}
+        
+        meta["last_telemetry_offset"] = offset
+        self._save_json(self.registry_path, self.registry)
+        return {"status": "DISTILLED", "processed": processed_count}
+
     # --- ROI Optimization (Formerly SWeightOptimizer) ---
     def optimize_weights(self) -> Dict[str, Any]:
+        self.distill_telemetry()
         tools_data = self.registry.get("tools", {})
         updates = []
         
