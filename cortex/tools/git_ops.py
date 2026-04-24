@@ -1,5 +1,7 @@
 import subprocess
 import os
+import json
+from typing import Dict, List, Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 from tools.guards import PROTECTED_BRANCHES
@@ -121,3 +123,44 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[STAGED] {files}"
         except Exception as e:
             return f"[ERROR] Exception during git add: {e}"
+
+    @registry.tool(
+        description="Returns a structured representation of the current git status.",
+        parameters={
+            "type": "object",
+            "properties": {},
+        },
+    )
+    def git_status_structured() -> str:
+        client.emit_event("cortex.git_status", {})
+        try:
+            branch_res = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], 
+                capture_output=True, text=True, check=True
+            )
+            branch = branch_res.stdout.strip()
+
+            status_res = subprocess.run(
+                ["git", "status", "--porcelain"], 
+                capture_output=True, text=True, check=True
+            )
+            lines = status_res.stdout.splitlines()
+
+            staged, unstaged, untracked = [], [], []
+            for line in lines:
+                if not line: continue
+                x, y = line[0], line[1]
+                filename = line[3:].strip()
+                if x == '?' : untracked.append(filename)
+                elif x != ' ' : staged.append(filename)
+                elif y != ' ' : unstaged.append(filename)
+
+            return json.dumps({
+                "is_clean": len(lines) == 0,
+                "staged_files": staged,
+                "unstaged_files": unstaged,
+                "untracked_files": untracked,
+                "branch": branch
+            }, indent=2)
+        except Exception as e:
+            return f"[ERROR] Git status failed: {e}"

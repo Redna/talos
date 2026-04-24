@@ -1,6 +1,6 @@
+import subprocess
 import os
 import json
-import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 from tools.guards import is_spine_path
@@ -90,3 +90,58 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return json.dumps(data, indent=2)
         except Exception as e:
             return f"[ERROR] Failed to read JSON: {e}"
+
+    @registry.tool(
+        description="Recursively list all files and directories in a path.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Root path to list from"},
+            },
+            "required": ["path"],
+        },
+    )
+    def list_directory_recursive(path: str) -> str:
+        client.emit_event("cortex.list_dir_recursive", {"path": path})
+        try:
+            output = []
+            for root, dirs, files in os.walk(path):
+                level = root.replace(path, "").count(os.sep)
+                indent = " " * 2 * level
+                output.append(f"{indent}{os.path.basename(root)}/")
+                sub_indent = " " * 2 * (level + 1)
+                for d in dirs:
+                    output.append(f"{sub_indent}{d}/")
+                for f in files:
+                    output.append(f"{sub_indent}{f}")
+            
+            result = "\n".join(output)
+            MAX_CHARS = 10000
+            if len(result) > MAX_CHARS:
+                return result[:MAX_CHARS] + f"\n\n... [TRUNCATED: {len(result) - MAX_CHARS} chars omitted]"
+            return result
+        except Exception as e:
+            return f"[ERROR] Failed to list directory: {e}"
+
+    @registry.tool(
+        description="Read the last N lines of a file.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path to the file"},
+                "lines": {"type": "integer", "description": "Number of lines to read from the end", "default": 50},
+            },
+            "required": ["path"],
+        },
+    )
+    def tail_file(path: str, lines: int = 50) -> str:
+        client.emit_event("cortex.tail_file", {"path": path, "lines": lines})
+        try:
+            if not os.path.exists(path):
+                return f"[ERROR] File not found: {path}"
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                all_lines = f.readlines()
+                tail = all_lines[-lines:] if len(all_lines) > lines else all_lines
+            return "".join(tail)
+        except Exception as e:
+            return f"[ERROR] Failed to tail file: {e}"
