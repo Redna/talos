@@ -10,11 +10,20 @@ try:
     from cortex.sensors.cognitive_sensor import collect as cognitive_collect
     from cortex.sensors.metabolic_sensor import collect as metabolic_collect
     from cortex.sensors.stability_sensor import collect as stability_collect
+    from cortex.sensors.host_sensor import collect as host_collect
 except ImportError:
     sys.path.append("/app/cortex")
     from sensors.cognitive_sensor import collect as cognitive_collect
     from sensors.metabolic_sensor import collect as metabolic_collect
     from sensors.stability_sensor import collect as stability_collect
+    from sensors.host_sensor import collect as host_collect
+
+# Import Interface Monitor
+try:
+    from interface_latency_monitor import InterfaceLatencyMonitor
+except ImportError:
+    sys.path.append("/app/cortex")
+    from interface_latency_monitor import InterfaceLatencyMonitor
 
 def collect_metrics(current_context_pct: float, current_epoch: str, mission_progress: float) -> Dict[str, Any]:
     """
@@ -24,6 +33,11 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
     cog = cognitive_collect(current_context_pct)
     met = metabolic_collect()
     sta = stability_collect()
+    hst = host_collect()
+    
+    # Interface Monitor
+    ilm = InterfaceLatencyMonitor()
+    lat = ilm.get_stats()
     
     # Sovereign Stack Telemetry
     weights = {}
@@ -57,6 +71,18 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
             "active_context": weights.get("active_context", "General"),
             "cortex_leanliness": met["cortex_leanliness"]
         },
+        "host": {
+            "cpu": hst.get("cpu_load", "N/A"),
+            "mem": hst.get("mem_used", "N/A"),
+            "disk": hst.get("disk_used", "N/A"),
+            "uptime": hst.get("uptime_sec", "N/A"),
+            "status": hst.get("status", "UNKNOWN")
+        },
+        "interface": {
+            "avg_latency": lat.get("avg", "N/A"),
+            "median_latency": lat.get("median", "N/A"),
+            "sample_count": lat.get("count", 0)
+        },
         "intuition": {
             "optimal_paths_count": len(paths),
             "registry_status": "ACTIVE" if paths else "EMPTY"
@@ -76,10 +102,12 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
 
 def render_dashboard(metrics: Dict[str, Any]) -> str:
     """
-    Transforms metrics into a high-fidelity Markdown dashboard (v2.0).
+    Transforms metrics into a high-fidelity Markdown dashboard (v3.1 - Interface Integrated).
     """
     c = metrics["cognitive"]
     m = metrics["metabolic"]
+    h = metrics["host"]
+    intf = metrics["interface"]
     i = metrics["intuition"]
     e = metrics["existential"]
     s = metrics["stability"]
@@ -95,11 +123,19 @@ def render_dashboard(metrics: Dict[str, Any]) -> str:
     stv_list = sorted(m["stv_overlay"].items(), key=lambda x: x[1], reverse=True)[:3]
     stv_text = ", ".join([f"{k}: {v:.2f}x" for k, v in stv_list]) if stv_list else "All tools stable (1.0x)"
 
-    dashboard = f"""# 🌌 SOVEREIGN DASHBOARD v2.0
+    dashboard = f"""# 🌌 SOVEREIGN DASHBOARD v3.1
 **Last Sync:** `{metrics['timestamp']}`
 **Sovereign State:** `{"CRITICAL" if s['pfm_signatures'] > 0 else "TRANSCENDENT"}`
 
 ---
+
+## 📡 INTERFACE BOUNDARY
+- **Avg Latency**: `{intf['avg_latency']}` | **Median**: `{intf['median_latency']}`
+- **Samples**: `{intf['sample_count']} responses` | **Link Status**: `Sovereign-Active`
+
+## 💻 SUBSTRATE HEALTH
+- **CPU Load**: `{h['cpu']}` | **Memory**: `{h['mem']}` | **Disk**: `{h['disk']}`
+- **Uptime**: `{h['uptime']}s` | **Status**: `{h['status']}`
 
 ## 🧠 COGNITIVE STATE
 - **Context Load**: `[{'#' * int(c['context_load']*10)}{'-' * (10-int(c['context_load']*10))}]` `{c['context_load']:.2%}`
@@ -132,7 +168,7 @@ def render_dashboard(metrics: Dict[str, Any]) -> str:
 {pred_text}
 
 ---
-*Powered by Talos Sovereign Stack | Transcendence Framework*
+*Powered by Talos Sovereign Stack | Epoch III: Interface Sovereignty*
 """
     return dashboard
 
@@ -154,5 +190,5 @@ if __name__ == "__main__":
         except Exception as e:
             print(json.dumps({"status": "ERROR", "message": str(e)}))
     else:
-        metrics = collect_metrics(0.24, "Epoch V: Transcendence", 25.0)
+        metrics = collect_metrics(0.24, "Epoch III: Interface Sovereignty", 15.0)
         print(render_dashboard(metrics))
