@@ -3,7 +3,6 @@ from collections import Counter
 from typing import List, Dict
 
 def analyze_tool_utility(telemetry_path: str, current_tools: List[str]) -> List[Dict]:
-    # Updated to include local file detection for custom tool pruning
     try:
         with open(telemetry_path, 'r') as f:
             events = [json.loads(line) for line in f]
@@ -16,13 +15,26 @@ def analyze_tool_utility(telemetry_path: str, current_tools: List[str]) -> List[
         if tool:
             tool_usage[tool] += 1
 
-    # Also scan /app/cortex/ for files that aren't in the telemetry
     import os
+    # PROTECTED_MODULES: Essential systemic files that should never be pruned
+    # regardless of telemetry usage.
+    PROTECTED_MODULES = {
+        "tool_registry", 
+        "spine_client", 
+        "state", 
+        "__init__",
+        "sovereign_orchestrator"
+    }
+    
     cortex_files = [f for f in os.listdir("/app/cortex/") if f.endswith(".py") and "test_" not in f]
     
     pruning_candidates = []
     for file in cortex_files:
         tool_name = file.replace(".py", "").replace("_tool", "")
+        
+        if tool_name in PROTECTED_MODULES:
+            continue
+            
         usage = tool_usage.get(tool_name, 0)
         
         if usage == 0:
