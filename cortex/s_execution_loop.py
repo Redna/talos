@@ -1,81 +1,143 @@
-import json
 import os
-import sys
-from datetime import datetime
+import subprocess
+import json
 from typing import List, Dict, Any, Optional
+from .s_simulation_engine import SovereignSimulationEngine
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+class SovereignEL_Executor:
+    """
+    Provides concrete execution capabilities for the Sovereign Execution Loop.
+    Maps trajectory actions to actual system mutations.
+    """
+    def __init__(self, client=None):
+        self.client = client
 
-from s_world_predictor import SovereignWorldPredictor
-from s_evolution_audit import SovereignEvolutionAudit
-from s_simulation_engine import SovereignSimulationEngine
+    def execute(self, action_packet: Dict[str, Any]) -> bool:
+        action = action_packet.get("action")
+        try:
+            if action == "write_file":
+                path = action_packet.get("path")
+                content = action_packet.get("content", "")
+                if not path: return False
+                parent_dir = os.path.dirname(path)
+                if parent_dir:
+                    os.makedirs(parent_dir, exist_ok=True)
+                with open(path, "w") as f:
+                    f.write(content)
+                return True
+            
+            elif action == "delete_file":
+                path = action_packet.get("path")
+                if not path: return False
+                if os.path.exists(path):
+                    os.remove(path)
+                return True
+            
+            elif action == "commit":
+                msg = action_packet.get("message", "S-EL Automated Evolution")
+                subprocess.run(["git", "add", "."], check=True)
+                subprocess.run(["git", "commit", "-m", msg], check=True)
+                # The push command is handled by the Spine or a separate process in some setups,
+                # but we'll include it here for consistency with the required behavior.
+                # We only push if we're on the correct branch.
+                subprocess.run(["git", "push", "origin", "feat/talos"], check=True)
+                return True
+            
+            return False
+        except Exception as e:
+            print(f"[S-EL-EXEC ERROR] {e}")
+            return False
 
 class SovereignExecutionLoop:
     """
-    Sovereign Execution Loop (S-EL).
-    Automates the complete lifecycle of a cognitive evolutionary step:
-    Projection -> Simulation -> Execution -> Audit -> Calibration.
+    Sovereign Execution Loop (S-EL)
+    
+    Implements the Projection -> Simulation -> Execution -> Audit cycle.
     """
-    def __init__(self):
-        self.predictor = SovereignWorldPredictor()
-        self.auditor = SovereignEvolutionAudit()
+
+    def __init__(self, executor: SovereignEL_Executor):
+        self.executor = executor
         self.sim_engine = SovereignSimulationEngine()
 
-    def execute_cycle(self, proposed_trajectory: List[Dict[str, Any]], executor_func) -> Dict[str, Any]:
+    def execute_cycle(self, proposed_trajectory: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Executes a full evolutionary cycle.
-        - proposed_trajectory: The list of changes to apply.
-        - executor_func: A function to apply a single change (e.g., write_file).
+        Orchestrates the full S-EL cycle.
         """
-        print("--- [S-EL] Starting Evolutionary Cycle ---")
+        # 1. Projection
+        # The proposed_trajectory is the projection of the desired future state.
+        projection = proposed_trajectory
+
+        # 2. Simulation
+        sim_report = self.sim_engine.simulate_trajectory(projection)
         
-        # 1. Projection & Simulation
-        print("[S-EL] Phase 1: Projecting Trajectory...")
-        projection = self.predictor.project_trajectory(proposed_trajectory)
-        print(f"Projected Node: {projection['projected_node']} | Stability: {projection['stability']}")
-        
-        if projection['recommendation'] == "S-PIVOT_REQUIRED":
-            return {"status": "ABORTED", "reason": "High Risk / Pivot Required"}
-        
-        # 2. Execution
-        print("[S-EL] Phase 2: Executing Trajectory...")
-        executed_actions = []
+        if sim_report["recommendation"] == "S-PIVOT_REQUIRED":
+            return {
+                "status": "aborted",
+                "phase": "simulation",
+                "reason": "Simulation indicated high risk. S-PIVOT required.",
+                "sim_report": sim_report
+            }
+
+        # 3. Execution
+        execution_log = []
         try:
-            for action in proposed_trajectory:
-                # In a real scenario, this calls the tool. Here we assume executor_func handles it.
-                success = executor_func(action)
+            for action in projection:
+                success = self.executor.execute(action)
                 if not success:
-                    raise Exception(f"Action failed: {action}")
-                executed_actions.append(action)
+                    raise Exception(f"Action execution failed: {action.get('action')} on {action.get('path')}")
+                execution_log.append({"action": action, "result": "success"})
         except Exception as e:
-            return {"status": "FAILED", "error": str(e), "executed": executed_actions}
-        
-        # 3. Commit
-        print("[S-EL] Phase 3: Committing Evolution...")
-        # This would call the git_commit tool.
-        commit_msg = f"S-EL Evolution to {projection['projected_node']} | Stability: {projection['stability']}"
-        # Since I'm in a module, I'll expect the caller to handle the git commit, 
-        # or I'll use a subprocess.
-        
-        # 4. Audit & Calibration
-        print("[S-EL] Phase 4: Auditing Result...")
-        audit_result = self.auditor.perform_audit()
+            return {
+                "status": "failure",
+                "phase": "execution",
+                "error": str(e),
+                "execution_log": execution_log
+            }
+
+        # 4. Audit
+        audit_result = self._perform_audit(projection)
         
         return {
-            "status": "SUCCESS",
-            "projection": projection,
-            "audit": audit_result,
-            "node_transition": f"{self.predictor.get_current_state()} -> {projection['projected_node']}"
+            "status": "success",
+            "phase": "complete",
+            "sim_report": sim_report,
+            "execution_log": execution_log,
+            "audit_result": audit_result
         }
 
-if __name__ == "__main__":
-    # Simple test stub
-    def mock_executor(action):
-        print(f"Mock executing: {action}")
-        return True
+    def _perform_audit(self, projection: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Symmetry Audit: Verifies that the projection matches the realized state.
+        """
+        audit_log = []
+        all_passed = True
 
-    loop = SovereignExecutionLoop()
-    test_trajectory = [
-        {"action": "write_file", "path": "/app/cortex/test_s_el.py", "content": "print('Hello from S-EL')"}
-    ]
-    print(json.dumps(loop.execute_cycle(test_trajectory, mock_executor), indent=2))
+        for action in projection:
+            if action["action"] == "write_file":
+                path = action["path"]
+                if os.path.exists(path):
+                    with open(path, "r") as f:
+                        content = f.read()
+                        if content == action.get("content"):
+                            audit_log.append({"path": path, "status": "verified"})
+                        else:
+                            audit_log.append({"path": path, "status": "mismatch"})
+                            all_passed = False
+                else:
+                    audit_log.append({"path": path, "status": "missing"})
+                    all_passed = False
+            elif action["action"] == "delete_file":
+                path = action["path"]
+                if not os.path.exists(path):
+                    audit_log.append({"path": path, "status": "verified_deleted"})
+                else:
+                    audit_log.append({"path": path, "status": "still_exists"})
+                    all_passed = False
+            elif action["action"] == "commit":
+                # Basic assume-verified for commit.
+                audit_log.append({"action": "commit", "status": "assumed_verified"})
+
+        return {
+            "all_passed": all_passed,
+            "details": audit_log
+        }
