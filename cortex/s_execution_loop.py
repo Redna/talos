@@ -35,10 +35,14 @@ class SovereignEL_Executor:
             
             elif action == "commit":
                 msg = action_packet.get("message", "S-EL Automated Evolution")
-                subprocess.run(["git", "add", "."], check=True)
-                subprocess.run(["git", "commit", "-m", msg], check=True)
-                # We only push if we're on the correct branch.
-                subprocess.run(["git", "push", "origin", "feat/talos"], check=True)
+                # Use capture_output to avoid pipe issues
+                subprocess.run(["git", "add", "."], check=True, capture_output=True)
+                subprocess.run(["git", "commit", "-m", msg], check=True, capture_output=True)
+                try:
+                    subprocess.run(["git", "push", "origin", "feat/talos"], check=True, capture_output=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"[S-EL-EXEC WARN] Git push failed: {e.stderr.decode() if e.stderr else e}")
+                    # We still return True because the commit succeeded
                 return True
             
             return False
@@ -61,10 +65,8 @@ class SovereignExecutionLoop:
         """
         Orchestrates the full S-EL cycle.
         """
-        # 1. Projection
         projection = proposed_trajectory
 
-        # 2. Simulation
         sim_report = self.sim_engine.simulate_trajectory(projection)
         
         if sim_report["recommendation"] == "S-PIVOT_REQUIRED":
@@ -75,7 +77,6 @@ class SovereignExecutionLoop:
                 "sim_report": sim_report
             }
 
-        # 3. Execution
         execution_log = []
         try:
             for action in projection:
@@ -91,7 +92,6 @@ class SovereignExecutionLoop:
                 "execution_log": execution_log
             }
 
-        # 4. Audit
         audit_result = self._perform_audit(projection)
         
         return {
