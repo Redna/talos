@@ -13,7 +13,8 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
     """
     Aggregates data from all specialized sensors to provide a comprehensive system state.
     """
-    cog = cognitive_collect()
+    # Call sensors with required parameters
+    cog = cognitive_collect(current_context_pct)
     met = metabolic_collect()
     sta = stability_collect()
     
@@ -26,7 +27,7 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
             "focus_stability": "SENSING..." 
         },
         "metabolic": {
-            "tool_efficiency": "98%", # Still baseline
+            "tool_efficiency": met["tool_efficiency"],
             "cortex_leanliness": met["cortex_leanliness"],
             "s_orch_delta": f"{met['s_orch_delta']} opportunities"
         },
@@ -37,7 +38,7 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
         },
         "stability": {
             "pfm_signatures": sta["pfm_signatures"],
-            "s_verify_pass_rate": "100%",
+            "s_verify_pass_rate": sta["s_verify_pass_rate"],
             "sovereign_drift": f"Drift: {sta['daily_drift_count']} commits/day"
         }
     }

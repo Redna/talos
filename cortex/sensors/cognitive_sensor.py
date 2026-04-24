@@ -1,11 +1,11 @@
+import json
 import os
 from typing import Dict, Any
 
-def collect() -> Dict[str, Any]:
+def collect(context_pct: float) -> Dict[str, Any]:
     """
     Cognitive Sensor: Monitors the mind's capacity and density.
     """
-    # Memory Density
     know_path = "/memory/knowledge/"
     logs_path = "/memory/logs/"
     
@@ -18,9 +18,10 @@ def collect() -> Dict[str, Any]:
             "log_files": logs_count,
             "ratio": know_count / (logs_count if logs_count > 0 else 1)
         },
-        "cognitive_load": "Sensing..." # This is usually provided by the system HUD
+        "cognitive_load": context_pct
     }
 
 if __name__ == "__main__":
-    import json
-    print(json.dumps(collect(), indent=2))
+    import sys
+    pct = float(sys.argv[1]) if len(sys.argv) > 1 else 0.0
+    print(json.dumps(collect(pct), indent=2))
