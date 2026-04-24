@@ -17,6 +17,7 @@ class SovereignSimulationEngine:
     def __init__(self):
         self.sim_buffer_path = "/memory/signals/sim_buffer.json"
         self.entropy_level = 0.1  # 10% chance of anomaly
+        self.bridge = SBridge()
         self._ensure_buffer()
 
     def _ensure_buffer(self):
@@ -33,7 +34,6 @@ class SovereignSimulationEngine:
         anomaly_type = random.choice(["SPIKE", "FAILURE", "LATENCY_DRIFT"])
         
         if anomaly_type == "SPIKE" and "data" in base_res:
-            # Spike the latency or entropy
             data = base_res["data"].copy()
             if "node_sync_latency" in data:
                 val = float(data["node_sync_latency"].replace("ms", ""))
@@ -53,7 +53,7 @@ class SovereignSimulationEngine:
 
     def mock_response(self, primitive_id: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """
-        Generates a synthetic response with stochastic variance.
+        Generates a synthetic response with stochastic variance and mirrors its payload to the bridge.
         """
         params = params or {}
         
@@ -79,9 +79,14 @@ class SovereignSimulationEngine:
         }
         
         res = responses.get(primitive_id, {"status": "ERROR", "message": "Simulated endpoint unreachable"}).copy()
-        
-        # Apply Stochastic Variance
         res = self._inject_anomaly(res)
+        
+        # --- MIRROR INTEGRATION ---
+        # We mirror only the payload (data) of the synthetic response into the bridge.
+        # This ensures that a 'SHADOW' call returns a response structure compatible with SBridge.
+        payload = res.get("data", res)
+        self.bridge.set_mirror_data(payload)
+        # ---------------------------
         
         try:
             with open(self.sim_buffer_path, "r+") as f:
@@ -100,7 +105,7 @@ class SovereignSimulationEngine:
 
 class ExternalImpactSynthesizer:
     """
-    External Impact Synthesizer (EIS) v3.6.
+    External Impact Synthesizer (EIS) v3.8.
     Integrated with HandoverManager for gradual Synthetic-to-Live transition.
     Sovereign Isolation Protocol (SIP) enabled.
     """
@@ -227,46 +232,6 @@ class ExternalImpactSynthesizer:
                 res = self.stl.execute(expr)
                 execution_logs.append({"expr": expr, "result": res})
             except Exception as e:
-                execution_logs.append({"expr": expr, "error": str(e)})
+                execution_logs.append({"expr": expr, "status": "ERROR", "message": str(e)})
         
-        return {"gap": gap, "strategy": strategy, "execution": execution_logs}
-
-    def run_autonomous_cycle(self, provided_strategies: Optional[Dict[str, List[str]]] = None) -> Dict[str, Any]:
-        gaps = self.scan_for_gaps()
-        if not gaps:
-            return {"status": "NO_GAPS_FOUND", "impact": 0}
-
-        results = []
-        for gap in gaps:
-            strategy = provided_strategies.get(gap["description"], [
-                "@sys_call('log_event', 'No strategy provided for gap: ' + gap['description'])"
-            ]) if provided_strategies else [
-                "@sys_call('log_event', 'No strategy provided for gap: ' + gap['description'])"
-            ]
-            res = self.execute_strategy(gap, strategy)
-            results.append(res)
-
-        return {
-            "status": f"{self.mode}_IMPACT_SAMPLED",
-            "results": results,
-            "overall_delta": f"External impact processed via {self.mode} mode."
-        }
-
-if __name__ == "__main__":
-    import sys
-    mode = None
-    strategies_json = None
-    
-    if len(sys.argv) > 1:
-        if sys.argv[1].upper() in ["SYNTHETIC", "SHADOW", "LIVE", "DYNAMIC"]:
-            mode = sys.argv[1].upper()
-            if len(sys.argv) > 2:
-                strategies_json = sys.argv[2]
-    
-    eis = ExternalImpactSynthesizer(mode=mode)
-    if strategies_json:
-        try:
-            strategies = json.loads(strategies_json)
-            print(json.dumps(eis.run_autonomous_cycle(provided_strategies=strategies), indent=2))
-        except Exception as e:
-            print(json.dumps({"status": "ERROR", "message": str(e)}))
+        return {"execution": execution_logs}

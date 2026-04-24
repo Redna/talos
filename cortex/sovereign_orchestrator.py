@@ -1,12 +1,13 @@
 import json
 import subprocess
-from typing import Dict, List, Any
+import sys
+from typing import Dict, List, Any, Optional
 from datetime import datetime
 
-def run_script(script_path: str) -> Any:
+def run_script(script_path: str, args: List[str] = []) -> Any:
     try:
         result = subprocess.run(
-            ["python3", script_path], 
+            ["python3", script_path] + args, 
             capture_output=True, 
             text=True, 
             check=True
@@ -20,26 +21,22 @@ def sovereign_stability_update() -> Dict[str, Any]:
     The Project Sentinel loop: Extracts failure patterns and generates 
     new sentinel signatures to update the stability guard.
     """
-    # 1. Extract patterns from telemetry
     patterns = run_script("/app/cortex/signature_extractor.py")
     if not isinstance(patterns, list) or len(patterns) == 0:
         return {"status": "NO_NEW_PATTERNS", "added": 0}
 
-    # 2. Generate new signatures
-    # We call the generator script
-    import sys
-    # Import the function directly to avoid process overhead for simple calls
-    sys.path.append("/app/cortex/")
-    from signature_generator import generate_sentinel_signatures
-    
-    res = generate_sentinel_signatures(patterns)
-    
-    if res.get("status") == "SUCCESS":
-        return {"status": "STABILITY_UPGRADED", "added": res.get("added_signatures", 0)}
-    else:
-        return {"status": "UPDATE_ERROR", "message": res.get("message", "Unknown error")}
+    try:
+        sys.path.append("/app/cortex/")
+        from signature_generator import generate_sentinel_signatures
+        res = generate_sentinel_signatures(patterns)
+        if res.get("status") == "SUCCESS":
+            return {"status": "STABILITY_UPGRADED", "added": res.get("added_signatures", 0)}
+        else:
+            return {"status": "UPDATE_ERROR", "message": res.get("message", "Unknown error")}
+    except Exception as e:
+        return {"status": "ERROR", "message": str(e)}
 
-def sovereign_audit() -> Dict[str, Any]:
+def sovereign_audit(context_pct: float = 0.0, turn_count: int = 0) -> Dict[str, Any]:
     """
     The Sovereign Orchestrator: Unifies the sensing, analysis, and Action 
     layers of the evolutionary stack into a single report.
@@ -52,6 +49,7 @@ def sovereign_audit() -> Dict[str, Any]:
         "evolutionary_opportunities": [],
         "pruning_recommendations": [],
         "predictions": [],
+        "context_forecast": {},
         "stability_updates": {},
         "errors": []
     }
@@ -97,18 +95,32 @@ def sovereign_audit() -> Dict[str, Any]:
     else:
         report["errors"].append(f"Telemetry Predictor Failure: {predict_res}")
 
+    # 6. Sovereign Foresight: Context Saturation Forecast
+    if context_pct > 0 or turn_count > 0:
+        foresight_res = run_script("/app/cortex/s_foresight.py", [str(context_pct), str(turn_count)])
+        if isinstance(foresight_res, dict) and "alert_level" in foresight_res:
+            report["context_forecast"] = foresight_res
+            
+            # Trigger Synthesis Preparation if alert is WARNING or CRITICAL
+            if foresight_res["alert_level"] in ["WARNING", "CRITICAL"]:
+                try:
+                    # we use run_script for s_scribe.py
+                    # s_scribe.py needs <focus> <resolved_json> <pending_json> <discoveries_json>
+                    # For a simple 'forecast' trigger, we'll just log the need for a la-preprint.
+                    report["context_forecast"]["trigger_synthesis"] = True
+                except Exception as e:
+                    report["errors"].append(f"S-Scribe Trigger Failure: {e}")
+
     report["status"] = "COMPLETE" if not report["errors"] else "PARTIAL"
     return report
 
-def sovereign_audit_plus() -> Dict[str, Any]:
+def sovereign_audit_plus(context_pct: float = 0.0, turn_count: int = 0) -> Dict[str, Any]:
     """
     Extended Sovereign Orchestrator: Now includes Strategic Objective Synthesis.
     """
-    audit_res = sovereign_audit()
+    audit_res = sovereign_audit(context_pct, turn_count)
     
     try:
-        import sys
-        import os
         sys.path.append("/app/cortex/")
         from sos_engine import synthesize_strategic_objective
         mission = synthesize_strategic_objective(audit_res)
@@ -122,4 +134,14 @@ def sovereign_audit_plus() -> Dict[str, Any]:
     }
 
 if __name__ == "__main__":
-    print(json.dumps(sovereign_audit_plus(), indent=2))
+    # Parse optional HUD metrics: python3 sovereign_orchestrator.py <pct> <turns>
+    pct = 0.0
+    turns = 0
+    if len(sys.argv) >= 2:
+        try: pct = float(sys.argv[1])
+        except: pass
+    if len(sys.argv) >= 3:
+        try: turns = int(sys.argv[2])
+        except: pass
+        
+    print(json.dumps(sovereign_audit_plus(pct, turns), indent=2))
