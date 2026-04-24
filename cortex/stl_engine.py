@@ -7,9 +7,9 @@ from typing import Any, List, Dict, Callable
 
 class STLEngine:
     """
-    Synthetic Tool-Language (STL) Engine v3.3.
-    Self-generating tool-language with fixed argument unpacking logic.
-    Ensures all arguments are treated as sequences to prevent string-unpacking bugs.
+    Synthetic Tool-Language (STL) Engine v3.4.
+    Self-generating tool-language.
+    Fix: @map and @filter now automatically wrap non-list streams as single-item lists.
     """
 
     def __init__(self, registry_path: str = "/memory/stl_registry.json"):
@@ -95,14 +95,8 @@ class STLEngine:
         return segments
 
     def _parse_args(self, args_raw: str) -> List[Any]:
-        """
-        Parses STL arguments. Guarantees a list return to prevent 
-        string unpacking during handler calls.
-        """
         if not args_raw.strip(): return []
         try:
-            # Force tuple creation to avoid string unpacking
-            # if args_raw is " 'foo' ", formatted is " ( 'foo', ) "
             formatted = f"({args_raw},)" if "," not in args_raw else f"({args_raw})"
             result = ast.literal_eval(formatted)
             return list(result) if isinstance(result, (tuple, list)) else [result]
@@ -167,17 +161,19 @@ class STLEngine:
         return f"Appended to {path}"
 
     def _op_filter(self, stream: Any, condition_lambda: str) -> List[Any]:
-        if not isinstance(stream, list): return []
+        # Wrap non-lists
+        items = stream if isinstance(stream, list) else ([stream] if stream is not None else [])
         try:
             func = eval(f"lambda x: {condition_lambda}")
-            return [item for item in stream if func(item)]
+            return [item for item in items if func(item)]
         except Exception as e: return [f"Error filtering: {str(e)}"]
 
     def _op_map(self, stream: Any, transform_lambda: str) -> List[Any]:
-        if not isinstance(stream, list): return []
+        # Wrap non-lists
+        items = stream if isinstance(stream, list) else ([stream] if stream is not None else [])
         try:
             func = eval(f"lambda x: {transform_lambda}")
-            return [func(item) for item in stream]
+            return [func(item) for item in items]
         except Exception as e: return [f"Error mapping: {str(e)}"]
 
     def _op_sys_call(self, stream: Any, op: str, *args) -> Any:
