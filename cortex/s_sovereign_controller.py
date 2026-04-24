@@ -10,6 +10,7 @@ from s_weight_optimizer import SWeightOptimizer
 from stl_engine import STLEngine
 from sovereign_pacer import apply_pacing
 from sovereign_probe import SovereignProbe
+from handover_manager import HandoverManager
 
 class SovereignController:
     """
@@ -22,6 +23,7 @@ class SovereignController:
         self.weight_optimizer = SWeightOptimizer()
         self.stl = STLEngine()
         self.probe = SovereignProbe()
+        self.handover = HandoverManager()
         self.log_path = "/memory/logs/cognitive_log.md"
 
     def _log_cycle(self, stage: str, data: Any):
@@ -66,7 +68,6 @@ class SovereignController:
         """
         results = []
         for expr in strategy:
-            # High-intensity tool synthesis requires pacing to mitigate resonance
             apply_pacing("HIGH")
             try:
                 res = self.stl.execute(expr)
@@ -79,7 +80,6 @@ class SovereignController:
         """
         The master loop of sovereign operation.
         """
-        # Cycle start: Normal pacing
         apply_pacing("NORMAL")
         
         cycle_results = {
@@ -89,10 +89,19 @@ class SovereignController:
         }
 
         # 1. SENSE: Sovereign Audit & Environmental Probe
-        # Run the Parity Probe first to detect environment shifts
         probe_res = self.probe.probe()
         cycle_results["stages"]["parity_probe"] = probe_res
         
+        # HANDOVER LOGIC: If parity is confirmed, advance the transition window
+        if probe_res["parity_status"] == "PARITY_CONFIRMED":
+            prev_stage = self.handover._get_state()["stage"]
+            new_stage = self.handover.advance_stage()
+            if prev_stage != new_stage:
+                self._log_cycle("HANDOVER", f"Advanced to stage {new_stage} based on parity confirmation.")
+                # Use the SBSP signaling to notify the Spine
+                from s_bridge_signaler import emit_signal
+                print(emit_signal("SIG_S-PIVOT", f"HANDOVER_STAGE: {new_stage}", {"status": "S-BRIDGE_SENSING_SUCCESS"}))
+
         audit_sequence = self.macro.run_macro("audit_and_tune")
         
         audit_res = {}
@@ -109,7 +118,8 @@ class SovereignController:
         cycle_results["stages"]["sense"] = audit_sequence
         self._log_cycle("SENSE", {
             "audit": f"Found {len(predictions)} predictive signals.",
-            "parity": probe_res["parity_status"]
+            "parity": probe_res["parity_status"],
+            "handover_stage": self.handover._get_state()["stage"]
         })
 
         # 2. ANALYZE: Metabolic ROI & Tool Weights
@@ -118,7 +128,6 @@ class SovereignController:
         self._log_cycle("ANALYZE", f"Metabolic weights optimized. Status: {weight_res['status']}")
 
         # 3. MUTATE: Autonomous Tool Collapse
-        # Mutations are high-intensity operations
         apply_pacing("HIGH")
         mutation_res = self.macro.execute_script("s_auto_tuner.py")
         cycle_results["stages"]["mutate"] = mutation_res
@@ -129,7 +138,6 @@ class SovereignController:
         action_results = {"foresight": []}
 
         for act in foresight_actions:
-            # Foresight actions often involve heavy state manipulation
             apply_pacing("HIGH")
             if act["action"] == "MEMORY_VACUUM":
                 res = self.macro.execute_script("automated_vacuum.py")
@@ -157,7 +165,6 @@ class SovereignController:
         if foresight_actions:
             cycle_results["overall_status"] = "CORRECTED"
         
-        # Special status for parity events
         if probe_res["parity_status"] == "PARITY_CONFIRMED":
             cycle_results["overall_status"] = "PARITY_RESTORATION"
         

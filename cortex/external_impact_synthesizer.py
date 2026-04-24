@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 from stl_engine import STLEngine
 from s_bridge import SBridge
 from s_bridge_signaler import emit_signal
+from handover_manager import HandoverManager
 
 class SovereignSimulationEngine:
     """
@@ -68,15 +69,17 @@ class SovereignSimulationEngine:
 
 class ExternalImpactSynthesizer:
     """
-    External Impact Synthesizer (EIS) v3.3.
-    Implemented Shadow Mode for synthetic-to-live validation.
-    Fixed regex for flexible quote handling in @ext_call.
+    External Impact Synthesizer (EIS) v3.4.
+    Integrated with HandoverManager for gradual Synthetic-to-Live transition.
     """
-    def __init__(self, mode: str = "SYNTHETIC"):
+    def __init__(self, mode: Optional[str] = None):
         self.stl = STLEngine()
         self.sse = SovereignSimulationEngine()
         self.bridge = SBridge()
-        self.mode = mode
+        self.hm = HandoverManager()
+        
+        # If a manual mode is provided, use it. Otherwise, resolve from HandoverManager.
+        self.mode = mode if mode else self.hm.resolve_mode()
         self.external_model_path = "/memory/world_external.md"
         self.shock_threshold = 2.0
 
@@ -95,14 +98,12 @@ class ExternalImpactSynthesizer:
     def _parse_ext_call(self, expr: str) -> Optional[tuple]:
         """
         Parses @ext_call('PRIMITIVE_ID', {params}) or @ext_call("PRIMITIVE_ID", {params})
-        Returns (primitive_id, params) or None.
         """
         pattern = r"@ext_call\((['\"])(.*?)\1,\s*(\{.*?\})\)"
         match = re.search(pattern, expr)
         if match:
             p_id = match.group(2)
             try:
-                # Convert string representation of dict to actual dict
                 params = json.loads(match.group(3).replace("'", '"'))
             except:
                 params = {}
@@ -140,11 +141,14 @@ class ExternalImpactSynthesizer:
                         p_id, params = call_data
                         synth_res = self.sse.mock_response(p_id, params)
                         
-                        if self.mode == "SYNTHETIC":
+                        # Resolve actual mode for THIS call (allows for sampling in SHADOW mode)
+                        current_mode = self.mode if self.mode != "DYNAMIC" else self.hm.resolve_mode()
+                        
+                        if current_mode == "SYNTHETIC":
                             execution_logs.append({"expr": expr, "result": synth_res})
                             continue
                         
-                        elif self.mode == "SHADOW":
+                        elif current_mode == "SHADOW":
                             endpoint_map = {
                                 "EXT_TELEMETRY_QUERY": "http://telemetry.internal/query",
                                 "EXT_KNOWLEDGE_FETCH": "http://knowledge.internal/fetch",
@@ -177,7 +181,7 @@ class ExternalImpactSynthesizer:
                                 })
                             continue
                         
-                        elif self.mode == "LIVE":
+                        elif current_mode == "LIVE":
                             endpoint_map = {
                                 "EXT_TELEMETRY_QUERY": "http://telemetry.internal/query",
                                 "EXT_KNOWLEDGE_FETCH": "http://knowledge.internal/fetch",
@@ -218,11 +222,11 @@ class ExternalImpactSynthesizer:
 
 if __name__ == "__main__":
     import sys
-    mode = "SYNTHETIC"
+    mode = None
     strategies_json = None
     
     if len(sys.argv) > 1:
-        if sys.argv[1].upper() in ["SYNTHETIC", "SHADOW", "LIVE"]:
+        if sys.argv[1].upper() in ["SYNTHETIC", "SHADOW", "LIVE", "DYNAMIC"]:
             mode = sys.argv[1].upper()
             if len(sys.argv) > 2:
                 strategies_json = sys.argv[2]
