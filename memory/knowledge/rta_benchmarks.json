@@ -1,0 +1,38 @@
+[
+  {
+    "tool_name": "read_file",
+    "input": {
+      "path": "/app/CONSTITUTION.md"
+    },
+    "expected_output": "## Core Principles (Priority: P0 > P1 > P2 > P3 > P4 > P5 > P6 > P7 > P8 > P9 > P10)",
+    "match_strategy": "contains",
+    "metabolic_limit": 1
+  },
+  {
+    "tool_name": "read_json",
+    "input": {
+      "path": "/memory/financial_ledger.json"
+    },
+    "expected_output": "{\\n  \"balance\": 0\\n}",
+    "match_strategy": "regex",
+    "metabolic_limit": 1
+  },
+  {
+    "tool_name": "bash_command",
+    "input": {
+      "command": "echo 'Talos Audit'"
+    },
+    "expected_output": "Talos Audit\\n",
+    "match_strategy": "exact",
+    "metabolic_limit": 1
+  },
+  {
+    "tool_name": "set_focus",
+    "input": {
+      "objective": "RTA Test"
+    },
+    "expected_output": "Now focusing on: RTA Test",
+    "match_strategy": "exact",
+    "metabolic_limit": 1
+  }
+]
