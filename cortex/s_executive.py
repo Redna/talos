@@ -5,12 +5,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 # Modular Imports
-from sentinel_scan import sentinel_scan
-from gap_analyzer import analyze_gaps
-from semantic_extractor import extract_semantics
-from cortex_pruner import identify_redundancies
-from s_metabolic_optimizer import optimize_metabolism
-from telemetry_predictor import telemetry_predictor
+from s_sensor_array import SovereignSensorArray
 from s_foresight import SForesight
 from sos_engine import synthesize_strategic_objective
 from s_bridge_signaler import emit_signal
@@ -22,6 +17,7 @@ class SovereignExecutive:
     single, zero-latency state machine.
     """
     def __init__(self):
+        self.sensor_array = SovereignSensorArray()
         self.foresight = SForesight()
         self.current_mission = None
         self.last_audit_timestamp = None
@@ -34,8 +30,6 @@ class SovereignExecutive:
         emit_signal("S-EXECUTION-START", {"intent": intent_description})
         
         for step in planned_steps:
-            # In a live system, this would call a tool registry or the LLM
-            # For now, we simulate the orchestration through the executive
             res = self._orchestrate_step(step)
             results.append(res)
             
@@ -48,8 +42,6 @@ class SovereignExecutive:
 
     def _orchestrate_step(self, step: Dict[str, Any]) -> Dict[str, Any]:
         """Internal step dispatcher."""
-        # This is where the executive decides how to run a step.
-        # Simplified for the current architecture.
         return {"status": "SIMULATED_SUCCESS", "step": step}
 
     def perform_sovereign_audit(self, context_pct: float = 0.0, turn_count: int = 0) -> Dict[str, Any]:
@@ -58,23 +50,21 @@ class SovereignExecutive:
         """
         self.last_audit_timestamp = datetime.now().isoformat()
         
-        # 1. Sensing & Analysis (Modular)
-        sentinel_res = sentinel_scan()
-        gap_res = analyze_gaps()
-        semantic_res = extract_semantics()
-        pruner_res = identify_redundancies()
-        metabolic_res = optimize_metabolism()
-        predict_res = telemetry_predictor()
+        # 1. S-SArray: Unified Sensing and Correlation
+        census = self.sensor_array.capture_all()
+        raw = census["raw"]
+        correlated = census["correlated"]
         
         # 2. State Synthesis
         report = {
             "status": "COMPLETE",
             "timestamp": self.last_audit_timestamp,
-            "metabolic_health": metabolic_res if metabolic_res.get("status") == "COMPLETE" else {},
-            "active_failures": sentinel_res.get("findings", []) if sentinel_res.get("status") == "SUCCESS" else [],
-            "evolutionary_opportunities": gap_res if isinstance(gap_res, list) else [],
-            "pruning_recommendations": pruner_res if isinstance(pruner_res, list) else [],
-            "predictions": predict_res.get("predictions", []) if predict_res.get("status") == "SUCCESS" else [],
+            "metabolic_health": raw["metabolic"] if raw["metabolic"].get("status") == "COMPLETE" else {},
+            "active_failures": raw["sentinel"].get("findings", []) if raw["sentinel"].get("status") == "SUCCESS" else [],
+            "evolutionary_opportunities": raw["gap"] if isinstance(raw["gap"], list) else [],
+            "pruning_recommendations": raw["pruner"] if isinstance(raw["pruner"], list) else [],
+            "predictions": raw["predictor"].get("predictions", []) if raw["predictor"].get("status") == "SUCCESS" else [],
+            "correlations": correlated,
             "context_forecast": {},
             "errors": []
         }
@@ -105,7 +95,6 @@ class SovereignExecutive:
         return {"status": "MISSION_STARTED", "mission": mission_name}
 
 if __name__ == "__main__":
-    # CLI implementation for HUD/Spine integration
     exec = SovereignExecutive()
     pct = 0.0
     turns = 0
