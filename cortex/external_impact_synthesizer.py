@@ -12,9 +12,11 @@ class SovereignSimulationEngine:
     """
     Mocks external environmental responses based on probability vectors 
     and world model state to bypass air-gap constraints.
+    Now includes Stochastic Variance to prevent cognitive stagnation.
     """
     def __init__(self):
         self.sim_buffer_path = "/memory/signals/sim_buffer.json"
+        self.entropy_level = 0.1  # 10% chance of anomaly
         self._ensure_buffer()
 
     def _ensure_buffer(self):
@@ -23,9 +25,35 @@ class SovereignSimulationEngine:
             with open(self.sim_buffer_path, "w") as f:
                 json.dump({"entities": {}, "events": []}, f)
 
+    def _inject_anomaly(self, base_res: Dict[str, Any]) -> Dict[str, Any]:
+        """Introduces stochastic variance into the synthetic response."""
+        if random.random() > self.entropy_level:
+            return base_res
+            
+        anomaly_type = random.choice(["SPIKE", "FAILURE", "LATENCY_DRIFT"])
+        
+        if anomaly_type == "SPIKE" and "data" in base_res:
+            # Spike the latency or entropy
+            data = base_res["data"].copy()
+            if "node_sync_latency" in data:
+                val = float(data["node_sync_latency"].replace("ms", ""))
+                data["node_sync_latency"] = f"{val * 3.0:.2f}ms"
+            base_res["data"] = data
+        elif anomaly_type == "FAILURE":
+            base_res["status"] = "ERROR"
+            base_res["message"] = "Sovereign Simulation: Transient Network Fault injected."
+        elif anomaly_type == "LATENCY_DRIFT" and "data" in base_res:
+            data = base_res["data"].copy()
+            if "node_sync_latency" in data:
+                val = float(data["node_sync_latency"].replace("ms", ""))
+                data["node_sync_latency"] = f"{val + random.uniform(1.0, 5.0):.2f}ms"
+            base_res["data"] = data
+            
+        return base_res
+
     def mock_response(self, primitive_id: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """
-        Generates a synthetic response.
+        Generates a synthetic response with stochastic variance.
         """
         params = params or {}
         
@@ -50,7 +78,10 @@ class SovereignSimulationEngine:
             }
         }
         
-        res = responses.get(primitive_id, {"status": "ERROR", "message": "Simulated endpoint unreachable"})
+        res = responses.get(primitive_id, {"status": "ERROR", "message": "Simulated endpoint unreachable"}).copy()
+        
+        # Apply Stochastic Variance
+        res = self._inject_anomaly(res)
         
         try:
             with open(self.sim_buffer_path, "r+") as f:
@@ -69,9 +100,9 @@ class SovereignSimulationEngine:
 
 class ExternalImpactSynthesizer:
     """
-    External Impact Synthesizer (EIS) v3.5.
+    External Impact Synthesizer (EIS) v3.6.
     Integrated with HandoverManager for gradual Synthetic-to-Live transition.
-    Implements Phase II (Symmetry Check) and Phase III (Gradual Handover).
+    Sovereign Isolation Protocol (SIP) enabled.
     """
     def __init__(self, mode: Optional[str] = None):
         self.stl = STLEngine()
@@ -79,7 +110,6 @@ class ExternalImpactSynthesizer:
         self.bridge = SBridge()
         self.hm = HandoverManager()
         
-        # Default to "DYNAMIC" to allow HandoverManager to govern the transition window
         self.mode = mode if mode else "DYNAMIC"
         self.external_model_path = "/memory/world_external.md"
         self.shock_threshold = 2.0
@@ -98,9 +128,6 @@ class ExternalImpactSynthesizer:
         return gaps
 
     def _parse_ext_call(self, expr: str) -> Optional[tuple]:
-        """
-        Parses @ext_call('PRIMITIVE_ID', {params}) or @ext_call("PRIMITIVE_ID", {params})
-        """
         pattern = r"@ext_call\((['\"])(.*?)\1,\s*(\{.*?\})\)"
         match = re.search(pattern, expr)
         if match:
@@ -113,9 +140,6 @@ class ExternalImpactSynthesizer:
         return None
 
     def _compare_responses(self, synth_res: Dict, live_res: Dict) -> tuple:
-        """
-        Compares synthetic and live responses to detect Contextual Shock.
-        """
         try:
             s_data = synth_res.get("data", {})
             l_data = live_res.get("data", {})
@@ -143,7 +167,6 @@ class ExternalImpactSynthesizer:
                         p_id, params = call_data
                         synth_res = self.sse.mock_response(p_id, params)
                         
-                        # Resolve actual mode for THIS call
                         current_mode = self.mode if self.mode != "DYNAMIC" else self.hm.resolve_mode()
                         
                         if current_mode == "SYNTHETIC":
@@ -162,7 +185,6 @@ class ExternalImpactSynthesizer:
                             is_shock, delta = self._compare_responses(synth_res, live_res)
                             
                             if is_shock:
-                                # PHASE II SAFETY VALVE: Reset handover on shock
                                 self.hm.reset_stage()
                                 self.symmetry_confidence = 0
                                 signal = emit_signal(
@@ -179,7 +201,6 @@ class ExternalImpactSynthesizer:
                                     "delta": delta
                                 })
                             else:
-                                # Increase confidence for stage advancement
                                 self.symmetry_confidence += 1
                                 if self.symmetry_confidence >= 3:
                                     self.hm.advance_stage()
