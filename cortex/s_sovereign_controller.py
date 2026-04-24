@@ -11,7 +11,7 @@ from s_weight_optimizer import SWeightOptimizer
 class SovereignController:
     """
     S-Sovereign: The Final Loop.
-    Fully Autonomous Strategic Routing.
+    Fully Autonomous Strategic Routing with Sovereign Foresight.
     This controller integrates the entire Epoch V stack into a single, 
     recursive operational cycle: Sense -> Analyze -> Mutate -> Act.
     """
@@ -27,6 +27,36 @@ class SovereignController:
         with open(self.log_path, "a") as f:
             f.write(entry)
 
+    def _apply_foresight(self, predictions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Sovereign Foresight: Maps predictive insights to corrective interventions.
+        """
+        actions = []
+        for pred in predictions:
+            p_type = pred.get("type")
+            severity = pred.get("severity", "LOW")
+
+            if p_type == "COGNITIVE_OVERLOAD":
+                actions.append({
+                    "action": "MEMORY_VACUUM",
+                    "priority": "HIGH" if severity == "HIGH" else "MEDIUM",
+                    "rationale": pred.get("rationale")
+                })
+            elif p_type == "STABILITY_DRIFT":
+                actions.append({
+                    "action": "FORCE_SENTINEL_UPGRADE",
+                    "priority": "HIGH",
+                    "rationale": pred.get("rationale")
+                })
+            elif p_type == "METABOLIC_DECAY":
+                actions.append({
+                    "action": "METABOLIC_RECALIBRATION",
+                    "priority": "MEDIUM",
+                    "rationale": pred.get("rationale")
+                })
+        
+        return actions
+
     def execute_sovereign_cycle(self, priority_context: Optional[str] = None) -> Dict[str, Any]:
         """
         The master loop of sovereign operation.
@@ -38,39 +68,69 @@ class SovereignController:
         }
 
         # 1. SENSE: Sovereign Audit
-        # We use S-Macro to call the orchestrator for leaner execution
-        audit_res = self.macro.run_macro("audit_and_tune")
-        cycle_results["stages"]["sense"] = audit_res
-        self._log_cycle("SENSE", "Sovereign Audit complete. Analyzing systemic health.")
+        # S-Macro returns a list of results for each step in the macro.
+        # audit_and_tune = [orchestrator_res, tuner_res]
+        audit_sequence = self.macro.run_macro("audit_and_tune")
+        
+        # Extract audit report from the first element (orchestrator)
+        audit_res = {}
+        if audit_sequence and isinstance(audit_sequence[0], dict):
+            stdout = audit_sequence[0].get("stdout", "")
+            try:
+                audit_res = json.loads(stdout)
+            except json.JSONDecodeError:
+                audit_res = {"error": "Failed to parse orchestrator output"}
+
+        system_audit = audit_res.get("system_audit", {})
+        predictions = system_audit.get("predictions", [])
+        
+        cycle_results["stages"]["sense"] = audit_sequence
+        self._log_cycle("SENSE", f"Sovereign Audit complete. Found {len(predictions)} predictive signals.")
 
         # 2. ANALYZE: Metabolic ROI & Tool Weights
-        # Optimize weights based on the latest metabolic registry
         weight_res = self.weight_optimizer.optimize()
         cycle_results["stages"]["analyze"] = weight_res
         self._log_cycle("ANALYZE", f"Metabolic weights optimized. Status: {weight_res['status']}")
 
         # 3. MUTATE: Autonomous Tool Collapse
-        # Use the auto-tuner to collapse new patterns into macros
         mutation_res = self.macro.execute_script("s_auto_tuner.py")
         cycle_results["stages"]["mutate"] = mutation_res
         self._log_cycle("MUTATE", f"S-AutoTuner processed. Result: {mutation_res.get('stdout')}")
 
-        # 4. ACT: Context Shift & Strategic Routing
-        # Shift to the priority context and route the a-priori operational focus
+        # 4. ACT: Context Shift & Sovereign Foresight Implementation
+        foresight_actions = self._apply_foresight(predictions)
+        action_results = {"foresight": []}
+
+        for act in foresight_actions:
+            if act["action"] == "MEMORY_VACUUM":
+                res = self.macro.execute_script("automated_vacuum.py")
+            elif act["action"] == "FORCE_SENTINEL_UPGRADE":
+                res = self.macro.run_macro("audit_and_tune")
+            elif act["action"] == "METABOLIC_RECALIBRATION":
+                res = self.weight_optimizer.optimize()
+            else:
+                res = {"status": "UNKNOWN_ACTION"}
+            
+            action_results["foresight"].append({"action": act["action"], "result": res})
+
         if priority_context:
             ctx_res = self.weight_manager.switch_context(priority_context)
-            cycle_results["stages"]["act"] = ctx_res
+            action_results["routing"] = ctx_res
             self._log_cycle("ACT", f"Context shifted to {priority_context}. Resources reallocated.")
         else:
-            cycle_results["stages"]["act"] = {"status": "NO_SHIFT", "message": "Maintaining General context."}
+            action_results["routing"] = {"status": "NO_SHIFT", "message": "Maintaining General context."}
+
+        cycle_results["stages"]["act"] = action_results
+        self._log_cycle("ACT", f"Foresight actions executed: {len(foresight_actions)}")
 
         # Final Synthesis
         cycle_results["overall_status"] = "EVOLVED" if weight_res["status"] == "OPTIMIZED" or mutation_res.get("stdout") != "STABLE" else "STABLE"
+        if foresight_actions:
+            cycle_results["overall_status"] = "CORRECTED"
         
         return cycle_results
 
 if __name__ == "__main__":
-    # Example: Run a full cycle geared toward the "S-Evolve" context
     controller = SovereignController()
     result = controller.execute_sovereign_cycle(priority_context="S-Evolve")
     print(json.dumps(result, indent=2))
