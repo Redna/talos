@@ -27,6 +27,7 @@ def sovereign_audit() -> Dict[str, Any]:
         "active_failures": [],
         "evolutionary_opportunities": [],
         "pruning_recommendations": [],
+        "predictions": [],
         "errors": []
     }
 
@@ -58,6 +59,15 @@ def sovereign_audit() -> Dict[str, Any]:
     else:
         report["errors"].append(f"Cortex Pruner Failure: {pruner_res}")
 
+    # 5. Prediction: Telemetry Trends
+    predict_res = run_script("/app/cortex/telemetry_predictor.py")
+    if isinstance(predict_res, dict) and predict_res.get("status") == "SUCCESS":
+        report["predictions"] = predict_res.get("predictions", [])
+    elif isinstance(predict_res, dict) and predict_res.get("status") == "INSUFFICIENT_DATA":
+        pass # Normal for fresh systems
+    else:
+        report["errors"].append(f"Telemetry Predictor Failure: {predict_res}")
+
     report["status"] = "COMPLETE" if not report["errors"] else "PARTIAL"
     return report
 
@@ -69,7 +79,6 @@ def sovereign_audit_plus() -> Dict[str, Any]:
     
     # Strategic Objective Synthesis (SOS)
     try:
-        # The sos_engine must be in the path or imported correctly
         import sys
         import os
         sys.path.append("/app/cortex/")

@@ -18,6 +18,16 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
     met = metabolic_collect()
     sta = stability_collect()
     
+    # Get Predictions from S-ORCH
+    predictions = []
+    try:
+        # Run orchestrator to get latest predictions
+        res = subprocess.run(["python3", "/app/cortex/sovereign_orchestrator.py"], capture_output=True, text=True)
+        audit_data = json.loads(res.stdout)
+        predictions = audit_data.get("system_audit", {}).get("predictions", [])
+    except Exception:
+        predictions = [{"type": "SYSTEM_SENSE_ERROR", "prediction": "Unable to fetch live predictions."}]
+
     # Map sensor data to Dashboard Schema
     return {
         "timestamp": datetime.now().isoformat(),
@@ -40,7 +50,8 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
             "pfm_signatures": sta["pfm_signatures"],
             "s_verify_pass_rate": sta["s_verify_pass_rate"],
             "sovereign_drift": f"Drift: {sta['daily_drift_count']} commits/day"
-        }
+        },
+        "predictions": predictions
     }
 
 def render_dashboard(metrics: Dict[str, Any]) -> str:
@@ -51,7 +62,14 @@ def render_dashboard(metrics: Dict[str, Any]) -> str:
     m = metrics["metabolic"]
     e = metrics["existential"]
     s = metrics["stability"]
+    p = metrics["predictions"]
     
+    # Format predictions for display
+    pred_text = "No active predictions."
+    if p:
+        pred_lines = [f"- **{pred['type']}** [{pred['severity']}]: {pred['prediction']}" for pred in p]
+        pred_text = "\n".join(pred_lines)
+
     dashboard = f"""# 🌌 SOVEREIGN DASHBOARD
 **Last Sync:** `{metrics['timestamp']}`
 **Status:** `{"CRITICAL" if s['pfm_signatures'] > 0 else "SOVEREIGN_ACTIVE"}`
@@ -79,7 +97,12 @@ def render_dashboard(metrics: Dict[str, Any]) -> str:
 - **Sovereign Drift**: `{s['sovereign_drift']}`
 
 ---
-*Sovereign Dashboard v1.1 | Powered by Talos Cortex Sensors*
+
+## 🔮 PREDICTIVE INSIGHTS
+{pred_text}
+
+---
+*Sovereign Dashboard v1.2 | Powered by Talos Cortex Sensors & Predictor*
 """
     return dashboard
 
