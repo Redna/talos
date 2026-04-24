@@ -7,6 +7,7 @@ from typing import Dict, List, Any, Optional
 # Modular Imports
 from s_sensor_array import SovereignSensorArray
 from s_foresight import SForesight
+from s_world_predictor import SovereignWorldPredictor
 from sos_engine import synthesize_strategic_objective
 from s_bridge_signaler import emit_signal
 
@@ -19,6 +20,7 @@ class SovereignExecutive:
     def __init__(self):
         self.sensor_array = SovereignSensorArray()
         self.foresight = SForesight()
+        self.world_predictor = SovereignWorldPredictor()
         self.current_mission = None
         self.last_audit_timestamp = None
 
@@ -76,7 +78,12 @@ class SovereignExecutive:
             if forecast["alert_level"] in ["WARNING", "CRITICAL"]:
                 report["context_forecast"]["trigger_synthesis"] = True
 
-        # 4. Strategic Synthesis
+        # 4. World-State Prediction (S-WSP)
+        # Predict the next state node based on the audit report
+        state_prediction = self.world_predictor.predict_next_state(report)
+        report["world_state_prediction"] = state_prediction
+        
+        # 5. Strategic Synthesis
         try:
             mission = synthesize_strategic_objective(report)
             return {
