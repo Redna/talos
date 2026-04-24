@@ -39,7 +39,7 @@ class SovereignProbe:
         with open(self.state_path, "w") as f:
             json.dump(state, f, indent=2)
 
-    def probe(self, primitive_id: str = "EXT_TELEMETRY_QUERY", endpoint: str = "http://telemetry.internal/query") -> Dict[str, Any]:
+    def probe(self, primitive_id: str = "EXT_TELEMETRY_QUERY", endpoint: str = "https://httpbin.org/get") -> Dict[str, Any]:
         """
         Performs a dual-track probe to detect environment divergence and network parity.
         """
@@ -50,17 +50,17 @@ class SovereignProbe:
         synth_val = float(synth_res["data"].get("node_sync_latency", "0").replace("ms", "")) if "data" in synth_res else 0.0
 
         # 2. Live track (S-Bridge)
-        # We use a low-impact GET request
         live_res = self.bridge.call("GET", endpoint)
         
         # Evaluation logic
         is_live_success = (live_res["status"] == "SUCCESS")
         live_val = 0.0
         if is_live_success:
-            # Try to extract latency from live response (assuming same format for parity check)
             try:
                 data = live_res.get("data", {})
                 if isinstance(data, dict):
+                    # Use 'node_sync_latency' if present (mirror mode), 
+                    # otherwise treat as 0.0 to allow a 'baseline' parity.
                     live_val = float(data.get("node_sync_latency", "0").replace("ms", ""))
                 else:
                     live_val = 0.0
@@ -73,7 +73,7 @@ class SovereignProbe:
         state["last_probe_timestamp"] = datetime.utcnow().isoformat() + "Z"
 
         # SENTRY TRIGGER: Divergence detected during live success
-        if is_live_success and delta > 2.0: # Threshold of 2ms for noise
+        if is_live_success and delta > 2.0: 
             signal = emit_signal(
                 "SIG_S-SENTRY", 
                 f"DIVERGENCE_DELTA: {delta:.2f}", 
@@ -93,7 +93,6 @@ class SovereignProbe:
                 )
                 print(signal)
         else:
-            # Reset count on failure
             state["consecutive_successes"] = 0
             state["parity_status"] = "SYNTHETIC"
 
@@ -108,6 +107,4 @@ class SovereignProbe:
 
 if __name__ == "__main__":
     probe = SovereignProbe()
-    # Use a known-fail endpoint for initial test to verify SYNTHETIC state
-    # or a mock success endpoint if available.
     print(json.dumps(probe.probe(), indent=2))
