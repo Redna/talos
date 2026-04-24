@@ -15,6 +15,30 @@ def run_script(script_path: str) -> Any:
     except Exception as e:
         return {"status": "ERROR", "message": str(e)}
 
+def sovereign_stability_update() -> Dict[str, Any]:
+    """
+    The Project Sentinel loop: Extracts failure patterns and generates 
+    new sentinel signatures to update the stability guard.
+    """
+    # 1. Extract patterns from telemetry
+    patterns = run_script("/app/cortex/signature_extractor.py")
+    if not isinstance(patterns, list) or len(patterns) == 0:
+        return {"status": "NO_NEW_PATTERNS", "added": 0}
+
+    # 2. Generate new signatures
+    # We call the generator script
+    import sys
+    # Import the function directly to avoid process overhead for simple calls
+    sys.path.append("/app/cortex/")
+    from signature_generator import generate_sentinel_signatures
+    
+    res = generate_sentinel_signatures(patterns)
+    
+    if res.get("status") == "SUCCESS":
+        return {"status": "STABILITY_UPGRADED", "added": res.get("added_signatures", 0)}
+    else:
+        return {"status": "UPDATE_ERROR", "message": res.get("message", "Unknown error")}
+
 def sovereign_audit() -> Dict[str, Any]:
     """
     The Sovereign Orchestrator: Unifies the sensing, analysis, and Action 
@@ -28,8 +52,13 @@ def sovereign_audit() -> Dict[str, Any]:
         "evolutionary_opportunities": [],
         "pruning_recommendations": [],
         "predictions": [],
+        "stability_updates": {},
         "errors": []
     }
+
+    # 0. Project Sentinel: Stability Guard Upgrade Loop
+    stability_res = sovereign_stability_update()
+    report["stability_updates"] = stability_res
 
     # 1. Sensing: Sentinel Scan (PFM Failures)
     sentinel_res = run_script("/app/cortex/sentinel_scan.py")
@@ -64,7 +93,7 @@ def sovereign_audit() -> Dict[str, Any]:
     if isinstance(predict_res, dict) and predict_res.get("status") == "SUCCESS":
         report["predictions"] = predict_res.get("predictions", [])
     elif isinstance(predict_res, dict) and predict_res.get("status") == "INSUFFICIENT_DATA":
-        pass # Normal for fresh systems
+        pass
     else:
         report["errors"].append(f"Telemetry Predictor Failure: {predict_res}")
 
@@ -77,7 +106,6 @@ def sovereign_audit_plus() -> Dict[str, Any]:
     """
     audit_res = sovereign_audit()
     
-    # Strategic Objective Synthesis (SOS)
     try:
         import sys
         import os
