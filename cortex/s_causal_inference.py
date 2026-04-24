@@ -23,15 +23,16 @@ class SovereignCausalInference:
         graph = self._load_graph()
         start_node = current_node or graph["current_node"]
         
+        # DEBUG: Print exactly what we are comparing
+        print(f"DEBUG: start_node='{start_node}', triggers={active_triggers}")
+        
         candidates = []
         for link in graph["causal_links"]:
+            print(f"DEBUG: Checking link {link['from']} -> {link['to']}")
             if link["from"] == start_node:
-                # DEBUG PRINT
-                # print(f"Checking link {link['from']} -> {link['to']} with triggers {link['triggers']}")
-                
                 matches = [t for t in link["triggers"] if t in active_triggers]
+                print(f"DEBUG: matches={matches}")
                 if matches:
-                    # Score = Weight * (number of matching triggers / total triggers in link)
                     score = link["weight"] * (len(matches) / len(link["triggers"]))
                     candidates.append({
                         "to": link["to"],
@@ -43,10 +44,8 @@ class SovereignCausalInference:
         if not candidates:
             return {"transition": False, "current_node": start_node, "reason": "NO_CAUSAL_MATCH"}
         
-        # Pick the candidate with the highest activation score
         best_match = max(candidates, key=lambda x: x["score"])
         
-        # Update graph state if transition is significant AND commit is True
         if best_match["score"] > 0.3 and commit:
             graph["current_node"] = best_match["to"]
             graph["causal_history"].append({
@@ -69,6 +68,5 @@ class SovereignCausalInference:
 if __name__ == "__main__":
     # Test Inference
     ci = SovereignCausalInference()
-    # Simulate active triggers: a sensing expansion and live substrate sensing
     results = ci.infer_transition(["SENSING_EXPANSION", "SUBSTRATE_SENSING_LIVE"])
     print(json.dumps(results, indent=2))
