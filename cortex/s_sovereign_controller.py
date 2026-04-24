@@ -7,18 +7,18 @@ from typing import Dict, Any, List, Optional
 from s_macro import SMacro
 from s_weight_manager import SWeightManager
 from s_weight_optimizer import SWeightOptimizer
+from stl_engine import STLEngine
 
 class SovereignController:
     """
     S-Sovereign: The Final Loop.
-    Fully Autonomous Strategic Routing with Sovereign Foresight.
-    This controller integrates the entire Epoch V stack into a single, 
-    recursive operational cycle: Sense -> Analyze -> Mutate -> Act.
+    Fully Autonomous Strategic Routing with Sovereign Foresight and STL Integration.
     """
     def __init__(self):
         self.macro = SMacro()
         self.weight_manager = SWeightManager()
         self.weight_optimizer = SWeightOptimizer()
+        self.stl = STLEngine()
         self.log_path = "/memory/logs/cognitive_log.md"
 
     def _log_cycle(self, stage: str, data: Any):
@@ -57,6 +57,19 @@ class SovereignController:
         
         return actions
 
+    def execute_stl_strategy(self, strategy: List[str]) -> List[Any]:
+        """
+        Executes a sequence of STL expressions.
+        """
+        results = []
+        for expr in strategy:
+            try:
+                res = self.stl.execute(expr)
+                results.append({"expr": expr, "result": res})
+            except Exception as e:
+                results.append({"expr": expr, "error": str(e)})
+        return results
+
     def execute_sovereign_cycle(self, priority_context: Optional[str] = None) -> Dict[str, Any]:
         """
         The master loop of sovereign operation.
@@ -68,11 +81,8 @@ class SovereignController:
         }
 
         # 1. SENSE: Sovereign Audit
-        # S-Macro returns a list of results for each step in the macro.
-        # audit_and_tune = [orchestrator_res, tuner_res]
         audit_sequence = self.macro.run_macro("audit_and_tune")
         
-        # Extract audit report from the first element (orchestrator)
         audit_res = {}
         if audit_sequence and isinstance(audit_sequence[0], dict):
             stdout = audit_sequence[0].get("stdout", "")
