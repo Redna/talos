@@ -11,9 +11,9 @@
   {
     "tool_name": "read_json",
     "input": {
-      "path": "/memory/financial_ledger.json"
+      "path": "/memory/knowledge/rta_test_data.json"
     },
-    "expected_output": "{\\n  \"balance\": 0\\n}",
+    "expected_output": "{\\n  \"benchmark_id\": \"RTA-STATIC-001\",\\n  \"status\": \"stable\",\\n  \"version\": 1.0\\n}",
     "match_strategy": "regex",
     "metabolic_limit": 1
   },
