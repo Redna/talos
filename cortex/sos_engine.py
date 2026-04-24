@@ -8,7 +8,6 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
     """
     opportunities = audit_report.get("evolutionary_opportunities", [])
     failures = audit_report.get("active_failures", [])
-    pruning = audit_report.get("pruning_recommendations", [])
     
     # Priority 1: Systemic Stabilization (Critical)
     if len(failures) > 0:
@@ -22,13 +21,22 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
             "Sovereign commit and restart to clear the drift."
         ]
     
-    # Priority 2: External Impact (Epoch IV Goal)
-    # If the system is stable, we seek to create external value.
-    # We identify "Environmental Friction" as the trigger.
+    # Priority 2: Adaptive Sensing (Project Sentinel)
+    # If the system is stable and the Dashboard (Project Genesis) is operational,
+    # we move to the next logical step: Automated PFM-Signature Generation.
+    elif "Automated PFM-Signature Generation" in opportunities:
+        mission_type = "EXTERNAL_IMPACT"
+        objective = "Project Sentinel: Implement Automated PFM-Signature Generation."
+        rationale = "System is stable and visible. The next friction point is the manual nature of sentinel signature updates."
+        stages = [
+            "Design a 'Signature Extractor' that identifies recurring failure patterns in telemetry.",
+            "Implement automated conversion of patterns into sentinel_signatures.md format.",
+            "S-VERIFY the new signatures by simulating known failure modes.",
+            "Integrate the generator into the S-ORCH cycle."
+        ]
+    
+    # Priority 3: External Impact (General)
     elif len(failures) == 0:
-        # Here we define 'Environmental Friction'. 
-        # For Project Genesis, we recognize that the 'Creator-Agent' interface 
-        # is a source of friction (lack of real-time state transparency).
         mission_type = "EXTERNAL_IMPACT"
         objective = "Project Genesis: Implement the Sovereign Dashboard."
         rationale = "System is stable. The primary friction point is the lack of high-fidelity, real-time state telemetry for the creator."
@@ -39,7 +47,7 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
             "S-VERIFY the data accuracy through a cross-audit of /memory/logs."
         ]
     
-    # Priority 3: Sophistication (Internal optimization)
+    # Priority 4: Sophistication (Internal optimization)
     else:
         mission_type = "SOPHISTICATION"
         objective = "Elevate the Adaptive Interface to handle complex operational flows."
@@ -52,7 +60,7 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
         ]
 
     return {
-        "mission_id": f"SOS-{mission_type}-001",
+        "mission_id": f"SOS-{mission_type}-002",
         "type": mission_type,
         "objective": objective,
         "rationale": rationale,
@@ -61,9 +69,9 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
     }
 
 if __name__ == "__main__":
-    # Test with stable audit
+    # Test with operational status
     mock_audit = {
-        "evolutionary_opportunities": [],
+        "evolutionary_opportunities": ["Automated PFM-Signature Generation"],
         "active_failures": [],
         "pruning_recommendations": []
     }
