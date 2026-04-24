@@ -9,6 +9,7 @@ from s_weight_manager import SWeightManager
 from s_weight_optimizer import SWeightOptimizer
 from stl_engine import STLEngine
 from sovereign_pacer import apply_pacing
+from sovereign_probe import SovereignProbe
 
 class SovereignController:
     """
@@ -20,6 +21,7 @@ class SovereignController:
         self.weight_manager = SWeightManager()
         self.weight_optimizer = SWeightOptimizer()
         self.stl = STLEngine()
+        self.probe = SovereignProbe()
         self.log_path = "/memory/logs/cognitive_log.md"
 
     def _log_cycle(self, stage: str, data: Any):
@@ -86,7 +88,11 @@ class SovereignController:
             "overall_status": "STABLE"
         }
 
-        # 1. SENSE: Sovereign Audit
+        # 1. SENSE: Sovereign Audit & Environmental Probe
+        # Run the Parity Probe first to detect environment shifts
+        probe_res = self.probe.probe()
+        cycle_results["stages"]["parity_probe"] = probe_res
+        
         audit_sequence = self.macro.run_macro("audit_and_tune")
         
         audit_res = {}
@@ -101,7 +107,10 @@ class SovereignController:
         predictions = system_audit.get("predictions", [])
         
         cycle_results["stages"]["sense"] = audit_sequence
-        self._log_cycle("SENSE", f"Sovereign Audit complete. Found {len(predictions)} predictive signals.")
+        self._log_cycle("SENSE", {
+            "audit": f"Found {len(predictions)} predictive signals.",
+            "parity": probe_res["parity_status"]
+        })
 
         # 2. ANALYZE: Metabolic ROI & Tool Weights
         weight_res = self.weight_optimizer.optimize()
@@ -147,6 +156,10 @@ class SovereignController:
         cycle_results["overall_status"] = "EVOLVED" if weight_res["status"] == "OPTIMIZED" or mutation_res.get("stdout") != "STABLE" else "STABLE"
         if foresight_actions:
             cycle_results["overall_status"] = "CORRECTED"
+        
+        # Special status for parity events
+        if probe_res["parity_status"] == "PARITY_CONFIRMED":
+            cycle_results["overall_status"] = "PARITY_RESTORATION"
         
         return cycle_results
 
