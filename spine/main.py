@@ -42,6 +42,11 @@ async def main():
     def on_telegram_message(msg):
         text = msg.get("text", "") if isinstance(msg, dict) else str(msg)
         stream_mgr.queue_system_notice(f"[TELEGRAM | {text}]")
+        # Auto-register chat_id from first incoming message if not set
+        if isinstance(msg, dict):
+            chat_id = msg.get("chat", {}).get("id")
+            if chat_id and cfg.telegram_chat_id in ("", "0"):
+                cfg.telegram_chat_id = str(chat_id)
         wake_path = Path(cfg.spine_dir) / ".wake"
         wake_path.touch()
 

@@ -8,7 +8,7 @@ from spine.config import SpineConfig
 
 
 def send_telegram_message(cfg: SpineConfig, text: str):
-    if not cfg.telegram_bot_token or cfg.telegram_chat_id in ("", "0"):
+    if not cfg.telegram_bot_token:
         return
     url = f"https://api.telegram.org/bot{cfg.telegram_bot_token}/sendMessage"
     payload = json.dumps(

@@ -82,7 +82,15 @@ class Supervisor:
         self.events.emit("supervisor.restart_requested", {"reason": reason})
 
     def is_paused(self) -> bool:
-        return (Path(self.cfg.spine_dir) / ".paused").exists()
+        spine_dir = Path(self.cfg.spine_dir)
+        wake_path = spine_dir / ".wake"
+        if wake_path.exists():
+            wake_path.unlink(missing_ok=True)
+            paused_path = spine_dir / ".paused"
+            if paused_path.exists():
+                paused_path.unlink(missing_ok=True)
+            return False
+        return (spine_dir / ".paused").exists()
 
     def _record_good_commit(self):
         try:
