@@ -52,8 +52,10 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
 
     predictions = []
     try:
-        res = subprocess.run(["python3", "/app/cortex/sovereign_orchestrator.py"], capture_output=True, text=True)
+        # Use s_executive.py instead of sovereign_orchestrator.py
+        res = subprocess.run(["python3", "/app/cortex/s_executive.py", "--audit", str(current_context_pct), "0"], capture_output=True, text=True)
         audit_data = json.loads(res.stdout)
+        # The predictions are now found in system_audit's predictions field
         predictions = audit_data.get("system_audit", {}).get("predictions", [])
     except Exception:
         predictions = [{"type": "SYSTEM_SENSE_ERROR", "severity": "MEDIUM", "prediction": "Unable to fetch live predictions."}]
