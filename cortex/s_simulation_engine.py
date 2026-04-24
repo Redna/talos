@@ -28,7 +28,8 @@ class SovereignSimulationEngine:
         graph = self.ci_engine._load_graph()
         current_node = graph["current_node"]
         simulated_trajectory = []
-        cumulative_stability = graph["nodes"].get(current_node, {}).get("stability", 1.0)
+        # Robust check for the nodes key and node stability
+        cumulative_stability = graph.get("nodes", {}).get(current_node, {}).get("stability", 1.0)
         
         active_triggers = []
         
