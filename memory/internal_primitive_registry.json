@@ -1,0 +1,12 @@
+{
+  "S_COMPOSITE_OP": {
+    "command": "python3 /app/cortex/s_composite_op.py",
+    "description": "Collapses high-frequency tool sequences into atomic operations to reduce metabolic noise.",
+    "params": ["op_type", "args"]
+  },
+  "S_DISTILL_RESET": {
+    "command": "python3 /app/cortex/s_composite_op.py SOVEREIGN_RESET",
+    "description": "Signal for the Focus-Resolve-Fold cognitive reset cycle.",
+    "params": []
+  }
+}

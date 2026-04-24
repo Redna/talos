@@ -1,0 +1,26 @@
+{
+  "EXT_TELEMETRY_QUERY": {
+    "method": "GET",
+    "url": "https://api.external-monitor.io/v1/telemetry",
+    "description": "Fetch global system/environmental telemetry."
+  },
+  "EXT_KNOWLEDGE_FETCH": {
+    "method": "POST",
+    "url": "https://api.knowledge-bridge.net/search",
+    "payload_template": {
+      "query": "string",
+      "depth": "integer"
+    },
+    "description": "Query external knowledge bases for data."
+  },
+  "EXT_SIGNAL_PUSH": {
+    "method": "POST",
+    "url": "https://api.sentinel-relay.com/heartbeat",
+    "payload_template": {
+      "agent_id": "TALOS",
+      "state": "string",
+      "checksum": "string"
+    },
+    "description": "Send state signatures or heartbeats to an external observer."
+  }
+}

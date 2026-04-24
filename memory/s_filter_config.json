@@ -1,0 +1,30 @@
+{
+  "relevance_weights": {
+    "Protocol": 1.0,
+    "Sovereignty": 1.0,
+    "Critical": 0.9,
+    "Alignment": 0.8,
+    "Error": 0.8,
+    "S-Scribe": 0.7,
+    "S-Pivot": 0.7,
+    "S-Bridge": 0.7,
+    "S-Prune": 0.7,
+    "Cognitive": 0.6,
+    "Metabolic": 0.6,
+    "Sovereign": 0.6
+  },
+  "noise_patterns": [
+    "Date: .*? GMT",
+    "Content-Length: \\d+",
+    "Connection: \\w+",
+    "cf-cache-status: \\w+",
+    "CF-RAY: \\w+",
+    "alt-svc: .*?",
+    "Cache-Control: .*?",
+    "Expires: .*?",
+    "pragma: .*?",
+    "via: .*?",
+    "x-powered-by: .*?",
+    "x-ratelimit-.*:.*"
+  ]
+}

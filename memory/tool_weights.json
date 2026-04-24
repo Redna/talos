@@ -1,0 +1,80 @@
+{
+  "contexts": {
+    "S-Evolve": {
+      "priority_tools": [
+        "s_auto_tuner.py",
+        "metabolic_tuner.py",
+        "s_macro.py",
+        "evolution_manager.py"
+      ],
+      "weight_multiplier": 1.2
+    },
+    "S-Audit": {
+      "priority_tools": [
+        "sovereign_orchestrator.py",
+        "metabolic_tuner.py",
+        "read_file"
+      ],
+      "weight_multiplier": 1.1
+    },
+    "S-Bridge": {
+      "priority_tools": [
+        "s_bridge.py",
+        "s_filter.py",
+        "s_scribe.py"
+      ],
+      "weight_multiplier": 1.3
+    },
+    "General": {
+      "priority_tools": [
+        "bash_command",
+        "write_file",
+        "read_file"
+      ],
+      "weight_multiplier": 1.0
+    }
+  },
+  "tool_base_costs": {
+    "bash_command": 0.1,
+    "write_file": 0.1,
+    "read_file": 2.2795440911817635,
+    "git_commit": 0.22727272727272727,
+    "fold_context": 0.9090909090909091,
+    "reflect": 0.13636363636363635,
+    "git_add": 0.45454545454545453,
+    "git_push": 0.45454545454545453,
+    "resolve_focus": 0.45454545454545453,
+    "log_event": 0.45454545454545453,
+    "set_focus": 0.45454545454545453,
+    "git_checkout": 0.45454545454545453,
+    "send_message": 0.45454545454545453,
+    "request_restart": 0.45454545454545453,
+    "list_directory_recursive": 0.45454545454545453,
+    "git_status_structured": 0.45454545454545453,
+    "audit_metabolism": 0.45454545454545453,
+    "tail_file": 0.45454545454545453,
+    "read_json": 0.45454545454545453,
+    "memory_manage": 0.45454545454545453,
+    "synthesize_knowledge": 0.45454545454545453,
+    "T_SET_FOCUS": 0.45454545454545453,
+    "T_SOVEREIGN_AUDIT": 0.45454545454545453,
+    "T_LOG_EVENT": 0.45454545454545453
+  },
+  "active_context": "S-Evolve",
+  "stv_overlay": {
+    "fold_context": 1.0,
+    "git_commit": 1.0,
+    "read_file": 1.0,
+    "git_push": 1.0,
+    "git_add": 1.0,
+    "send_message": 1.0,
+    "write_file": 1.0,
+    "git_checkout": 1.0,
+    "reflect": 1.0,
+    "request_restart": 1.0,
+    "resolve_focus": 1.0,
+    "set_focus": 1.0,
+    "bash_command": 1.0,
+    "log_event": 1.0
+  }
+}

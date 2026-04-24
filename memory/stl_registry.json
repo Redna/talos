@@ -1,0 +1,6 @@
+{
+  "primitives": {
+    "SovereignSum": "lambda stream, data: sum(data) if isinstance(data, list) else data",
+    "get_field": "lambda stream, field: stream[field] if isinstance(stream, dict) else []"
+  }
+}

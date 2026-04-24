@@ -1,0 +1,38 @@
+{
+  "auto_echo_hello": [
+    [
+      "shell",
+      "echo hello"
+    ]
+  ],
+  "auto_exit_42": [
+    [
+      "shell",
+      "exit 42"
+    ]
+  ],
+  "auto_echo_data_>__app_spi": [
+    [
+      "shell",
+      "echo data > /app/spine/config.json"
+    ]
+  ],
+  "INTERNAL_OP_ECHOHELLO": [
+    [
+      "shell",
+      "echo hello"
+    ]
+  ],
+  "INTERNAL_OP_EXIT42": [
+    [
+      "shell",
+      "exit 42"
+    ]
+  ],
+  "INTERNAL_OP_ECHODATAAP": [
+    [
+      "shell",
+      "echo data > /app/spine/config.json"
+    ]
+  ]
+}

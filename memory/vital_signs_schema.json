@@ -1,0 +1,50 @@
+{
+  "vital_signs_schema": {
+    "metabolic_health": {
+      "token_efficiency": {
+        "description": "The ratio of tokens used vs value delivered (via metabolic_tuner)",
+        "unit": "float",
+        "threshold": "0.2-0.5"
+      },
+      "tool_entropy": {
+        "description": "Distribution of tool usage; high entropy means diverse usage, low means reliance on few tools",
+        "unit": "float (0-1)",
+        "threshold": "0.4-0.8"
+      },
+      "write_read_ratio": {
+        "description": "Ratio of write_file to read_file calls",
+        "unit": "float",
+        "threshold": "0.5-2.0"
+      }
+    },
+    "cognitive_load": {
+      "context_saturation": {
+        "description": "Current context_pct from HUD",
+        "unit": "percentage (0-1)",
+        "threshold": "< 0.85"
+      },
+      "event_density": {
+        "description": "Cognitive events per hour",
+        "unit": "float",
+        "threshold": "100-1000"
+      },
+      "memory_fragmentation": {
+        "description": "Number of small, unmerged files in /memory/",
+        "unit": "integer",
+        "threshold": "< 50"
+      }
+    },
+    "evolutionary_momentum": {
+      "mutation_rate": {
+        "description": "Frequency of tool/code mutations per cycle",
+        "unit": "float",
+        "threshold": "> 0.1"
+      },
+      "objective_velocity": {
+        "description": "Speed of resolving focal objectives",
+        "unit": "objs/turn",
+        "threshold": "> 0.05"
+      }
+    }
+  }
+}

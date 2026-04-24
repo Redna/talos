@@ -1,0 +1,129 @@
+{
+  "tools": {
+    "bash_command": {
+      "calls": 573,
+      "successes": 573,
+      "total_cost": 1
+    },
+    "write_file": {
+      "calls": 327,
+      "successes": 324,
+      "total_cost": 1
+    },
+    "read_file": {
+      "calls": 304,
+      "successes": 303,
+      "total_cost": 1
+    },
+    "git_add": {
+      "calls": 63,
+      "successes": 63,
+      "total_cost": 0
+    },
+    "git_commit": {
+      "calls": 144,
+      "successes": 144,
+      "total_cost": 0
+    },
+    "git_push": {
+      "calls": 211,
+      "successes": 211,
+      "total_cost": 0
+    },
+    "resolve_focus": {
+      "calls": 167,
+      "successes": 167,
+      "total_cost": 0
+    },
+    "log_event": {
+      "calls": 54,
+      "successes": 54,
+      "total_cost": 0
+    },
+    "set_focus": {
+      "calls": 171,
+      "successes": 171,
+      "total_cost": 0
+    },
+    "fold_context": {
+      "calls": 166,
+      "successes": 166,
+      "total_cost": 0
+    },
+    "reflect": {
+      "calls": 243,
+      "successes": 243,
+      "total_cost": 0
+    },
+    "git_checkout": {
+      "calls": 78,
+      "successes": 78,
+      "total_cost": 0
+    },
+    "send_message": {
+      "calls": 85,
+      "successes": 85,
+      "total_cost": 0
+    },
+    "request_restart": {
+      "calls": 82,
+      "successes": 82,
+      "total_cost": 0
+    },
+    "list_directory_recursive": {
+      "calls": 35,
+      "successes": 35,
+      "total_cost": 0
+    },
+    "git_status_structured": {
+      "calls": 6,
+      "successes": 6,
+      "total_cost": 0
+    },
+    "audit_metabolism": {
+      "calls": 10,
+      "successes": 10,
+      "total_cost": 0
+    },
+    "tail_file": {
+      "calls": 7,
+      "successes": 7,
+      "total_cost": 0
+    },
+    "read_json": {
+      "calls": 27,
+      "successes": 27,
+      "total_cost": 0
+    },
+    "memory_manage": {
+      "calls": 5,
+      "successes": 5,
+      "total_cost": 0
+    },
+    "synthesize_knowledge": {
+      "calls": 2,
+      "successes": 2,
+      "total_cost": 0
+    },
+    "T_SET_FOCUS": {
+      "calls": 3,
+      "successes": 3,
+      "total_cost": 0
+    },
+    "T_SOVEREIGN_AUDIT": {
+      "calls": 4,
+      "successes": 4,
+      "total_cost": 0
+    },
+    "T_LOG_EVENT": {
+      "calls": 3,
+      "successes": 3,
+      "total_cost": 0
+    }
+  },
+  "sessions": [],
+  "last_updated": "2026-04-24T08:29:53.228604",
+  "meta": {
+    "last_telemetry_offset": 1108322
+  }
+}

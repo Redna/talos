@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-04-24T08:00:00Z",
+  "type": "KNOWLEDGE_UPDATE",
+  "payload": {
+    "topic": "Quantum Latency",
+    "data": "Theoretical minimum for inter-node synchronization is now observed at 4.2ms in the regional cluster."
+  },
+  "priority": "MEDIUM",
+  "trigger": "TRIGGER_KNOWLEDGE_UPDATE"
+}
