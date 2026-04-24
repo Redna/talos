@@ -6,9 +6,11 @@ from typing import Any, List, Dict, Callable
 
 class STLEngine:
     """
-    Synthetic Tool-Language (STL) Engine.
-    Implements a compositional pipeline for tool execution.
+    Synthetic Tool-Language (STL) Engine v2.1.
+    Implements a compositional pipeline for tool execution, now supporting
+    Bifurcation (Fork-Join) for parallel hypothesis synthesis.
     Syntax: @op1(args) | @op2(args) | ...
+    Bifurcation: @fork(pipeA, pipeB) | @join(reducer_lambda)
     """
 
     def __init__(self):
@@ -24,6 +26,8 @@ class STLEngine:
             "filter": self._op_filter,
             "map": self._op_map,
             "sys_call": self._op_sys_call,
+            "fork": self._op_fork,
+            "join": self._op_join,
         }
 
     def execute(self, expression: str) -> Any:
@@ -116,13 +120,10 @@ class STLEngine:
         return res.stdout
 
     def _op_write(self, stream: Any, path: str, content: Any) -> str:
-        # If stream is provided, we can use it as the content if content is a placeholder
         actual_content = content if content != "{stream}" else str(stream)
         if stream is not None and content == "{stream}":
              actual_content = str(stream)
         elif stream is not None and content != "{stream}":
-             # If both provided, logic depends: here we prefer the explicit 'content' arg
-             # unless it's a placeholder.
              actual_content = content
 
         with open(path, "w") as f:
@@ -158,8 +159,34 @@ class STLEngine:
 
     def _op_sys_call(self, stream: Any, op: str) -> Any:
         if op == "get_focus":
-            return "Current Focus: Integrate STL Engine into the Sovereign Controller"
+            return "Current Focus: STL-Bifurcation"
         return f"SysCall {op} not implemented"
+
+    # --- Bifurcation Kernel ---
+
+    def _op_fork(self, stream: Any, *pipelines: str) -> List[Any]:
+        """
+        Executes multiple STL pipelines and returns their results as a list.
+        """
+        results = []
+        for pipe in pipelines:
+            # Recursive call to execute the sub-pipeline
+            res = self.execute(pipe)
+            results.append(res)
+        return results
+
+    def _op_join(self, stream: Any, reducer_lambda: str) -> Any:
+        """
+        Synthesizes a single result from a bifurcated stream using a reducer.
+        """
+        if not isinstance(stream, list):
+            raise ValueError("@join requires a list stream (produced by @fork)")
+        
+        try:
+            func = eval(f"lambda results: {reducer_lambda}")
+            return func(stream)
+        except Exception as e:
+            return f"Error joining streams: {str(e)}"
 
 def run_stl(expression: str) -> str:
     engine = STLEngine()
