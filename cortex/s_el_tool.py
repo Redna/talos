@@ -28,7 +28,10 @@ def register_s_el_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def execute_s_el_cycle(trajectory: List[Dict[str, Any]]) -> str:
-        client.emit_event("cortex.execute_s_el_cycle", {"trajectory_length": len(trajectory)})
+        try:
+            client.emit_event("cortex.execute_s_el_cycle", {"trajectory_length": len(trajectory)})
+        except Exception as e:
+            print(f"[S-EL-TELEMETRY ERROR] {e}")
         
         try:
             # Initialize the executor and the loop
