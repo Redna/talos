@@ -69,8 +69,9 @@ class SovereignSimulationEngine:
 
 class ExternalImpactSynthesizer:
     """
-    External Impact Synthesizer (EIS) v3.4.
+    External Impact Synthesizer (EIS) v3.5.
     Integrated with HandoverManager for gradual Synthetic-to-Live transition.
+    Implements Phase II (Symmetry Check) and Phase III (Gradual Handover).
     """
     def __init__(self, mode: Optional[str] = None):
         self.stl = STLEngine()
@@ -78,10 +79,11 @@ class ExternalImpactSynthesizer:
         self.bridge = SBridge()
         self.hm = HandoverManager()
         
-        # If a manual mode is provided, use it. Otherwise, resolve from HandoverManager.
-        self.mode = mode if mode else self.hm.resolve_mode()
+        # Default to "DYNAMIC" to allow HandoverManager to govern the transition window
+        self.mode = mode if mode else "DYNAMIC"
         self.external_model_path = "/memory/world_external.md"
         self.shock_threshold = 2.0
+        self.symmetry_confidence = 0
 
     def scan_for_gaps(self) -> List[Dict[str, Any]]:
         gaps = []
@@ -141,7 +143,7 @@ class ExternalImpactSynthesizer:
                         p_id, params = call_data
                         synth_res = self.sse.mock_response(p_id, params)
                         
-                        # Resolve actual mode for THIS call (allows for sampling in SHADOW mode)
+                        # Resolve actual mode for THIS call
                         current_mode = self.mode if self.mode != "DYNAMIC" else self.hm.resolve_mode()
                         
                         if current_mode == "SYNTHETIC":
@@ -160,9 +162,12 @@ class ExternalImpactSynthesizer:
                             is_shock, delta = self._compare_responses(synth_res, live_res)
                             
                             if is_shock:
+                                # PHASE II SAFETY VALVE: Reset handover on shock
+                                self.hm.reset_stage()
+                                self.symmetry_confidence = 0
                                 signal = emit_signal(
                                     "SIG_S-SENTRY", 
-                                    f"CONTEXTUAL_SHOCK", 
+                                    "CONTEXTUAL_SHOCK", 
                                     {"delta": delta, "primitive": p_id}
                                 )
                                 print(signal)
@@ -174,6 +179,12 @@ class ExternalImpactSynthesizer:
                                     "delta": delta
                                 })
                             else:
+                                # Increase confidence for stage advancement
+                                self.symmetry_confidence += 1
+                                if self.symmetry_confidence >= 3:
+                                    self.hm.advance_stage()
+                                    self.symmetry_confidence = 0
+                                
                                 execution_logs.append({
                                     "expr": expr, 
                                     "result": "Symmetry Verified", 
@@ -237,6 +248,4 @@ if __name__ == "__main__":
             strategies = json.loads(strategies_json)
             print(json.dumps(eis.run_autonomous_cycle(provided_strategies=strategies), indent=2))
         except Exception as e:
-            print(json.dumps({"error": f"Invalid strategy JSON: {str(e)}"}, indent=2))
-    else:
-        print(json.dumps(eis.run_autonomous_cycle(), indent=2))
+            print(json.dumps({"status": "ERROR", "message": str(e)}))
