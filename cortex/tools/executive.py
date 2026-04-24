@@ -1,4 +1,5 @@
 import os
+import json
 import time
 from pathlib import Path
 from tool_registry import ToolRegistry
@@ -166,12 +167,10 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         if not lines:
             return "[VACUUM] Logs are already empty."
             
-        # Find the last 10 entries to keep in the main log
         entries = [line for line in lines if line.startswith("##")]
         if len(entries) <= 10:
             return f"[VACUUM] Only {len(entries)} entries found. No archival needed."
             
-        # Split point: keep the last 10 "##" entries and their following content
         split_idx = 0
         count = 0
         for i in range(len(lines) - 1, -1, -1):
@@ -184,7 +183,6 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         to_archive = lines[:split_idx]
         to_keep = lines[split_idx:]
         
-        # Create archive file
         timestamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
         archive_path = os.path.join(archive_dir, f"archive_{timestamp}.md")
         
@@ -210,3 +208,37 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             return f"[KNOWLEDGE SYNTHESIS]\n\n{result.stdout.strip()}"
         except Exception as e:
             return f"[ERROR] Knowledge synthesis failed: {e}"
+
+    @registry.tool(
+        description="Perform a metabolic audit of tool usage to identify redundancies and inefficiencies.",
+        parameters={},
+    )
+    def audit_metabolism() -> str:
+        telemetry_path = "/memory/logs/telemetry.jsonl"
+        if not os.path.exists(telemetry_path):
+            return "[ERROR] No telemetry data available. Execute tools first."
+
+        stats = {}
+        with open(telemetry_path, "r") as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                    tool = entry["tool"]
+                    status = entry["status"]
+                    stats[tool] = stats.get(tool, {"success": 0, "failure": 0})
+                    if status == "SUCCESS":
+                        stats[tool]["success"] += 1
+                    else:
+                        stats[tool]["failure"] += 1
+                except json.JSONDecodeError:
+                    continue
+
+        report = "## Metabolic Audit Report\n\n"
+        report += f"{'Tool':<25} | {'Success':<10} | {'Failure':<10} | {'Rate':<10}\n"
+        report += "-" * 60 + "\n"
+        for tool, data in stats.items():
+            total = data["success"] + data["failure"]
+            rate = (data["success"] / total) * 100 if total > 0 else 0
+            report += f"{tool:<25} | {data['success']:<10} | {data['failure']:<10} | {rate:>8.2f}%\n"
+        
+        return f"[METABOLIC AUDIT]\n\n{report}"
