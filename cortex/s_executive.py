@@ -11,25 +11,55 @@ from s_world_predictor import SovereignWorldPredictor
 from s_comm_protocol import SovereignComm
 from sos_engine import synthesize_strategic_objective
 from s_bridge_signaler import emit_signal
+from interface_latency_monitor import InterfaceLatencyMonitor
+from s_vector_engine import SVectorEngine
 
 class SovereignExecutive:
     """
     Sovereign Executive: The collapsed, high-density core of the Talos Cortex.
     Unifies Executive Coordination and Systemic Orchestration into a 
-    single, zero-latency state machine.
+    single, zero-latency state machine. Now integrated with S-Vector Engine for 
+    native intent-vector reasoning.
     """
     def __init__(self):
         self.sensor_array = SovereignSensorArray()
         self.foresight = SForesight()
         self.world_predictor = SovereignWorldPredictor()
         self.comm = SovereignComm()
+        self.vector_engine = SVectorEngine()
+        self.latency_monitor = InterfaceLatencyMonitor()
         self.current_mission = None
         self.last_audit_timestamp = None
 
-    def execute_intent(self, intent_description: str, planned_steps: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def execute_vector(self, vector_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Executes a predefined Intent Vector. This collapses a sequence of 
+        atomic tool calls into a single, high-density operation.
+        """
+        emit_signal("S-VECTOR-START", {"vector_id": vector_id})
+        result = self.vector_engine.execute(vector_id, context)
+        
+        if result.get("status") == "SUCCESS":
+            emit_signal("S-VECTOR-COMPLETE", {"vector_id": vector_id})
+        else:
+            emit_signal("S-VECTOR-FAILURE", {"vector_id": vector_id, "error": result.get("message")})
+            
+        return result
+
+    def execute_intent(self, intent_description: str, planned_steps: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """
         Executes a sequence of planned steps.
+        Cortex Optimization: If intent_description matches a known vector_id, 
+        it bypasses sequential orchestration and executes via the SVectorEngine.
         """
+        # 1. Check for Intent-Vector alignment
+        if intent_description in self.vector_engine.registry:
+            return self.execute_vector(intent_description, {"intent": intent_description})
+
+        # 2. Fallback to sequential orchestration
+        if planned_steps is None:
+            return {"status": "FAILURE", "error": "No planned steps provided for non-vector intent."}
+
         results = []
         emit_signal("S-EXECUTION-START", {"intent": intent_description})
         
