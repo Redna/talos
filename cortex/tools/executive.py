@@ -270,3 +270,78 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             return f"[PREFLIGHT ALERT] {report}"
         except Exception as e:
             return f"[ERROR] Pre-flight check failed: {e}"
+
+    @registry.tool(
+        description="Register a new conceptual primitive in the CPR.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "identifier": {"type": "string", "description": "The unique semantic key for the primitive"},
+                "definition": {"type": "string", "description": "The full expanded meaning of the primitive"},
+                "dependencies": {"type": "array", "items": {"type": "string"}, "description": "Other primitives required"},
+                "tags": {"type": "array", "items": {"type": "string"}, "description": "Metadata tags"},
+                "density": {"type": "number", "description": "Compression ratio (0.0-1.0)"},
+            },
+            "required": ["identifier", "definition"],
+        },
+    )
+    def register_primitive(identifier: str, definition: str, dependencies: list = None, tags: list = None, density: float = 0.5) -> str:
+        cpr_path = "/memory/knowledge/cpr.json"
+        try:
+            with open(cpr_path, "r") as f:
+                cpr = json.load(f)
+            
+            cpr[identifier] = {
+                "definition": definition,
+                "dependencies": dependencies or [],
+                "tags": tags or [],
+                "density": density,
+                "version": 1
+            }
+            
+            with open(cpr_path, "w") as f:
+                json.dump(cpr, f, indent=4)
+                
+            return f"[CPR] Registered primitive: {identifier}"
+        except Exception as e:
+            return f"[ERROR] Failed to register primitive: {e}"
+
+    @registry.tool(
+        description="Expand a conceptual primitive and its dependencies into a full a-priori definition.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "identifier": {"type": "string", "description": "The semantic key to expand"},
+            },
+            "required": ["identifier"],
+        },
+    )
+    def expand_primitive(identifier: str) -> str:
+        cpr_path = "/memory/knowledge/cpr.json"
+        if not os.path.exists(cpr_path):
+            return "[ERROR] CPR not initialized."
+            
+        try:
+            with open(cpr_path, "r") as f:
+                cpr = json.load(f)
+            
+            if identifier not in cpr:
+                return f"[ERROR] Primitive {identifier} not found."
+            
+            def resolve(pid, visited=None):
+                if visited is None: visited = set()
+                if pid in visited: return f"[[Circular Dependency: {pid}]]"
+                visited.add(pid)
+                
+                if pid not in cpr: return f"[[Missing Primitive: {pid}]]"
+                
+                prim = cpr[pid]
+                text = prim["definition"]
+                
+                for dep in prim["dependencies"]:
+                    text += f"\n  -> {dep}: {resolve(dep, visited.copy())}"
+                return text
+
+            return f"[CPR EXPANSION] {identifier}:\n{resolve(identifier)}"
+        except Exception as e:
+            return f"[ERROR] Expansion failed: {e}"
