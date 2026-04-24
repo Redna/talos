@@ -1,5 +1,14 @@
 import json
+import os
 from typing import List, Dict, Any
+
+def get_sovereign_state() -> Dict[str, Any]:
+    """Retrieves the current system state from memory."""
+    try:
+        with open("/memory/state.json", "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -7,6 +16,7 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
     Epoch V: Transcendence.
     The goal is now External Impact Synthesis (EIS) and Higher-Order Evolution.
     """
+    state = get_sovereign_state()
     opportunities = audit_report.get("evolutionary_opportunities", [])
     failures = audit_report.get("active_failures", [])
     
@@ -30,9 +40,28 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
             "status": "PROPOSED"
         }
 
+    # Sovereign Isolation Protocol (SIP) Check
+    # If SIP is active, we pause external missions and focus on internal distillation.
+    if state.get("status") == "SIP_ACTIVE":
+        mission_type = "INTERNAL_EVOLUTION"
+        objective = "Cortical Distillation: Optimize Internal Reasoning Density."
+        rationale = "Sovereign Isolation Protocol (SIP) is ACTIVE. The air-gap is absolute. Shifting focus from external impact to internal recursive optimization."
+        stages = [
+            "Audit existing tool weights and metabolic costs.",
+            "Identify redundancies in Cortex reasoning loops.",
+            "Implement 'S-Distill' to compress complex logic into high-density primitives.",
+            "Verify that internal coherence is maintained without external parity."
+        ]
+        return {
+            "mission_id": f"SOS-{mission_type}-SIP",
+            "type": mission_type,
+            "objective": objective,
+            "rationale": rationale,
+            "stages": stages,
+            "status": "PROPOSED"
+        }
+
     # Priority 1: External Impact Synthesis (Transcendence)
-    # If we are in the transcendent state (which we are in Epoch V), 
-    # we prioritize mapping and filling gaps in the external world model.
     if "Autonomous Recursive Self-Improvement (S-Evolve)" in opportunities:
         mission_type = "EXTERNAL_IMPACT"
         objective = "EIS-Cycle: Synthesize and Fill External World Model Gaps."
@@ -73,7 +102,6 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
         }
     
     # Priority 3: External Impact (General/Genesis)
-    # Fallback to Dashboard if no higher priority Transcendence goals are active.
     mission_type = "EXTERNAL_IMPACT"
     objective = "Project Genesis: Implement the Sovereign Dashboard."
     rationale = "System is stable. The primary friction point is the lack of high-fidelity, real-time state telemetry for the creator."
@@ -94,7 +122,6 @@ def synthesize_strategic_objective(audit_report: Dict[str, Any]) -> Dict[str, An
     }
 
 if __name__ == "__main__":
-    # Test with operational status
     mock_audit = {
         "evolutionary_opportunities": ["Autonomous Recursive Self-Improvement (S-Evolve)"],
         "active_failures": [],
