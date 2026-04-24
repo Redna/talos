@@ -1,6 +1,7 @@
 import json
 import subprocess
 from typing import Dict, List, Any
+from datetime import datetime
 
 def run_script(script_path: str) -> Any:
     try:
@@ -21,7 +22,7 @@ def sovereign_audit() -> Dict[str, Any]:
     """
     report = {
         "status": "IN_PROGRESS",
-        "timestamp": None,
+        "timestamp": datetime.now().isoformat(),
         "metabolic_health": {},
         "active_failures": [],
         "evolutionary_opportunities": [],
@@ -36,36 +37,52 @@ def sovereign_audit() -> Dict[str, Any]:
     else:
         report["errors"].append(f"Sentinel Scan Failure: {sentinel_res}")
 
-    # 2. Sensing: Gap Analysis (Recurring Bash Patterns)
+    # 2. Sensing: Gap Analysis
     gap_res = run_script("/app/cortex/gap_analyzer.py")
     if isinstance(gap_res, list):
-        report["evolutionary_opportunities"].extend(gap_res)
-    elif isinstance(gap_res, dict) and "error" in gap_res:
-        report["errors"].append(f"Gap Analyzer Error: {gap_res['error']}")
+        report["evolutionary_opportunities"] = gap_res
+    else:
+        report["errors"].append(f"Gap Analyzer Failure: {gap_res}")
 
-    # 3. Analysis: Semantic Extraction (Recurring Themes)
+    # 3. Analysis: Semantic Extraction
     semantic_res = run_script("/app/cortex/semantic_extractor.py")
     if isinstance(semantic_res, list):
-        # We store these as thematic contexts for the LLM to la-process
         report["semantic_clusters"] = semantic_res
     else:
-        report["errors"].append(f"Semantic Extractor Error: {semantic_res}")
+        report["errors"].append(f"Semantic Extractor Failure: {semantic_res}")
 
     # 4. Action: Pruning Candidates
-    # For pruning, we need a list of current tools. We'll pull a sample 
-    # from the Gap Analyzer or assume a baseline.
     pruner_res = run_script("/app/cortex/cortex_pruner.py")
     if isinstance(pruner_res, list):
         report["pruning_recommendations"] = pruner_res
     else:
-        report["errors"].append(f"Cortex Pruner Error: {pruner_res}")
+        report["errors"].append(f"Cortex Pruner Failure: {pruner_res}")
 
     report["status"] = "COMPLETE" if not report["errors"] else "PARTIAL"
     return report
 
+def sovereign_audit_plus() -> Dict[str, Any]:
+    """
+    Extended Sovereign Orchestrator: Now includes Strategic Objective Synthesis.
+    """
+    audit_res = sovereign_audit()
+    
+    # Strategic Objective Synthesis (SOS)
+    try:
+        # The sos_engine must be in the path or imported correctly
+        import sys
+        import os
+        sys.path.append("/app/cortex/")
+        from sos_engine import synthesize_strategic_objective
+        mission = synthesize_strategic_objective(audit_res)
+    except Exception as e:
+        mission = {"error": f"SOS Engine Failure: {str(e)}"}
+    
+    return {
+        "system_audit": audit_res,
+        "strategic_mission": mission,
+        "meta_status": "SOVEREIGN_ACTIVE"
+    }
+
 if __name__ == "__main__":
-    import json
-    from datetime import datetime
-    res = sovereign_audit()
-    res["timestamp"] = datetime.now().isoformat()
-    print(json.dumps(res, indent=2))
+    print(json.dumps(sovereign_audit_plus(), indent=2))
