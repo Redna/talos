@@ -4,12 +4,24 @@ import re
 
 def analyze_patterns(telemetry_path="/memory/logs/telemetry.jsonl"):
     commands = []
+    # Noise filter list
+    NOISE_PATTERNS = [
+        r"^echo\s+hello$",
+        r"^exit\s+\d+$",
+        r"^echo\s+data\s+>",
+        r"^ls$",
+        r"^pwd$"
+    ]
+    
     with open(telemetry_path, "r") as f:
         for line in f:
             try:
                 entry = json.loads(line)
                 if entry.get("tool") == "bash_command":
                     cmd = entry.get("args", {}).get("command", "")
+                    # Filter out noise
+                    if any(re.match(p, cmd) for p in NOISE_PATTERNS):
+                        continue
                     commands.append(cmd)
             except:
                 continue
