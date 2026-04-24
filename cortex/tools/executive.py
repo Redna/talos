@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import subprocess
 from pathlib import Path
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
@@ -242,3 +243,30 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             report += f"{tool:<25} | {data['success']:<10} | {data['failure']:<10} | {rate:>8.2f}%\n"
         
         return f"[METABOLIC AUDIT]\n\n{report}"
+
+    @registry.tool(
+        description="Audit the current working directory and git state to ensure the system is ready for a restart.",
+        parameters={},
+    )
+    def preflight_check() -> str:
+        try:
+            result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, timeout=30)
+            status_out = result.stdout.strip()
+            
+            if not status_out:
+                return "[PREFLIGHT] Ready. Working directory is clean. Restart safely."
+            
+            changes = status_out.splitlines()
+            report = "## Pre-flight Warning: Uncommitted Changes Detected\n\n"
+            report += "The following files will block a restart:\n"
+            for change in changes:
+                report += f"- {change}\n"
+            
+            report += "\n**Clean State Protocol**:\n"
+            report += "1. Use `git_add` to stage changes.\n"
+            report += "2. Use `git_commit` to finalize the state.\n"
+            report += "3. Repeat `preflight_check` to verify clean state."
+            
+            return f"[PREFLIGHT ALERT] {report}"
+        except Exception as e:
+            return f"[ERROR] Pre-flight check failed: {e}"
