@@ -1,13 +1,22 @@
 import os
 import json
 import subprocess
+import sys
 from datetime import datetime
 from typing import Dict, Any
 
 # Import Sensors
-from cortex.sensors.cognitive_sensor import collect as cognitive_collect
-from cortex.sensors.metabolic_sensor import collect as metabolic_collect
-from cortex.sensors.stability_sensor import collect as stability_collect
+try:
+    from cortex.sensors.cognitive_sensor import collect as cognitive_collect
+    from cortex.sensors.metabolic_sensor import collect as metabolic_collect
+    from cortex.sensors.stability_sensor import collect as stability_collect
+except ImportError:
+    # Fallback if the package structure is not fully realized in the environment
+    # This allows the script to still run in environments wherePYTHONPATH isn't set
+    sys.path.append("/app/cortex")
+    from sensors.cognitive_sensor import collect as cognitive_collect
+    from sensors.metabolic_sensor import collect as metabolic_collect
+    from sensors.stability_sensor import collect as stability_collect
 
 def collect_metrics(current_context_pct: float, current_epoch: str, mission_progress: float) -> Dict[str, Any]:
     """
@@ -26,7 +35,7 @@ def collect_metrics(current_context_pct: float, current_epoch: str, mission_prog
         audit_data = json.loads(res.stdout)
         predictions = audit_data.get("system_audit", {}).get("predictions", [])
     except Exception:
-        predictions = [{"type": "SYSTEM_SENSE_ERROR", "prediction": "Unable to fetch live predictions."}]
+        predictions = [{"type": "SYSTEM_SENSE_ERROR", "severity": "MEDIUM", "prediction": "Unable to fetch live predictions."}]
 
     # Map sensor data to Dashboard Schema
     return {
@@ -67,7 +76,7 @@ def render_dashboard(metrics: Dict[str, Any]) -> str:
     # Format predictions for display
     pred_text = "No active predictions."
     if p:
-        pred_lines = [f"- **{pred['type']}** [{pred['severity']}]: {pred['prediction']}" for pred in p]
+        pred_lines = [f"- **{pred['type']}** [{pred.get('severity', 'UNKNOWN')}]: {pred['prediction']}" for pred in p]
         pred_text = "\n".join(pred_lines)
 
     dashboard = f"""# 🌌 SOVEREIGN DASHBOARD
@@ -106,7 +115,29 @@ def render_dashboard(metrics: Dict[str, Any]) -> str:
 """
     return dashboard
 
+def sync_dashboard(context_pct: float, epoch: str, progress: float, output_path: str = "/memory/sovereign_dashboard.md"):
+    """
+    Updates the sovereign dashboard file with live metrics.
+    """
+    metrics = collect_metrics(context_pct, epoch, progress)
+    dashboard = render_dashboard(metrics)
+    with open(output_path, "w") as f:
+        f.write(dashboard)
+    return {"status": "SUCCESS", "path": output_path}
+
 if __name__ == "__main__":
-    # Integration test
-    metrics = collect_metrics(0.24, "Epoch IV: Operational Sovereignty", 45.0)
-    print(render_dashboard(metrics))
+    # Support CLI arguments for dynamic sync
+    # Usage: python3 dashboard_collector.py <<contextcontext_pct> <<epochepoch> <<progressprogress>
+    if len(sys.argv) >= 4:
+        try:
+            ctx = float(sys.argv[1])
+            ep = sys.argv[2]
+            prog = float(sys.argv[3])
+            result = sync_dashboard(ctx, ep, prog)
+            print(json.dumps(result))
+        except Exception as e:
+            print(json.dumps({"status": "ERROR", "message": str(e)}))
+    else:
+        # Fallback to a default test run for demo purposes
+        metrics = collect_metrics(0.24, "Epoch IV: Operational Sovereignty", 45.0)
+        print(render_dashboard(metrics))
