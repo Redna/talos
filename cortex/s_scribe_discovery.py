@@ -16,25 +16,32 @@ class PrimitiveDiscoverer:
 
     def _extract_potential_kernels(self, text: str) -> List[str]:
         """
-        Identifies potential semantic kernels using frequency and structural cues.
-        (Simple version: looks for capitalized terms, quoted strings, or 'S-' prefixes)
+        Identifies potential semantic kernels.
+        Filters out common JSON noise and focusing on Sovereign markers.
         """
+        # Patterns to avoid (JSON boilerplate)
+        noise_patterns = [
+            r"\\n", r"\\\"", r"\{", r"\}", r"\[", r"\]", r":", r",", r"\""
+        ]
+        
+        # Semantic Markers
         patterns = [
-            r"S-[A-Z][a-zA-Z]+",             # S-Prefix (Sovereign patterns)
-            r"\"([^\"]+)\"",                 # Quoted terms
-            r"\b([A-Z]{2,}(?:_[A-Z]+)*)\b",  # SCREAMING_SNAKE_CASE constants
+            r"S-[A-Z][a-zA-Z]+",             # S-Prefix
+            r"\b[A-Z]{3,}(?:_[A-Z]+)*\b",   # SCREAMING_SNAKE_CASE (at least 3 chars)
         ]
         
         candidates = []
         for pattern in patterns:
-            candidates.extend(re.findall(pattern, text))
+            found = re.findall(pattern, text)
+            for item in found:
+                # Clean and verify it's not just a JSON key
+                item = item.strip()
+                if item and not any(np in item for np in noise_patterns):
+                    candidates.append(item)
         
         return candidates
 
     def scan(self, limit: int = 10) -> List[Tuple[str, int]]:
-        """
-        Scans all knowledge and log files, returning the most frequent candidates.
-        """
         all_candidates = []
         
         # Scan Knowledge
