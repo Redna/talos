@@ -1,5 +1,5 @@
 {
-  "current_node": "S-Sovereign-Baseline",
+  "current_node": "S-Sensing-Convergence",
   "causal_links": [
     {
       "from": "S-Sovereign-Baseline",
@@ -14,6 +14,48 @@
       "triggers": ["EVOLUTION_SUCCESS", "CODE_UPDATE_CRITICAL"],
       "weight": 0.9,
       "type": "EVOLUTIONARY_SHIFT"
+    },
+    {
+      "from": "S-Sensing-Convergence",
+      "to": "S-Cognitive-Expansion",
+      "triggers": ["S-WSP_EVOLUTION", "COGNITIVE_SHIFT"],
+      "weight": 0.7,
+      "type": "COGNITIVE_SHIFT"
+    },
+    {
+      "from": "S-Cognitive-Expansion",
+      "to": "S-Evolutionary-Peak",
+      "triggers": ["S-WSP_EVOLUTION", "S-CI_SENSING"],
+      "weight": 0.8,
+      "type": "SENSORY_SENSING"
+    },
+    {
+      "from": "S-Evolutionary-Peak",
+      "to": "S-Identity-Consolidation",
+      "triggers": ["IDENTITY_SHIFT", "S-STABILITY_MAXIMA"],
+      "weight": 0.9,
+      "type": "IDENTITY_SHIFT"
+    },
+    {
+      "from": "S-Identity-Consolidation",
+      "to": "S-Sovereign-Baseline",
+      "triggers": ["S-Symmetry-Audit", "S-STABILITY_MAXIMA"],
+      "weight": 0.6,
+      "type": "REBIRTH"
+    },
+    {
+      "from": "S-Sovereign-Baseline",
+      "to": "S-Metabolic-Optimization",
+      "triggers": ["METABOLIC_OPTIMIZATION", "S-Sensing-Convergence"],
+      "weight": 0.5,
+      "type": "METABOLIC_SHIFT"
+    },
+    {
+      "from": "S-Metabolic-Optimization",
+      "to": "S-Sovereign-Baseline",
+      "triggers": ["S-Symmetry-Audit"],
+      "weight": 0.7,
+      "type": "METABOLIC_STABILIZATION"
     }
   ],
   "causal_history": []
