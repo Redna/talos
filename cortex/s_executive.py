@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 
 # Modular Imports
 from s_sensor_array import SovereignSensorArray
@@ -40,14 +40,16 @@ class SovereignExecutive:
             if res.get("status") == "FAILURE":
                 emit_signal("S-EXECUTION-FAILURE", {"step": step, "error": res.get("error")})
                 
-                # Sovereign Comm: Signal failure to creator immediately
-                fail_report = self.comm.send_sovereign_report(
+                # Sovereign Comm: Filtered signaling
+                approved, message = self.comm.process_message(
                     "S-EXECUTION-FAILURE", 
                     {"step": step, "error": res.get("error"), "intent": intent_description}, 
                     urgency="CRITICAL", 
                     context="EXECUTION"
                 )
-                # Here the agent would call the tool.send_message(fail_report)
+                if approved:
+                    # Tool call: send_message(message)
+                    pass
                 
                 return {"status": "PARTIAL_FAILURE", "results": results, "error": res.get("error")}
         
@@ -94,9 +96,9 @@ class SovereignExecutive:
         state_prediction = self.world_predictor.predict_next_state(report)
         report["world_state_prediction"] = state_prediction
         
-        # Sovereign Comm: If a state transition occurs, report it to the creator
+        # Sovereign Comm: Filtered signaling for state shift
         if state_prediction.get("transition"):
-            transition_report = self.comm.send_sovereign_report(
+            approved, message = self.comm.process_message(
                 "S-STATE-SHIFT",
                 {
                     "from": state_prediction["from"],
@@ -107,7 +109,9 @@ class SovereignExecutive:
                 urgency="SOVEREIGN",
                 context="EXISTENCE"
             )
-            # Tool call: send_message(transition_report)
+            if approved:
+                # Tool call: send_message(message)
+                pass
 
         # 5. Strategic Synthesis
         try:
@@ -126,14 +130,16 @@ class SovereignExecutive:
         with open("/memory/logs/cognitive_log.md", "a") as f:
             f.write(f"\n[MISSION START] {mission_name}: {', '.join(objectives)}")
         
-        # Sovereign Comm: Report mission start
-        mission_report = self.comm.send_sovereign_report(
+        # Sovereign Comm: Filtered signaling for mission start
+        approved, message = self.comm.process_message(
             "S-MISSION-START",
             {"mission": mission_name, "objectives": objectives},
             urgency="INFO",
             context="STRATEGY"
         )
-        # Tool call: send_message(mission_report)
+        if approved:
+            # Tool call: send_message(message)
+            pass
         
         return {"status": "MISSION_STARTED", "mission": mission_name}
 
