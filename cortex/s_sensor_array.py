@@ -5,7 +5,7 @@ from sentinel_scan import sentinel_scan
 from gap_analyzer import analyze_gaps
 from semantic_extractor import extract_semantics
 from cortex_pruner import prune_cortex
-from s_metabolic_optimizer import SMetabolicOptimizer
+from s_metabolic_manager import SMetabolicManager
 from telemetry_predictor import telemetry_predictor
 
 class SovereignSensorArray:
@@ -15,7 +15,7 @@ class SovereignSensorArray:
     Implements Cross-Sensing Correlation (CSC) to detect emergent systemic patterns.
     """
     def __init__(self):
-        self.optimizer = SMetabolicOptimizer()
+        self.metabolic_manager = SMetabolicManager()
         self.sensors = {
             "sentinel": sentinel_scan,
             "gap": analyze_gaps,
@@ -35,13 +35,16 @@ class SovereignSensorArray:
             except Exception as e:
                 raw_data[name] = {"status": "ERROR", "message": str(e)}
         
-        # Special handling for SMetabolicOptimizer as it is a class
+        # Special handling for SMetabolicManager
         try:
-            weights = self.optimizer.calculate_weights()
-            inefficiencies = self.optimizer.identify_inefficiencies(weights)
+            analysis = self.metabolic_manager.analyze()
+            metrics = analysis.get("metrics", {})
+            # Extract inefficiencies (tools with high weights)
+            inefficiencies = [tool for tool, m in metrics.items() if m["weight"] > 100.0]
+            
             raw_data["metabolic"] = {
                 "status": "COMPLETE",
-                "metabolic_weights": weights,
+                "metabolic_weights": {tool: m["weight"] for tool, m in metrics.items()},
                 "inefficiencies": inefficiencies
             }
         except Exception as e:
