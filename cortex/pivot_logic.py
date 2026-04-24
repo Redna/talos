@@ -11,9 +11,11 @@ class DivergenceMonitor:
     S-Pivot Phase 1.
     """
     def __init__(self, dashboard_path: str = "/memory/sovereign_dashboard.md", 
-                 world_path: str = "/memory/world_external.md"):
+                 world_path: str = "/memory/world_external.md",
+                 signal_archive: str = "/memory/archive/signals/"):
         self.dashboard_path = dashboard_path
         self.world_path = world_path
+        self.signal_archive = signal_archive
 
     def _get_dashboard_metrics(self) -> Dict[str, Any]:
         if not os.path.exists(self.dashboard_path):
@@ -46,30 +48,63 @@ class DivergenceMonitor:
         except:
             return 0
 
+    def _check_recent_signals(self) -> List[str]:
+        """
+        Checks the signal archive for any high-priority STRATEGIC_SHIFT signals 
+        processed in the last hour.
+        """
+        signals = []
+        if not os.path.exists(self.signal_archive):
+            return signals
+            
+        files = os.listdir(self.signal_archive)
+        for f in files:
+            if f.endswith('.json'):
+                try:
+                    with open(os.path.join(self.signal_archive, f), 'r') as sf:
+                        data = json.load(sf)
+                        if data.get("type") == "STRATEGIC_SHIFT" and data.get("priority") == "HIGH":
+                            signals.append(data.get("payload", {}).get("data", "Unknown shift"))
+                except:
+                    continue
+        return signals
+
     def calculate_divergence(self, current_objective: str) -> Dict[str, Any]:
         metrics = self._get_dashboard_metrics()
+        recent_signals = self._check_recent_signals()
+        
         score = 0.0
         rationales = []
 
+        # Metric 1: Cognitive Pressure
         ctx_load = metrics.get("context_load", 0.0)
         if ctx_load > 0.7:
             score += 0.3
             rationales.append(f"High cognitive load ({ctx_load:.2%})")
 
+        # Metric 2: Metabolic Decay
         eff = metrics.get("tool_efficiency", 1.0)
         if eff < 0.9:
             score += 0.4
             rationales.append(f"Low tool efficiency ({eff:.2%})")
 
+        # Metric 3: Staticity
         drift = metrics.get("drift", 0)
         if drift == 0:
             score += 0.1
             rationales.append("Zero sovereign drift (Stagnation)")
 
+        # Metric 4: External Strategic Shift (HIGH WEIGHT)
+        if recent_signals:
+            score += 0.6
+            for sig in recent_signals:
+                rationales.append(f"Strategic Shift Detected: {sig}")
+
         return {
             "divergence_score": min(score, 1.0),
             "rationales": rationales,
             "metrics": metrics,
+            "signals": recent_signals,
             "timestamp": datetime.now().isoformat()
         }
 
@@ -96,7 +131,10 @@ class PivotLogic:
         new_objective = current_objective
         rationales = divergence["rationales"]
         
-        if any("High cognitive load" in r for r in rationales):
+        # Prioritize based on the most severe trigger
+        if any("Strategic Shift" in r for r in rationales):
+            new_objective = "Analyze external signal and re-align Strategic Mission."
+        elif any("High cognitive load" in r for r in rationales):
             new_objective = "Perform S-Scribe state synthesis and execute context fold."
         elif any("Low tool efficiency" in r for r in rationales):
             new_objective = "Perform Metabolic Tuning and optimize cortex tools."
