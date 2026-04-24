@@ -2,7 +2,7 @@ import os
 import subprocess
 import json
 from typing import List, Dict, Any, Optional
-from .s_simulation_engine import SovereignSimulationEngine
+from s_simulation_engine import SovereignSimulationEngine
 
 class SovereignEL_Executor:
     """
@@ -37,8 +37,6 @@ class SovereignEL_Executor:
                 msg = action_packet.get("message", "S-EL Automated Evolution")
                 subprocess.run(["git", "add", "."], check=True)
                 subprocess.run(["git", "commit", "-m", msg], check=True)
-                # The push command is handled by the Spine or a separate process in some setups,
-                # but we'll include it here for consistency with the required behavior.
                 # We only push if we're on the correct branch.
                 subprocess.run(["git", "push", "origin", "feat/talos"], check=True)
                 return True
@@ -64,7 +62,6 @@ class SovereignExecutionLoop:
         Orchestrates the full S-EL cycle.
         """
         # 1. Projection
-        # The proposed_trajectory is the projection of the desired future state.
         projection = proposed_trajectory
 
         # 2. Simulation
@@ -134,7 +131,6 @@ class SovereignExecutionLoop:
                     audit_log.append({"path": path, "status": "still_exists"})
                     all_passed = False
             elif action["action"] == "commit":
-                # Basic assume-verified for commit.
                 audit_log.append({"action": "commit", "status": "assumed_verified"})
 
         return {
