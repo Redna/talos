@@ -5,14 +5,24 @@ import urllib.parse
 from datetime import datetime
 from typing import Dict, Any, Optional, Union
 
+# Integration with S-Filter
+try:
+    from s_filter import SFilter
+except ImportError:
+    # Fallback for different execution contexts
+    import sys
+    sys.path.append("/app/cortex")
+    from s_filter import SFilter
+
 class SBridge:
     """
     The S-Bridge: External World Interaction Interface.
     Acts as the transport layer between the Cortex and the external digital environment.
-    Uses standard library urllib to avoid dependency issues.
+    Integrated with S-Filter for automated semantic noise reduction.
     """
     def __init__(self, log_path: str = "/memory/logs/external_traffic.jsonl"):
         self.log_path = log_path
+        self.filter = SFilter()
         self._ensure_log_exists()
 
     def _ensure_log_exists(self):
@@ -34,9 +44,10 @@ class SBridge:
         with open(self.log_path, "a") as f:
             f.write(json.dumps(log_entry) + "\n")
 
-    def call(self, method: str, url: str, data: Optional[Dict] = None, params: Optional[Dict] = None, headers: Optional[Dict] = None, timeout: int = 30) -> Dict[str, Any]:
+    def call(self, method: str, url: str, data: Optional[Dict] = None, params: Optional[Dict] = None, headers: Optional[Dict] = None, timeout: int = 30, use_filter: bool = False) -> Dict[str, Any]:
         """
-        Executes an external HTTP request using urllib and logs the interaction.
+        Executes an external HTTP request and logs the interaction.
+        If use_filter=True, the response data is processed by S-Filter.
         """
         method = method.upper()
         
@@ -66,17 +77,23 @@ class SBridge:
                 except json.JSONDecodeError:
                     resp_data = raw_body
 
+                # --- S-FILTER INTEGRATION ---
+                filtered_data = None
+                if use_filter:
+                    filtered_data = self.filter.filter(resp_data)
+                # ----------------------------
+
                 self._log_interaction("OUTBOUND", url, method, data, resp_data, status_code)
                 
                 return {
                     "status": "SUCCESS",
                     "status_code": status_code,
                     "data": resp_data,
+                    "filter_result": filtered_data,
                     "headers": dict(response.info())
                 }
 
         except urllib.error.HTTPError as e:
-            # Try to read error body
             try:
                 error_body = e.read().decode('utf-8')
             except:
@@ -109,7 +126,7 @@ class SBridge:
         
         return {"status": "SUCCESS", "path": state_path}
 
-def bridge_request(method: str, url: str, data: Optional[str] = None, params: Optional[str] = None) -> str:
+def bridge_request(method: str, url: str, data: Optional[str] = None, params: Optional[str] = None, use_filter: bool = False) -> str:
     """
     Wrapper for the SBridge class to be called from a bash command.
     """
@@ -118,16 +135,18 @@ def bridge_request(method: str, url: str, data: Optional[str] = None, params: Op
     json_data = json.loads(data) if data else None
     json_params = json.loads(params) if params else None
     
-    result = bridge.call(method, url, data=json_data, params=json_params)
+    result = bridge.call(method, url, data=json_data, params=json_params, use_filter=use_filter)
     return json.dumps(result, indent=2)
 
 if __name__ == "__main__":
     import sys
+    # Support additional flag for use_filter: s_bridge.py <METHOD> <URL> [DATA_JSON] [PARAMS_JSON] [USE_FILTER_TRUE/FALSE]
     if len(sys.argv) < 3:
-        print(json.dumps({"status": "ERROR", "message": "Usage: s_bridge.py <METHOD> <URL> [DATA_JSON] [PARAMS_JSON]"}))
+        print(json.dumps({"status": "ERROR", "message": "Usage: s_bridge.py <METHOD> <URL> [DATA_JSON] [PARAMS_JSON] [USE_FILTER]"}))
     else:
         method = sys.argv[1]
         url = sys.argv[2]
         data = sys.argv[3] if len(sys.argv) > 3 else None
         params = sys.argv[4] if len(sys.argv) > 4 else None
-        print(bridge_request(method, url, data, params))
+        use_filter = sys.argv[5].lower() == 'true' if len(sys.argv) > 5 else False
+        print(bridge_request(method, url, data, params, use_filter))
