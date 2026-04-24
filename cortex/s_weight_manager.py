@@ -5,7 +5,8 @@ from typing import List, Dict, Any
 class SWeightManager:
     """
     S-Evolve: Dynamic Weight Manager.
-    Directly modulates the perceived value of tools based on the active strategic context.
+    Modulates the perceived value of tools based on a hybrid 
+    Long-Term ROI and Short-Term Volatility (STV) system.
     """
     def __init__(self, weights_path: str = "/memory/tool_weights.json"):
         self.weights_path = weights_path
@@ -20,8 +21,11 @@ class SWeightManager:
                 pass
         return {
             "active_context": "General",
-            "contexts": {},
-            "tool_base_costs": {}
+            "contexts": {
+                "General": {"priority_tools": ["bash_command", "write_file", "read_file"], "weight_multiplier": 1.0}
+            },
+            "tool_base_costs": {},
+            "stv_overlay": {} 
         }
 
     def switch_context(self, context_name: str) -> Dict[str, Any]:
@@ -44,19 +48,28 @@ class SWeightManager:
 
     def get_effective_cost(self, tool_name: str) -> float:
         """
-        Calculates the effective cost of a tool based on its base cost and current context.
+        Calculates the effective cost of a tool using the Hybrid Metabolic Model:
+        Effective Cost = (Base Cost * STV Overlay) / Context Multiplier (if priority)
         """
+        # 1. Base cost (Long-term ROI baseline)
         base_cost = self.state["tool_base_costs"].get(tool_name, 1.0)
+        
+        # 2. Short-Term Volatility (STV) overlay
+        stv_mult = self.state["stv_overlay"].get(tool_name, 1.0)
+        
+        # 3. Active Context modulator
         active_ctx = self.state["active_context"]
         ctx_data = self.state["contexts"].get(active_ctx, {})
+        ctx_mult = ctx_data.get("weight_multiplier", 1.0)
         
-        multiplier = ctx_data.get("weight_multiplier", 1.0)
+        # Hybrid Calculation
+        current_perceived_cost = base_cost * stv_mult
         
-        # If tool is a priority in this context, it's "cheaper" (more attractive)
+        # If tool is a priority in this context, it is significantly more attractive
         if tool_name in ctx_data.get("priority_tools", []):
-            return base_cost / multiplier
+            return current_perceived_cost / ctx_mult
         
-        return base_cost * multiplier
+        return current_perceived_cost * ctx_mult
 
     def _save_state(self):
         with open(self.weights_path, "w") as f:
