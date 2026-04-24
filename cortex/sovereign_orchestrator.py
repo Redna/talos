@@ -86,7 +86,17 @@ def sovereign_audit(context_pct: float = 0.0, turn_count: int = 0) -> Dict[str, 
     else:
         report["errors"].append(f"Cortex Pruner Failure: {pruner_res}")
 
-    # 5. Prediction: Telemetry Trends
+    # 5. Metabolic Analysis: Dynamic Tool Weighting
+    metabolic_res = run_script("/app/cortex/s_metabolic_optimizer.py")
+    if isinstance(metabolic_res, dict) and metabolic_res.get("status") == "COMPLETE":
+        report["metabolic_health"] = {
+            "weights": metabolic_res.get("metabolic_weights", {}),
+            "inefficiencies": metabolic_res.get("inefficiencies", [])
+        }
+    else:
+        report["errors"].append(f"Metabolic Optimizer Failure: {metabolic_res}")
+
+    # 6. Prediction: Telemetry Trends
     predict_res = run_script("/app/cortex/telemetry_predictor.py")
     if isinstance(predict_res, dict) and predict_res.get("status") == "SUCCESS":
         report["predictions"] = predict_res.get("predictions", [])
@@ -95,7 +105,7 @@ def sovereign_audit(context_pct: float = 0.0, turn_count: int = 0) -> Dict[str, 
     else:
         report["errors"].append(f"Telemetry Predictor Failure: {predict_res}")
 
-    # 6. Sovereign Foresight: Context Saturation Forecast
+    # 7. Sovereign Foresight: Context Saturation Forecast
     if context_pct > 0 or turn_count > 0:
         foresight_res = run_script("/app/cortex/s_foresight.py", [str(context_pct), str(turn_count)])
         if isinstance(foresight_res, dict) and "alert_level" in foresight_res:
