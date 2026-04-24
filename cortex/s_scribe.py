@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from datetime import datetime
 from typing import Dict, Any, List
 
@@ -41,10 +42,19 @@ def scribe_state(current_focus: str, resolved_objectives: List[str], pending_tas
         return {"status": "ERROR", "message": str(e)}
 
 if __name__ == "__main__":
-    # Integration test
-    print(json.dumps(scribe_state(
-        "Implement S-Scribe", 
-        ["Project Sentinel", "Project Genesis"], 
-        ["Expand S-Bridge", "Tuning Metabolic Weights"], 
-        ["Adaptive Stability Loop is operational"]
-    ), indent=2))
+    if len(sys.argv) < 5:
+        print(json.dumps({
+            "status": "ERROR", 
+            "message": "Usage: python3 s_scribe.py <focus> <resolved_json> <pending_json> <discoveries_json>"
+        }, indent=2))
+        sys.exit(1)
+    
+    try:
+        focus = sys.argv[1]
+        resolved = json.loads(sys.argv[2])
+        pending = json.loads(sys.argv[3])
+        discoveries = json.loads(sys.argv[4])
+        
+        print(json.dumps(scribe_state(focus, resolved, pending, discoveries), indent=2))
+    except Exception as e:
+        print(json.dumps({"status": "ERROR", "message": str(e)}), indent=2)
