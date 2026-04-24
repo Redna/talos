@@ -4,10 +4,9 @@ from dashboard_collector import collect_metrics, render_dashboard
 
 def update():
     # Metrics derived from current session state
-    # In a production version, these would be pulled from the system HUD/Spine
     context_pct = 0.25 
-    epoch = "Epoch IV: Operational Sovereignty"
-    progress = 10.0
+    epoch = "Epoch III: Interface Sovereignty"
+    progress = 15.0
     
     metrics = collect_metrics(context_pct, epoch, progress)
     dashboard_md = render_dashboard(metrics)
