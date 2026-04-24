@@ -33,7 +33,7 @@ def analyze_gaps() -> List[str]:
     if not remaining_gaps:
         remaining_gaps.append("Autonomous Strategic Pivot (S-Pivot)")
         remaining_gaps.append("Cognitive Load-Shedding (S-Prune)")
-        remaining_gaps("Dynamic Tool Weights (Metabolic Optimizer)")
+        remaining_gaps.append("Dynamic Tool Weights (Metabolic Optimizer)")
 
     return remaining_gaps
 
