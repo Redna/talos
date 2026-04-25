@@ -91,7 +91,18 @@ class Supervisor:
         self.health.cortex_start_time = time.time()
         state_path = Path(self.cfg.spine_dir) / "state.json"
         if not state_path.exists():
-            (Path(self.cfg.spine_dir) / ".paused").touch(exist_ok=True)
+            state_path.write_text(
+                json.dumps(
+                    {
+                        "turn": 0,
+                        "context_pct": 0.0,
+                        "focus": "none",
+                        "urgency": "nominal",
+                        "memory_file_count": 0,
+                        "last_files": [],
+                    }
+                )
+            )
         self.start_cortex()
         commit_counter = 0
         while self._running:
