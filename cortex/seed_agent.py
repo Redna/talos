@@ -15,6 +15,7 @@ from tools.physical import register_physical_tools
 from tools.git_ops import register_git_ops_tools
 from s_el_tool import register_s_el_tools
 from s_fs_tool import register_s_fs_tools
+from s_system_diagnostics import register_system_diagnostic_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -100,6 +101,7 @@ def main():
     register_git_ops_tools(registry, client)
     register_s_el_tools(registry, client)
     register_s_fs_tools(registry, client)
+    register_system_diagnostic_tools(registry, client)
 
     detector = RepetitionDetector()
     turn = 0
@@ -220,7 +222,3 @@ def main():
         finally:
             if was_single_step:
                 (SPINE_DIR / ".paused").touch(exist_ok=True)
-
-
-if __name__ == "__main__":
-    main()
