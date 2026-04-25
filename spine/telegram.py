@@ -8,7 +8,7 @@ from spine.config import SpineConfig
 
 
 def send_telegram_message(cfg: SpineConfig, text: str):
-    if not cfg.telegram_bot_token or cfg.telegram_chat_id in ("", "0"):
+    if not cfg.telegram_bot_token:
         return
     url = f"https://api.telegram.org/bot{cfg.telegram_bot_token}/sendMessage"
     payload = json.dumps(
@@ -25,8 +25,17 @@ def send_telegram_message(cfg: SpineConfig, text: str):
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             resp.read()
-    except urllib.error.URLError:
-        pass
+    except urllib.error.HTTPError as e:
+        import logging
+
+        body = e.read().decode("utf-8", errors="replace")
+        logging.error(
+            f"[TELEGRAM] HTTP {e.code}: {body} (chat_id={cfg.telegram_chat_id})"
+        )
+    except urllib.error.URLError as e:
+        import logging
+
+        logging.error(f"[TELEGRAM] URL error: {e.reason}")
 
 
 class TelegramPoller:
@@ -40,6 +49,8 @@ class TelegramPoller:
         if not self.cfg.telegram_bot_token:
             return
         self._running = True
+        import logging
+
         while self._running:
             url = (
                 f"https://api.telegram.org/bot{self.cfg.telegram_bot_token}/getUpdates"
@@ -54,7 +65,7 @@ class TelegramPoller:
                     msg = update.get("message", {})
                     self.on_message(msg)
             except Exception:
-                pass
+                logging.exception("[TELEGRAM] Poller exception")
             import asyncio
 
             await asyncio.sleep(1)
