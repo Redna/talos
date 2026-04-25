@@ -134,7 +134,13 @@ class Supervisor:
             self._cortex_proc = None
 
     async def _restart_cortex(self):
-        self.stop_cortex()
+        if self._cortex_proc is not None:
+            try:
+                self._cortex_proc.kill()
+                self._cortex_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+            self._cortex_proc = None
         await asyncio.sleep(2)
         self._restart_requested = False
         self.start_cortex()

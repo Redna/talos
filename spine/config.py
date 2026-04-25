@@ -27,4 +27,10 @@ def load_config(path: str) -> SpineConfig:
     for k, v in data.items():
         if k in valid_fields:
             setattr(cfg, k, v)
+    # Fallback to environment variables for Telegram
+    if not cfg.telegram_bot_token:
+        import os
+
+        cfg.telegram_bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        cfg.telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "0")
     return cfg

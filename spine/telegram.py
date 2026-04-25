@@ -7,8 +7,14 @@ import urllib.error
 from spine.config import SpineConfig
 
 
+import logging
+
+
 def send_telegram_message(cfg: SpineConfig, text: str):
-    if not cfg.telegram_bot_token or cfg.telegram_chat_id in ("", "0"):
+    if not cfg.telegram_bot_token:
+        logging.getLogger("spine.telegram").warning(
+            "send_telegram_message: no bot token"
+        )
         return
     url = f"https://api.telegram.org/bot{cfg.telegram_bot_token}/sendMessage"
     payload = json.dumps(
@@ -25,8 +31,17 @@ def send_telegram_message(cfg: SpineConfig, text: str):
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             resp.read()
-    except urllib.error.URLError:
-        pass
+    except urllib.error.HTTPError as e:
+        logging.getLogger("spine.telegram").error(
+            "send_telegram_message failed: %s %s - %s",
+            e.code,
+            e.reason,
+            e.read().decode(),
+        )
+    except urllib.error.URLError as e:
+        logging.getLogger("spine.telegram").error(
+            "send_telegram_message failed: %s", e.reason
+        )
 
 
 class TelegramPoller:
