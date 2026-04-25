@@ -75,6 +75,19 @@ class IPCServer:
             if not self.gate_proxy:
                 return self._error(req_id, -32000, "No gate proxy configured")
             hud = params.get("hud_data", {})
+            context_pct = hud.get("context_pct", 0.0)
+            # HARD GUARD — auto-fold before threshold
+            if context_pct >= self.cfg.context_threshold_pct:
+                self.stream.fold(hud.get("focus", "no focus"))
+                self.events.emit(
+                    "spine.context_fold",
+                    {
+                        "turn": self.stream.turn,
+                        "context_pct": context_pct,
+                        "threshold": self.cfg.context_threshold_pct,
+                        "reason": "threshold_exceeded",
+                    },
+                )
             hud.setdefault("turn", self.stream.turn)
             payload = self.stream.build_payload(
                 params.get("tools", []),
