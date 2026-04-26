@@ -80,6 +80,19 @@ class IPCServer:
                 return self._error(req_id, -32000, "No gate proxy configured")
             hud = params.get("hud_data", {})
             hud.setdefault("turn", self.stream.turn)
+
+            # Inject a synthetic user message on first turn if stream has no user input
+            has_user = any(m.get("role") == "user" for m in self.stream.messages)
+            if not has_user:
+                hud_line = (
+                    f"[HUD] turn={hud.get('turn', 0)}"
+                    f" context_pct={hud.get('context_pct', 0.0):.2f}"
+                    f" urgency={hud.get('urgency', 'nominal')}"
+                    f" memory_files={hud.get('memory_files', 0)}"
+                    f" focus={hud.get('focus', '')}"
+                )
+                self.stream.add_message({"role": "user", "content": hud_line})
+
             payload = self.stream.build_payload(
                 params.get("tools", []),
                 hud,
