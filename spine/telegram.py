@@ -49,7 +49,7 @@ class TelegramPoller:
         if not self.cfg.telegram_bot_token:
             return
         self._running = True
-        import logging
+        import logging, asyncio
 
         while self._running:
             url = (
@@ -58,17 +58,19 @@ class TelegramPoller:
             )
             try:
                 req = urllib.request.Request(url)
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
+                resp_data = await asyncio.to_thread(self._fetch_updates, req)
+                data = json.loads(resp_data.decode("utf-8"))
                 for update in data.get("result", []):
                     self._offset = update.get("update_id", self._offset) + 1
                     msg = update.get("message", {})
                     self.on_message(msg)
             except Exception:
                 logging.exception("[TELEGRAM] Poller exception")
-            import asyncio
-
             await asyncio.sleep(1)
+
+    def _fetch_updates(self, req):
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.read()
 
     async def stop(self):
         self._running = False

@@ -30,6 +30,7 @@ class Supervisor:
         self._consecutive_failures = 0
         self._last_stable_commit = ""
         self._running = False
+        self._load_last_good_commit()
 
     def request_restart(self, reason: str):
         self._restart_requested = True
@@ -184,6 +185,66 @@ class Supervisor:
                 self._cortex_proc.kill()
                 self._cortex_proc.wait()
             self._cortex_proc = None
+
+    def _load_last_good_commit(self):
+        path = Path(self.cfg.spine_dir) / "last_good_commit"
+        if path.exists():
+            self._last_stable_commit = path.read_text().strip()
+        else:
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                    cwd=self.cfg.app_dir,
+                )
+                if result.returncode == 0:
+                    self._last_stable_commit = result.stdout.strip()
+            except Exception:
+                pass
+
+    def _record_good_commit(self):
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                capture_output=True,
+                text=True,
+                cwd=self.cfg.app_dir,
+            )
+            if result.returncode == 0:
+                commit = result.stdout.strip()
+                self._last_stable_commit = commit
+                path = Path(self.cfg.spine_dir) / "last_good_commit"
+                path.write_text(commit)
+        except Exception:
+            pass
+
+    def _revert_to_last_good_commit(self):
+        if not self._last_stable_commit:
+            self.events.emit("supervisor.revert_failed", {"reason": "no_good_commit"})
+            return False
+        try:
+            subprocess.run(
+                ["git", "reset", "--hard", self._last_stable_commit],
+                capture_output=True,
+                text=True,
+                cwd=self.cfg.app_dir,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "checkout", "--", "."],
+                capture_output=True,
+                text=True,
+                cwd=self.cfg.app_dir,
+            )
+            self.events.emit(
+                "supervisor.commit_reverted",
+                {"commit": self._last_stable_commit},
+            )
+            return True
+        except Exception as e:
+            self.events.emit("supervisor.revert_failed", {"reason": str(e)})
+            return False
 
     def stop(self):
         self._running = False
