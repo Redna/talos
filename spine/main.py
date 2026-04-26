@@ -33,7 +33,9 @@ async def main():
     logger.info(f"[Spine] Starting: GateURL={cfg.gate_url} Socket={cfg.socket_path}")
 
     event_logger = EventLogger(f"{cfg.spine_dir}/events")
-    health = HealthMonitor(stall_timeout=600.0, startup_timeout=30.0)
+    health = HealthMonitor(
+        stall_timeout=getattr(cfg, "stall_timeout", 600.0), startup_timeout=30.0
+    )
     stream_mgr = StreamManager(cfg)
     supervisor = Supervisor(cfg, event_logger, health, stream_mgr)
     gate_proxy = GateProxy(cfg.gate_url, model=os.environ.get("TALOS_MODEL", ""))
@@ -61,6 +63,18 @@ async def main():
     loop.add_signal_handler(signal.SIGTERM, handle_signal)
 
     supervisor_task = asyncio.create_task(supervisor.run())
+
+    async def watch_supervisor():
+        """Catch supervisor crashes and log them for diagnosis."""
+        try:
+            await supervisor_task
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            logger.exception("[Spine] Supervisor task crashed")
+            stop_event.set()
+
+    asyncio.create_task(watch_supervisor())
 
     await stop_event.wait()
 
