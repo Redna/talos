@@ -22,7 +22,10 @@ class Supervisor:
     ):
         self.cfg = cfg
         self.events = events
-        self.health = health or HealthMonitor(stall_timeout=600.0, startup_timeout=30.0)
+        self.health = health or HealthMonitor(
+            stall_timeout=getattr(cfg, "stall_timeout", 120.0),
+            startup_timeout=30.0,
+        )
         self.stream = stream
         self._restart_requested = False
         self._restart_reason = ""
