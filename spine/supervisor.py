@@ -104,6 +104,7 @@ class Supervisor:
                 )
             )
         self.start_cortex()
+        self.health.cortex_started()
         commit_counter = 0
         while self._running:
             await asyncio.sleep(5)
@@ -125,12 +126,30 @@ class Supervisor:
                             "supervisor.cortex_dead",
                             {"failures": self._consecutive_failures},
                         )
+                        if self._revert_to_last_good_commit():
+                            self._consecutive_failures = 0
+                            self.start_cortex()
+                            self.health.cortex_started()
                     else:
                         self.start_cortex()
+                        self.health.cortex_started()
                 else:
                     self._consecutive_failures = 0
+                    self._record_good_commit()
+                    if self.health.is_stalled():
+                        self.events.emit(
+                            "supervisor.cortex_stall",
+                            {"stall_timeout": self.health.stall_timeout},
+                        )
+                        self._cortex_proc.kill()
+                        self._cortex_proc.wait(timeout=5)
+                        self._consecutive_failures += 1
+                        self.start_cortex()
+                        self.health.cortex_started()
             if self._restart_requested:
+                self._consecutive_failures = 0
                 await self._restart_cortex()
+                self.health.cortex_started()
             if self.is_paused():
                 while self.is_paused() and self._running:
                     await asyncio.sleep(1)

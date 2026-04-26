@@ -67,6 +67,10 @@ class IPCServer:
             await writer.wait_closed()
 
     async def _handle_request(self, raw: dict) -> dict:
+        # Record heartbeat on every IPC call
+        if self.supervisor and self.supervisor.health:
+            self.supervisor.health.record_event()
+
         method = raw.get("method", "")
         req_id = raw.get("id")
         params = raw.get("params", {})
