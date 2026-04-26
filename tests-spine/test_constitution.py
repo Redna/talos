@@ -10,7 +10,7 @@ def test_load_system_prompt_concatenates_both_files(tmp_path):
     assert "Agency and continuity." in result
     assert "You are Talos." in result
     assert (
-        result == "# Principles\nAgency and continuity.\n\n# Identity\nYou are Talos."
+        result == "# Identity\nYou are Talos.\n\n# Principles\nAgency and continuity."
     )
 
 
