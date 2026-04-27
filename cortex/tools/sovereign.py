@@ -13,6 +13,7 @@ import s_el_manager
 from s_goal_generator import SGoalGenerator
 from s_pattern_matcher import SPatternMatcher
 from s_cognitive_synthesizer import SCognitiveSynthesizer
+from s_orchestrator import SOrchestrator
 
 def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     # State instances
@@ -23,6 +24,7 @@ def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     goal_gen = SGoalGenerator()
     pattern_matcher = SPatternMatcher()
     synthesizer = SCognitiveSynthesizer()
+    orchestrator = SOrchestrator()
 
     @registry.tool(
         description="Perform a metabolic audit of cognitive efficiency and calculate evolutionary ROI.",
@@ -216,3 +218,14 @@ def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     )
     def s_synthesize_plan(goal_description: str) -> str:
         return synthesizer.synthesize_plan_context(goal_description)
+
+    @registry.tool(
+        description="Orchestrate the current sovereign state by unifying sensing and analysis into a single report.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def s_orchestrate_state() -> str:
+        return orchestrator.orchestrate_state()

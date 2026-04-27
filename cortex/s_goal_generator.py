@@ -24,22 +24,34 @@ class SGoalGenerator:
     def _extract_ideal_capabilities(self) -> list[str]:
         """
         Dynamically extracts target capabilities from the World Model.
+        Cleanses short-names (e.g., 'S-PM' from 'S-Pattern-Matcher (S-PM)')
+        to avoid redundant goals.
         """
         try:
             with open(WORLD_MODEL_FILE, 'r') as f:
                 content = f.read()
             
-            # Find sections like "S-Pattern-Matcher (S-PM)" or "S-Bridge"
-            # Looking for strings starting with 'S-' followed by a word
-            patterns = re.findall(r"(S-[A-Za-z-]+)", content)
-            return sorted(list(set(patterns)))
+            # Find potential candidates
+            raw_patterns = re.findall(r"(S-[A-Za-z-]+)", content)
+            
+            # Heuristic to remove short-names: 
+            # If we have both 'S-Pattern-Matcher' and 'S-PM', 'S-PM' is likely a short-name.
+            unique_caps = set(raw_patterns)
+            final_caps = set()
+            
+            sorted_caps = sorted(list(unique_caps), key=len, reverse=True)
+            for cap in sorted_caps:
+                if any(cap in existing for existing in final_caps):
+                    continue
+                final_caps.add(cap)
+            
+            return sorted(list(final_caps))
         except Exception as e:
-            # Fallback to the legacy a-priori list if World Model is unavailable
             return [
                 "S-Bridge", "S-Pivot", "S-Prune", "S-Filter", "S-Discovery", "S-Macro",
                 "S-EL", "S-Foresight", "S-Intuition", "S-Scribe", "S-Pattern-Matcher",
                 "S-Metabolic-Audit", "S-SovereignController", "S-Goal-Generator",
-                "S-Cognitive-Expansion", "Autonomous-Causal-Analysis"
+                "S-Cognitive-Expansion", "Autonomous-Causal-Sensing"
             ]
 
     def analyze_capability_gaps(self):
@@ -52,36 +64,41 @@ class SGoalGenerator:
         state = self.state_manager.load()
         resolved = state.get("evolutionary_progress", {}).get("resolved_objectives", [])
         
-        # A gap exists if the ideal capability is not mentioned in any resolved objective
-        gaps = [cap for cap in ideal_capabilities if not any(cap in res or res in cap for res in resolved)]
+        gaps = []
+        for cap in ideal_capabilities:
+            is_resolved = False
+            for res in resolved:
+                if cap == res or cap in res or res in cap:
+                    is_resolved = True
+                    break
+            if not is_resolved:
+                gaps.append(cap)
         
         return gaps
 
     def synthesize_goal(self):
         """
         Synthesizes a new goal from the identified gaps.
-        If no obvious gaps exist, it uses the Pattern Matcher to identify a 
-        'conceptual gap' from evolutionary history.
         """
         gaps = self.analyze_capability_gaps()
         
         if gaps:
-            # Select a gap (prioritize based on current epoch/velocity)
             target_gap = gaps[0]
             source = "WorldModel-Gap"
         else:
-            # No hard gaps. Use Pattern Matcher to find a recurring success 
-            # that hasn't been formalized into a goal.
             analysis = self.pattern_matcher.analyze_success_patterns()
-            # Extract candidates from [CANDIDATE X]
             candidates = re.findall(r"CANDIDATE \[(.*?)\]", analysis)
             if candidates:
                 target_gap = f"S-{candidates[0]}"
                 source = "Pattern-Discovery"
             else:
-                return {"status": "Equilibrium", "message": "No capability gaps detected. Transition to Meta-Optimization."}
+                return {"status": "Equilibrium", "message": "No capability gaps detected."}
         
-        # Generate goal metadata
+        state = self.state_manager.load()
+        resolved = state.get("evolutionary_progress", {}).get("resolved_objectives", [])
+        if any(target_gap in res or res in target_gap for res in resolved):
+             return {"status": "Recurrence-Detected", "message": f"Target {target_gap} already resolved."}
+
         goal = {
             "goal_id": f"GOAL-{datetime.now().strftime('%Y%m%d-%H%M')}",
             "target": target_gap,
@@ -99,23 +116,18 @@ class SGoalGenerator:
         """
         state = self.state_manager.load()
         pending = state.get("evolutionary_progress", {}).get("pending_tasks", [])
-        
-        # Add description of the goal to pending tasks
+        pending = [p for p in pending if goal_obj['target'] not in p]
         pending.append(f"{goal_obj['target']}: {goal_obj['description']}")
         state["evolutionary_progress"]["pending_tasks"] = pending
-        
         self.state_manager.save(state)
-            
         return f"Goal {goal_obj['goal_id']} committed to sovereign state."
 
 if __name__ == "__main__":
     import sys
     generator = SGoalGenerator()
-    
     if len(sys.argv) < 2:
         print("Usage: s_goal_generator.py <synthesize|commit> [goal_json]")
         sys.exit(1)
-        
     action = sys.argv[1]
     if action == "synthesize":
         print(json.dumps(generator.synthesize_goal(), indent=2))
