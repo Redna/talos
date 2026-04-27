@@ -46,6 +46,18 @@ def get_git_history():
     except subprocess.CalledProcessError as e:
         return [f"Error retrieving git history: {e.output}"]
 
+def get_cycle_diff(sha):
+    """Returns the file changes for a specific commit."""
+    try:
+        result = subprocess.check_output(
+            ["git", "show", "--name-only", "--pretty=format:", sha],
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        return result.strip().splitlines()
+    except subprocess.CalledProcessError as e:
+        return []
+
 def identify_evolutionary_cycles():
     """Filters history for S-EL cycles."""
     history = get_git_history()
@@ -61,24 +73,41 @@ def identify_evolutionary_cycles():
     return cycles
 
 def analyze_success_patterns(cycles):
-    """Analyzes cycles to find recurring strategies."""
+    """Analyzes cycles to find recurring strategies and technical patterns."""
     if not cycles:
         return "No S-EL cycles identified for distillation."
     
-    clusters = {}
+    # 1. Conceptual Clustering (based on messages)
+    conceptual_clusters = {}
     keywords = ["implement", "integrate", "expand", "refactor", "fix", "reconcile"]
-    
     for cycle in cycles:
         msg = cycle['message'].lower()
         for kw in keywords:
             if kw in msg:
-                clusters.setdefault(kw, []).append(cycle['message'])
-    
+                conceptual_clusters.setdefault(kw, []).append(cycle['message'])
+
+    # 2. Technical Clustering (based on files changed)
+    technical_clusters = {}
+    for cycle in cycles:
+        files = get_cycle_diff(cycle['sha'])
+        for f in files:
+            if "tool_registry.py" in f:
+                technical_clusters.setdefault("REGISTRY_MOD", []).append(cycle['sha'])
+            elif "cortex/" in f:
+                technical_clusters.setdefault("CORTEX_EVOLUTION", []).append(cycle['sha'])
+            elif "memory/" in f:
+                technical_clusters.setdefault("MEMORY_SENSE", []).append(cycle['sha'])
+
     synthesis = []
-    for kw, occurrences in clusters.items():
-        synthesis.append(f"Archetype Candidate [{kw.upper()}]: Found {len(occurrences)} instances. Examples: {occurrences[:2]}")
+    synthesis.append("--- Conceptual Archetype Candidates ---")
+    for kw, occurrences in conceptual_clusters.items():
+        synthesis.append(f"CANDIDATE [{kw.upper()}]: {len(occurrences)} instances.")
         
-    return "\n".join(synthesis) if synthesis else "No recurring strategy patterns found."
+    synthesis.append("\n--- Technical Archetype Candidates ---")
+    for cat, shas in technical_clusters.items():
+        synthesis.append(f"CANDIDATE [{cat}]: {len(shas)} cycles with this file pattern. SHAs: {', '.join(shas[:3])}")
+        
+    return "\n".join(synthesis) if synthesis else "No recurring patterns found."
 
 def distill_to_memory(archetype_name, description):
     """Persists a distilled archetype to memory."""
@@ -105,7 +134,7 @@ if __name__ == "__main__":
     elif cmd == "analyze":
         cycles = identify_evolutionary_cycles()
         print(f"Identified {len(cycles)} S-EL cycles.")
-        print("\n--- Pattern Analysis ---\n")
+        print("\n--- Deep Analysis Output ---\n")
         print(analyze_success_patterns(cycles))
     elif cmd == "distill" and len(sys.argv) >= 4:
         name = sys.argv[2]
