@@ -142,7 +142,7 @@ class StreamManager:
         hud_line = None
         if should_show_hud:
             hud_line = (
-                f"\n[HUD] turn={effective_hud.get('turn', 0)}"
+                f"---\n[HUD] turn={effective_hud.get('turn', 0)}"
                 f" context_pct={effective_hud.get('context_pct', 0.0):.2f}"
                 f" urgency={effective_hud.get('urgency', 'nominal')}"
                 f" memory_files={effective_hud.get('memory_files', 0)}"
