@@ -146,16 +146,31 @@ class StreamManager:
             self._hud_piggybacked = True
         if append_parts:
             suffix = "\n".join(append_parts)
-            # Only decorate tool messages that have not received HUD yet.
-            # This preserves immutability: once a message is in the stream it
-            # never changes; the gate sees stable content and can deduplicate
-            # without stripping or fingerprint tricks.
+            # Per architecture (P10, §5.3): piggyback dynamic data onto the last
+            # tool message. If none exists (fresh start / after fold), fall back
+            # to the last user message. Only as a last resort add a synthetic
+            # user message, since that mutates the stream length.
+            target_index = -1
             for i, msg in enumerate(reversed(payload)):
                 actual_index = len(payload) - 1 - i
-                if msg.get("role") == "tool" and actual_index > self._hud_last_index:
-                    msg["content"] += "\n---\n" + suffix
-                    self._hud_last_index = actual_index
+                role = msg.get("role")
+                if role == "tool" and actual_index > self._hud_last_index:
+                    target_index = actual_index
                     break
+            if target_index == -1:
+                for i, msg in enumerate(reversed(payload)):
+                    actual_index = len(payload) - 1 - i
+                    if msg.get("role") == "user":
+                        target_index = actual_index
+                        break
+            if target_index >= 0:
+                payload[target_index]["content"] += "\n---\n" + suffix
+                self._hud_last_index = target_index
+            else:
+                # Edge case: only system messages in stream. Add a synthetic
+                # user message so the notice is not lost.
+                payload.append({"role": "user", "content": suffix})
+                self._hud_last_index = len(payload) - 1
         if self._queued_notices:
             self._queued_notices.clear()
         return payload
