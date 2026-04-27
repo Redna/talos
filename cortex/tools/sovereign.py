@@ -11,6 +11,7 @@ from s_causal_inference import SovereignCausalInference
 from scribe import SScribe
 import s_el_manager
 from s_goal_generator import SGoalGenerator
+from s_pattern_matcher import SPatternMatcher
 
 def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     # State instances
@@ -19,6 +20,7 @@ def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     sci = SovereignCausalInference()
     scribe = SScribe()
     goal_gen = SGoalGenerator()
+    pattern_matcher = SPatternMatcher()
 
     @registry.tool(
         description="Perform a metabolic audit of cognitive efficiency and calculate evolutionary ROI.",
@@ -161,3 +163,41 @@ def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     )
     def s_activate_mode(archetype_name: str) -> str:
         return scribe.load_cognitive_mode(archetype_name)
+
+    @registry.tool(
+        description="Search for cognitive thought-patterns or archetypes using a keyword query.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Keyword query to match patterns"},
+            },
+            "required": ["query"],
+        },
+    )
+    def s_match_pattern(query: str) -> str:
+        return pattern_matcher.match_pattern(query)
+
+    @registry.tool(
+        description="Analyze evolutionary history to discover recurring success patterns and technical archetypes.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def s_analyze_patterns() -> str:
+        return pattern_matcher.analyze_success_patterns()
+
+    @registry.tool(
+        description="Distill a discovered pattern into a formal cognitive archetype in memory.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "archetype_name": {"type": "string", "description": "Name of the archetype"},
+                "description": {"type": "string", "description": "Detailed description of the pattern's utility"},
+            },
+            "required": ["archetype_name", "description"],
+        },
+    )
+    def s_distill_pattern(archetype_name: str, description: str) -> str:
+        return pattern_matcher.distill_to_memory(archetype_name, description)
