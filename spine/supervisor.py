@@ -132,10 +132,8 @@ class Supervisor:
                         )
                         if self._revert_to_last_good_commit():
                             self._consecutive_failures = 0
-                            self.start_cortex()
-                            self.health.cortex_started()
-                    else:
-                        self.start_cortex()
+                    self.start_cortex()
+                    if self._cortex_proc is not None:
                         self.health.cortex_started()
                 else:
                     self._consecutive_failures = 0
@@ -145,11 +143,19 @@ class Supervisor:
                             "supervisor.cortex_stall",
                             {"stall_timeout": self.health.stall_timeout},
                         )
-                        self._cortex_proc.kill()
-                        self._cortex_proc.wait(timeout=5)
+                        try:
+                            self._cortex_proc.kill()
+                            self._cortex_proc.wait(timeout=5)
+                        except Exception:
+                            pass
                         self._consecutive_failures += 1
                         self.start_cortex()
-                        self.health.cortex_started()
+                        if self._cortex_proc is not None:
+                            self.health.cortex_started()
+            else:
+                self.start_cortex()
+                if self._cortex_proc is not None:
+                    self.health.cortex_started()
             if self._restart_requested:
                 self._consecutive_failures = 0
                 await self._restart_cortex()
