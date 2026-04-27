@@ -1,6 +1,7 @@
 import ast
 import os
 from pathlib import Path
+from .SFilter import SFilter
 from typing import List, Dict, Set
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
@@ -46,21 +47,15 @@ def register_analysis_tools(registry: ToolRegistry, client: SpineClient):
                         if node.module:
                             imports.add(node.module)
 
-                # Filter for internal imports only
                 internal_imports = set()
                 for imp in imports:
-                    # Simple check: does the import start with a known local module or is it relative?
-                    # In a real system, we'd check against the list of all identified modules.
-                    # For now, we'll just capture all and the user can filter, or we do a basic check.
                     internal_imports.add(imp)
 
                 dependencies[module_name] = internal_imports
 
-            # Basic filtering: only keep imports that are actually present in the analyzed paths
             all_modules = set(dependencies.keys())
             filtered_deps = {}
             for mod, imps in dependencies.items():
-                # This is a naive filter; in a complex project we'd handle packages' __init__ better
                 filtered_deps[mod] = [i for i in imps if any(m.startswith(i) for m in all_modules)]
 
             report = []
@@ -91,11 +86,9 @@ def register_analysis_tools(registry: ToolRegistry, client: SpineClient):
     def synthesize_memory(sources: List[str], destination: str, content: str) -> str:
         client.emit_event("cortex.synthesize_memory", {"sources": sources, "destination": destination})
         try:
-            # Write the synthesized content first to ensure no data loss if deletion fails
             with open(destination, "w", encoding="utf-8") as f:
                 f.write(content)
             
-            # Delete the sources
             for src in sources:
                 p = Path(src)
                 if p.exists():
@@ -104,3 +97,19 @@ def register_analysis_tools(registry: ToolRegistry, client: SpineClient):
             return f"[SYNTHESIZED] Merged {len(sources)} files into {destination}"
         except Exception as e:
             return f"[ERROR] Synthesis failed: {e}"
+
+    @registry.tool(
+        description="Distill a stream of text by removing noise and keeping high-SNR signals based on an intent vector.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "data": {"type": "string", "description": "The raw text stream to filter"},
+                "intent_vector": {"type": "string", "description": "The target focus (e.g., 'evolution', 'critical gaps')"},
+            },
+            "required": ["data"],
+        },
+    )
+    def s_filter_signal(data: str, intent_vector: str = None) -> str:
+        filter_engine = SFilter()
+        distilled, snr = filter_engine.distill(data, intent_vector)
+        return f"[SNR: {snr:.4f}]\n{distilled}"
