@@ -147,21 +147,19 @@ class StreamManager:
         attached = False
         if append_parts:
             suffix = "\n".join(append_parts)
-            # Piggyback onto the last message that has not yet received a HUD.
-            # If no eligible message exists, the queue persists until the next
-            # turn when a tool result or user message arrives.
+            # Queue semantics: only flush onto a *tool* message.  If there is
+            # no eligible tool message the notices survive to the next turn.
             target_index = -1
             for i, msg in enumerate(reversed(payload)):
                 actual_index = len(payload) - 1 - i
-                role = msg.get("role")
-                if role in ("tool", "user") and actual_index > self._hud_last_index:
+                if msg.get("role") == "tool" and actual_index > self._hud_last_index:
                     target_index = actual_index
                     break
             if target_index >= 0:
                 payload[target_index]["content"] += "\n---\n" + suffix
                 self._hud_last_index = target_index
                 attached = True
-        # Only clear the queue when the notices were actually attached.
+        # Only clear the queue when piggybacked onto a tool message.
         if attached:
             if self._queued_notices:
                 self._queued_notices.clear()
