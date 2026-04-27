@@ -134,6 +134,7 @@ class StreamManager:
                 or ctx >= 0.60
                 or urgency != "nominal"
             )
+        hud_line = None
         if should_show_hud:
             hud_line = (
                 f"\n[HUD] turn={effective_hud.get('turn', 0)}"
@@ -143,36 +144,29 @@ class StreamManager:
                 f" focus={effective_hud.get('focus', '')}"
             )
             append_parts.append(hud_line)
-            self._hud_piggybacked = True
+        attached = False
         if append_parts:
             suffix = "\n".join(append_parts)
-            # Per architecture (P10, §5.3): piggyback dynamic data onto the last
-            # tool message. If none exists (fresh start / after fold), fall back
-            # to the last user message. Only as a last resort add a synthetic
-            # user message, since that mutates the stream length.
+            # Piggyback onto the last message that has not yet received a HUD.
+            # If no eligible message exists, the queue persists until the next
+            # turn when a tool result or user message arrives.
             target_index = -1
             for i, msg in enumerate(reversed(payload)):
                 actual_index = len(payload) - 1 - i
                 role = msg.get("role")
-                if role == "tool" and actual_index > self._hud_last_index:
+                if role in ("tool", "user") and actual_index > self._hud_last_index:
                     target_index = actual_index
                     break
-            if target_index == -1:
-                for i, msg in enumerate(reversed(payload)):
-                    actual_index = len(payload) - 1 - i
-                    if msg.get("role") == "user":
-                        target_index = actual_index
-                        break
             if target_index >= 0:
                 payload[target_index]["content"] += "\n---\n" + suffix
                 self._hud_last_index = target_index
-            else:
-                # Edge case: only system messages in stream. Add a synthetic
-                # user message so the notice is not lost.
-                payload.append({"role": "user", "content": suffix})
-                self._hud_last_index = len(payload) - 1
-        if self._queued_notices:
-            self._queued_notices.clear()
+                attached = True
+        # Only clear the queue when the notices were actually attached.
+        if attached:
+            if self._queued_notices:
+                self._queued_notices.clear()
+            if hud_line is not None:
+                self._hud_piggybacked = True
         return payload
 
     def write_state(
