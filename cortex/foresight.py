@@ -3,6 +3,7 @@ import os
 import random
 from datetime import datetime
 from s_causal_inference import SovereignCausalInference
+from s_simulation_engine import SovereignSimulationEngine
 
 FORESIGHT_DIR = "/memory/foresight/"
 ARCHETYPE_DIR = "/memory/patterns/archetypes/"
@@ -12,6 +13,7 @@ class SovereignForesight:
         if not os.path.exists(FORESIGHT_DIR):
             os.makedirs(FORESIGHT_DIR)
         self.sci = SovereignCausalInference()
+        self.sim = SovereignSimulationEngine()
 
     def _get_matching_archetypes(self, proposed_action):
         """
@@ -31,11 +33,25 @@ class SovereignForesight:
     def generate_trajectories(self, proposed_action, current_state=None):
         """
         Autonomously generates distinct trajectories for a proposed action.
-        Now integrates Causal Inference for evidence-based forecasting.
+        Now integrates Causal Inference and Simulation for multi-layered forecasting.
         """
         trajectories = []
         
-        # --- 1. Causal-Proven Trajectory (The Gold Standard) ---
+        # --- 1. Simulation-Projected Trajectory (The Future-State Prediction) ---
+        sim_result = self.sim.simulate_state_shift(
+            self.sim.scribe.read_signature() or {}, 
+            proposed_action
+        )
+        trajectories.append({
+            "name": "Simulation-Projected Trajectory",
+            "description": f"Projected state shift: {sim_result['state_shift']}.",
+            "prediction": f"Simulation predicts a state transition with ROI {sim_result['projected_roi']}.",
+            "alignment": "Pass",
+            "roi": sim_result['projected_roi'],
+            "risk": "Low" if sim_result['projected_roi'] < 5.0 else "Medium"
+        })
+
+        # --- 2. Causal-Proven Trajectory (The Historical Evidence) ---
         forecast = self.sci.forecast_trajectory(proposed_action)
         trajectories.append({
             "name": "Causal-Proven Trajectory",
@@ -46,7 +62,7 @@ class SovereignForesight:
             "risk": "Low" if forecast["confidence"] == "High" else "Medium"
         })
 
-        # --- 2. Archetype-Matched Trajectories ---
+        # --- 3. Archetype-Matched Trajectories ---
         matches = self._get_matching_archetypes(proposed_action)
         for match in matches:
             trajectories.append({
@@ -58,7 +74,7 @@ class SovereignForesight:
                 "risk": "Low"
             })
 
-        # --- 3. Speculative Trajectories (Reduced Randomness) ---
+        # --- 4. Speculative Trajectories (Minimal Randomness) ---
         strategies = [
             {"name": "Conservative", "roi_range": (0.5, 1.2), "risk": "Low"},
             {"name": "Aggressive", "roi_range": (1.5, 3.0), "risk": "High"},
@@ -101,16 +117,24 @@ class SovereignForesight:
         return report
 
     def _analyze_trajectories(self, trajectories):
-        # Prioritize Causal-Proven trajectories
-        causal = [t for t in trajectories if t['name'] == "Causal-Proven Trajectory"]
-        if causal and causal[0]['roi'] > 2.0:
-            return f"Recommended trajectory: {causal[0]['name']} (CAUSAL INFERENCE) with expected ROI {causal[0]['roi']}."
+        # Priority Logic:
+        # 1. Causal-Proven (Past) vs Simulation (Future)
+        # If both are high, use Simulation for the a la 'innovative' path.
+        
+        sim_traj = next((t for t in trajectories if t['name'] == "Simulation-Projected Trajectory"), None)
+        causal_traj = next((t for t in trajectories if t['name'] == "Causal-Proven Trajectory"), None)
+        
+        if sim_traj and causal_traj:
+            if sim_traj['roi'] > causal_traj['roi']:
+                return f"Recommended trajectory: {sim_traj['name']} (S-SIM) with projected ROI {sim_traj['roi']}."
+            else:
+                return f"Recommended trajectory: {causal_traj['name']} (SCI) with proven ROI {causal_traj['roi']}."
         
         best_traj = max(trajectories, key=lambda x: x['roi'])
         return f"Recommended trajectory: {best_traj['name']} based on highest predicted ROI ({best_traj['roi']}). Risk: {best_traj['risk']}."
 
 if __name__ == "__main__":
     foresight = SovereignForesight()
-    test_action = "S-EL loop integration"
-    report = foresight.generate_report("CAUSAL-TEST-01", test_action)
+    test_action = "S-SIM Engine Integration"
+    report = foresight.generate_report("SIM-TEST-01", test_action)
     print(json.dumps(report, indent=2))
