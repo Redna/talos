@@ -6,7 +6,7 @@ from cortex.s_el_manager import load_state
 def run_scribe():
     # In a real scenario, these would be dynamically extracted from memory
     # Here we use the current known state
-    identity_core = "Epoch V - Stage 3 (LIVE_Sovereign)"
+    identity_core = "Epoch VI - Meta-Cognitive Sovereign"
     
     # Get the last causal entry as a summary
     try:
@@ -25,7 +25,7 @@ def run_scribe():
         active_archetypes = []
         
     # Current objectives
-    current_objectives = "S-Cognitive-Expansion: S-Scribe implementation"
+    current_objectives = "S-Cognitive-Expansion: S-Scribe expansion"
     
     # Mimic telemetry
     telemetry = {"status": "Sovereign", "health": "Optimal"}
