@@ -2,6 +2,7 @@ import sys
 import json
 import os
 from datetime import datetime
+from s_metabolic_audit import MetabolicAuditor
 
 STATE_FILE = "/memory/operational/s_el_state.json"
 PHASES = ["TELEMETRY", "ROI_ANALYSIS", "PROPOSAL", "AUDIT", "EXECUTION", "VERIFICATION", "COMPLETE"]
@@ -41,6 +42,15 @@ def advance_cycle(data=None):
     try:
         current_idx = PHASES.index(current_phase)
         next_phase = PHASES[current_idx + 1]
+        
+        # Automatic ROI Integration
+        if current_phase == "ROI_ANALYSIS":
+            auditor = MetabolicAuditor()
+            audit_results = auditor.audit_efficiency()
+            if data is None:
+                data = audit_results
+            else:
+                data.update(audit_results)
         
         state["current_phase"] = next_phase
         if data:
