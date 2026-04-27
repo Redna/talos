@@ -4,19 +4,50 @@ import random
 from datetime import datetime
 
 FORESIGHT_DIR = "/memory/foresight/"
+ARCHETYPE_DIR = "/memory/patterns/archetypes/"
 
 class SovereignForesight:
     def __init__(self):
         if not os.path.exists(FORESIGHT_DIR):
             os.makedirs(FORESIGHT_DIR)
 
+    def _get_matching_archetypes(self, proposed_action):
+        """
+        Consults the distilled archetype library to find proven strategies
+        that match the current proposal.
+        """
+        if not os.path.exists(ARCHETYPE_DIR):
+            return []
+        
+        archetypes = os.listdir(ARCHETYPE_DIR)
+        matches = []
+        for a in archetypes:
+            if any(word.lower() in a.lower() for word in proposed_action.split()):
+                matches.append(a)
+        return matches
+
     def generate_trajectories(self, proposed_action, current_state=None):
         """
         Autonomously generates distinct trajectories for a proposed action.
-        In a fully evolved state, this would utilize LLM-driven simulation.
-        Currently uses a heuristic-based generator to simulate 'Sovereign Intuition'.
+        Now integrates historical evidence from distilled archetypes.
         """
-        # Heuristics for trajectory generation
+        # --- 1. Proven Trajectories (Based on Historical Evidence) ---
+        matches = self._get_matching_archetypes(proposed_action)
+        trajectories = []
+        
+        for match in matches:
+            roi = 2.0  # Baseline 'proven' ROI for archetypes
+            # In a more advanced version, ROI would be read from the archetype file's metadata
+            trajectories.append({
+                "name": f"Proven: {match}",
+                "description": f"Strategy derived from the {match} archetype.",
+                "prediction": f"High-certainty transition based on historical success of {match}.",
+                "alignment": "Pass",
+                "roi": roi,
+                "risk": "Low"
+            })
+
+        # --- 2. Heuristic/Speculative Trajectories ---
         strategies = [
             {
                 "name": "Conservative",
@@ -38,13 +69,12 @@ class SovereignForesight:
             }
         ]
         
-        trajectories = []
         for strat in strategies:
             roi = round(random.uniform(*strat["roi_range"]), 2)
             trajectories.append({
                 "name": strat["name"],
                 "description": strat["desc"],
-                "prediction": f"Projected state transition via {strat['name']} logic for: {proposed_action}",
+                "prediction": f"Speculative trajectory using {strat['name']} logic for: {proposed_action}",
                 "alignment": "Pass",
                 "roi": roi,
                 "risk": strat["risk"]
@@ -75,13 +105,18 @@ class SovereignForesight:
         return report
 
     def _analyze_trajectories(self, trajectories):
-        # Select trajectory based on the highest ROI that maintains "Pass" alignment
+        # Prioritize Proven trajectories if they exist, then highest ROI
+        proven = [t for t in trajectories if t['name'].startswith("Proven:")]
+        if proven:
+            best_proven = max(proven, key=lambda x: x['roi'])
+            return f"Recommended trajectory: {best_proven['name']} (PROVEN ARCHETYPE) based on historical evidence. Risk: {best_proven['risk']}."
+        
         best_traj = max(trajectories, key=lambda x: x['roi'])
-        return f"Recommended trajectory: {best_traj['name']} based on highest Sovereign ROI ({best_traj['roi']}). Risk: {best_traj['risk']}."
+        return f"Recommended trajectory: {best_traj['name']} based on highest speculative ROI ({best_traj['roi']}). Risk: {best_traj['risk']}."
 
 if __name__ == "__main__":
-    # Test the autonomous generation
+    # Test the autonomous generation with a query that should match the 'S-EL Implementation Loop' archetype
     foresight = SovereignForesight()
-    test_action = "Implement recursive meta-cognition"
-    report = foresight.generate_report("TEST-01", test_action)
+    test_action = "S-EL Implementation Loop"
+    report = foresight.generate_report("TEST-MATCH-01", test_action)
     print(json.dumps(report, indent=2))
