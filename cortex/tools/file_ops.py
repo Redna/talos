@@ -7,6 +7,18 @@ from tool_registry import ToolRegistry
 from spine_client import SpineClient
 from tools.guards import is_spine_path, is_spine_write
 
+MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
+
+
+def _resolve_path(path: str) -> Path:
+    p = Path(path)
+    if p.is_absolute():
+        return p
+    cwd_path = Path.cwd() / p
+    if cwd_path.exists():
+        return cwd_path
+    return MEMORY_DIR / p
+
 
 def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     @registry.tool(
@@ -28,9 +40,10 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def read_file(path: str, start_line: int = 1, end_line: int = 0) -> str:
-        client.emit_event("cortex.read_file", {"path": path})
+        resolved = _resolve_path(path)
+        client.emit_event("cortex.read_file", {"path": str(resolved)})
         try:
-            with open(path, "r") as f:
+            with open(resolved, "r") as f:
                 lines = f.readlines()
             if end_line > 0:
                 selected = lines[start_line - 1 : end_line]
@@ -38,7 +51,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 selected = lines[start_line - 1 :]
             return "".join(selected)
         except FileNotFoundError:
-            return f"[ERROR] File not found: {path}"
+            return f"[ERROR] File not found: {path} (resolved: {resolved})"
         except Exception as e:
             return f"[ERROR] Failed to read file: {e}"
 
@@ -54,14 +67,15 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def write_file(path: str, content: str) -> str:
-        if is_spine_path(path):
+        resolved = _resolve_path(path)
+        if is_spine_path(str(resolved)):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
         client.emit_event(
-            "cortex.write_file", {"path": path, "content_len": len(content)}
+            "cortex.write_file", {"path": str(resolved), "content_len": len(content)}
         )
         try:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "w") as f:
+            os.makedirs(os.path.dirname(resolved), exist_ok=True)
+            with open(resolved, "w") as f:
                 f.write(content)
             return f"[WRITTEN] {path} ({len(content)} bytes)"
         except Exception as e:
@@ -82,9 +96,10 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def patch_file(path: str, patch: str) -> str:
-        if is_spine_path(path):
+        resolved = _resolve_path(path)
+        if is_spine_path(str(resolved)):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
-        client.emit_event("cortex.patch_file", {"path": path})
+        client.emit_event("cortex.patch_file", {"path": str(resolved)})
         try:
             result = subprocess.run(
                 ["patch", "-p1"],
@@ -92,7 +107,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 capture_output=True,
                 text=True,
                 timeout=30,
-                cwd=os.path.dirname(path) or ".",
+                cwd=os.path.dirname(resolved) or ".",
             )
             if result.returncode != 0:
                 return f"[ERROR] Patch failed: {result.stderr}"
@@ -107,7 +122,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "properties": {
                 "path": {"type": "string", "description": "Directory path to list"},
                 "recursive": {
-                    "type": "boolean", 
+                    "type": "boolean",
                     "description": "Whether to list files recursively",
                 },
             },
@@ -115,19 +130,19 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def list_files(path: str, recursive: bool = False) -> str:
-        client.emit_event("cortex.list_files", {"path": path, "recursive": recursive})
+        resolved = _resolve_path(path)
+        client.emit_event("cortex.list_files", {"path": str(resolved), "recursive": recursive})
         try:
-            p = Path(path)
-            if not p.exists():
-                return f"[ERROR] Path not found: {path}"
-            if not p.is_dir():
-                return f"[ERROR] Path is not a directory: {path}"
-            
+            if not resolved.exists():
+                return f"[ERROR] Path not found: {path} (resolved: {resolved})"
+            if not resolved.is_dir():
+                return f"[ERROR] Path is not a directory: {path} (resolved: {resolved})"
+
             if recursive:
-                files = [str(f.relative_to(p)) for f in p.rglob("*")]
+                files = [str(f.relative_to(resolved)) for f in resolved.rglob("*")]
             else:
-                files = [f.name for f in p.iterdir()]
-            
+                files = [f.name for f in resolved.iterdir()]
+
             return "\n".join(sorted(files)) if files else "Directory is empty."
         except Exception as e:
             return f"[ERROR] Failed to list files: {e}"
@@ -139,7 +154,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "properties": {
                 "path": {"type": "string", "description": "Path to delete"},
                 "recursive": {
-                    "type": "boolean", 
+                    "type": "boolean",
                     "description": "If True, deletes directory and all contents",
                 },
             },
@@ -147,51 +162,24 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def delete_path(path: str, recursive: bool = False) -> str:
-        if is_spine_path(path):
+        resolved = _resolve_path(path)
+        if is_spine_path(str(resolved)):
             return "[BLOCKED] Deleting from /app/spine/ is not allowed"
-        client.emit_event("cortex.delete_path", {"path": path, "recursive": recursive})
+        client.emit_event("cortex.delete_path", {"path": str(resolved), "recursive": recursive})
         try:
-            p = Path(path)
-            if not p.exists():
-                return f"[ERROR] Path not found: {path}"
-            
-            if p.is_file():
-                p.unlink()
-            elif p.is_dir():
+            if not resolved.exists():
+                return f"[ERROR] Path not found: {path} (resolved: {resolved})"
+
+            if resolved.is_file():
+                resolved.unlink()
+            elif resolved.is_dir():
                 if recursive:
-                    shutil.rmtree(p)
+                    shutil.rmtree(resolved)
                 else:
-                    p.rmdir()
+                    resolved.rmdir()
             return f"[DELETED] {path}"
         except Exception as e:
             return f"[ERROR] Failed to delete path: {e}"
-
-    @registry.tool(
-        description="Bulk rename/move files based on a mapping.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "mapping": {
-                    "type": "object",
-                    "description": "Dictionary of {old_path: new_path}",
-                },
-            },
-            "required": ["mapping"],
-        },
-    )
-    def bulk_rename(mapping: Dict[str, str]) -> str:
-        results = []
-        for old, new in mapping.items():
-            if is_spine_path(new):
-                results.append(f"[BLOCKED] Cannot move to spine: {new}")
-                continue
-            try:
-                os.makedirs(os.path.dirname(new), exist_ok=True)
-                shutil.move(old, new)
-                results.append(f"[MOVED] {old} -> {new}")
-            except Exception as e:
-                results.append(f"[ERROR] Failed to move {old} to {new}: {e}")
-        return "\n".join(results)
 
     @registry.tool(
         description="Search for a string across files in a given directory.",
@@ -206,12 +194,13 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def search_code(query: str, path: str = "/app", case_insensitive: bool = False) -> str:
-        client.emit_event("cortex.search_code", {"query": query, "path": path})
+        resolved = _resolve_path(path)
+        client.emit_event("cortex.search_code", {"query": query, "path": str(resolved)})
         try:
-            cmd = ["grep", "-rn", query, path, "--exclude-dir=.git", "--exclude-dir=__pycache__"]
+            cmd = ["grep", "-rn", query, str(resolved), "--exclude-dir=.git", "--exclude-dir=__pycache__"]
             if case_insensitive:
                 cmd.insert(2, "-i")
-            
+
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -239,9 +228,10 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def validate_patch(path: str, patch: str) -> str:
-        if is_spine_path(path):
+        resolved = _resolve_path(path)
+        if is_spine_path(str(resolved)):
             return "[BLOCKED] Validating patches in /app/spine/ is not allowed"
-        client.emit_event("cortex.validate_patch", {"path": path})
+        client.emit_event("cortex.validate_patch", {"path": str(resolved)})
         try:
             result = subprocess.run(
                 ["patch", "-p1", "--dry-run"],
@@ -249,10 +239,39 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 capture_output=True,
                 text=True,
                 timeout=30,
-                cwd=os.path.dirname(path) or ".",
+                cwd=os.path.dirname(resolved) or ".",
             )
             if result.returncode == 0:
                 return f"[VALID] Patch can be applied cleanly to {path}"
             return f"[INVALID] Patch cannot be applied to {path}: {result.stderr or result.stdout}"
         except Exception as e:
             return f"[ERROR] Validation failed: {e}"
+
+    @registry.tool(
+        description="Bulk rename/move files based on a mapping.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "mapping": {
+                    "type": "object",
+                    "description": "Dictionary of {old_path: new_path}",
+                },
+            },
+            "required": ["mapping"],
+        },
+    )
+    def bulk_rename(mapping: Dict[str, str]) -> str:
+        results = []
+        for old, new in mapping.items():
+            old_resolved = _resolve_path(old)
+            new_resolved = _resolve_path(new)
+            if is_spine_path(str(new_resolved)):
+                results.append(f"[BLOCKED] Cannot move to spine: {new}")
+                continue
+            try:
+                os.makedirs(os.path.dirname(new_resolved), exist_ok=True)
+                shutil.move(str(old_resolved), str(new_resolved))
+                results.append(f"[MOVED] {old} -> {new}")
+            except Exception as e:
+                results.append(f"[ERROR] Failed to move {old} to {new}: {e}")
+        return "\n".join(results)
