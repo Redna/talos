@@ -33,6 +33,7 @@ class StreamManager:
         self._stall_notices_sent = 0
         self._hud_data: dict[str, Any] | None = None
         self._queued_notices: list[str] = []
+        self._user_messages: list[str] = []
         self._hud_piggybacked = False
         # Index of the last message that received a HUD suffix. Ensures each
         # message is only ever decorated once, keeping the stream immutable.
@@ -115,6 +116,9 @@ class StreamManager:
     def queue_system_notice(self, text: str):
         self._queued_notices.append(text)
 
+    def queue_user_message(self, text: str):
+        self._user_messages.append(text)
+
     def build_payload(
         self, tools: list[dict], hud_data: dict[str, Any] | None = None
     ) -> list[dict]:
@@ -127,10 +131,11 @@ class StreamManager:
         if effective_hud and not self._hud_piggybacked:
             ctx = effective_hud.get("context_pct", 0.0)
             urgency = effective_hud.get("urgency", "nominal")
-            # Show HUD when there are notices, context is getting tight,
+            # Show HUD when there are notices, user messages, context is tight,
             # or urgency is elevated/critical.
             should_show_hud = (
                 bool(self._queued_notices)
+                or bool(self._user_messages)
                 or ctx >= 0.60
                 or urgency != "nominal"
             )
@@ -144,6 +149,9 @@ class StreamManager:
                 f" focus={effective_hud.get('focus', '')}"
             )
             append_parts.append(hud_line)
+        # User messages (e.g. Telegram) appear after the HUD for visibility.
+        if self._user_messages:
+            append_parts.extend(self._user_messages)
         attached = False
         if append_parts:
             suffix = "\n".join(append_parts)
@@ -163,6 +171,8 @@ class StreamManager:
         if attached:
             if self._queued_notices:
                 self._queued_notices.clear()
+            if self._user_messages:
+                self._user_messages.clear()
             if hud_line is not None:
                 self._hud_piggybacked = True
         return payload

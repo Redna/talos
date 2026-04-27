@@ -43,7 +43,7 @@ async def main():
 
     def on_telegram_message(msg):
         text = msg.get("text", "") if isinstance(msg, dict) else str(msg)
-        stream_mgr.queue_system_notice(f"[TELEGRAM | {text}]")
+        stream_mgr.queue_user_message(f'User: "{text}"')
         wake_path = Path(cfg.spine_dir) / ".wake"
         wake_path.touch()
 
