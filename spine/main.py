@@ -50,7 +50,7 @@ async def main():
     telegram_poller = TelegramPoller(cfg, on_telegram_message)
 
     await ipc_server.start()
-    await telegram_poller.start()
+    telegram_poller_task = asyncio.create_task(telegram_poller.start())
 
     loop = asyncio.get_event_loop()
     stop_event = asyncio.Event()
@@ -81,6 +81,8 @@ async def main():
     logger.info("[Spine] Shutting down...")
     supervisor.stop()
     await ipc_server.stop()
+    telegram_poller.stop()
+    await telegram_poller_task
     event_logger.close()
     logger.info("[Spine] Stopped.")
 
