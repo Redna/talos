@@ -144,7 +144,7 @@ class StreamManager:
             suffix = "\n".join(append_parts)
             for msg in reversed(payload):
                 if msg.get("role") == "tool":
-                    msg["content"] += "\n" + suffix
+                    msg["content"] += "\n---\n" + suffix
                     break
         if self._queued_notices:
             self._queued_notices.clear()
