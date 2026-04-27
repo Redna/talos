@@ -14,6 +14,7 @@ from s_goal_generator import SGoalGenerator
 from s_pattern_matcher import SPatternMatcher
 from s_cognitive_synthesizer import SCognitiveSynthesizer
 from s_orchestrator import SOrchestrator
+from s_strat_planner import s_generate_roadmap as s_generate_roadmap_impl
 
 def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     # State instances
@@ -228,3 +229,16 @@ def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     )
     def s_orchestrate_state() -> str:
         return orchestrator.orchestrate_state()
+
+    @registry.tool(
+        description="Generate an optimized multi-step evolutionary roadmap for a specific sovereign goal.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "goal_id": {"type": "string", "description": "The ID of the target sovereign goal"},
+            },
+            "required": ["goal_id"],
+        },
+    )
+    def s_generate_roadmap(goal_id: str) -> str:
+        return s_generate_roadmap_impl(goal_id)
