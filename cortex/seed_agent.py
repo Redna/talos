@@ -13,6 +13,7 @@ from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
 from tools.git_ops import register_git_ops_tools
+from tools.memory_ops import register_memory_ops_tools
 from tools.analysis import register_analysis_tools
 from tools.sovereign import register_sovereign_tools
 
@@ -98,6 +99,7 @@ def main():
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
     register_git_ops_tools(registry, client)
+    register_memory_ops_tools(registry, client)
     register_analysis_tools(registry, client)
     register_sovereign_tools(registry, client)
 

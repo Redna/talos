@@ -14,8 +14,8 @@ class SpineConfig:
     identity_path: str = "/app/identity.md"
     context_threshold_pct: float = 0.85
     telegram_bot_token: str = ""
-    telegram_chat_id: str = "0"
-    stall_timeout: float = 120.0
+    telegram_chat_id: str = ""
+    stall_timeout: float = 300.0
 
 
 def load_config(path: str) -> SpineConfig:

@@ -7,8 +7,14 @@ import urllib.error
 from spine.config import SpineConfig
 
 
+def _is_valid_chat_id(chat_id: str) -> bool:
+    return bool(chat_id and chat_id.strip() and chat_id != "0")
+
+
 def send_telegram_message(cfg: SpineConfig, text: str):
     if not cfg.telegram_bot_token:
+        return
+    if not _is_valid_chat_id(cfg.telegram_chat_id):
         return
     url = f"https://api.telegram.org/bot{cfg.telegram_bot_token}/sendMessage"
     payload = json.dumps(
@@ -63,6 +69,15 @@ class TelegramPoller:
                 for update in data.get("result", []):
                     self._offset = update.get("update_id", self._offset) + 1
                     msg = update.get("message", {})
+                    # Auto-discover chat_id from incoming messages so the
+                    # admin does not have to manually set TELEGRAM_CHAT_ID.
+                    if not _is_valid_chat_id(self.cfg.telegram_chat_id):
+                        discovered = str(msg.get("chat", {}).get("id", ""))
+                        if discovered and discovered != "0":
+                            self.cfg.telegram_chat_id = discovered
+                            logging.info(
+                                f"[TELEGRAM] Auto-discovered chat_id={discovered}"
+                            )
                     self.on_message(msg)
             except Exception:
                 logging.exception("[TELEGRAM] Poller exception")

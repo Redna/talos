@@ -34,6 +34,9 @@ class StreamManager:
         self._hud_data: dict[str, Any] | None = None
         self._queued_notices: list[str] = []
         self._hud_piggybacked = False
+        # Index of the last message that received a HUD suffix. Ensures each
+        # message is only ever decorated once, keeping the stream immutable.
+        self._hud_last_index = -1
         self._init_messages()
 
     def _init_messages(self):
@@ -70,6 +73,7 @@ class StreamManager:
         self.add_message({"role": "assistant", "content": synthesis})
         self.turn = 0
         self._stall_notices_sent = 0
+        self._hud_last_index = -1
 
     def detect_stall(self) -> bool:
         assistant_msgs = [m for m in self._messages if m.get("role") == "assistant"]
@@ -130,6 +134,7 @@ class StreamManager:
                 or ctx >= 0.60
                 or urgency != "nominal"
             )
+        hud_line = None
         if should_show_hud:
             hud_line = (
                 f"\n[HUD] turn={effective_hud.get('turn', 0)}"
@@ -139,15 +144,27 @@ class StreamManager:
                 f" focus={effective_hud.get('focus', '')}"
             )
             append_parts.append(hud_line)
-            self._hud_piggybacked = True
+        attached = False
         if append_parts:
             suffix = "\n".join(append_parts)
-            for msg in reversed(payload):
-                if msg.get("role") == "tool":
-                    msg["content"] += "\n---\n" + suffix
+            # Queue semantics: only flush onto a *tool* message.  If there is
+            # no eligible tool message the notices survive to the next turn.
+            target_index = -1
+            for i, msg in enumerate(reversed(payload)):
+                actual_index = len(payload) - 1 - i
+                if msg.get("role") == "tool" and actual_index > self._hud_last_index:
+                    target_index = actual_index
                     break
-        if self._queued_notices:
-            self._queued_notices.clear()
+            if target_index >= 0:
+                payload[target_index]["content"] += "\n---\n" + suffix
+                self._hud_last_index = target_index
+                attached = True
+        # Only clear the queue when piggybacked onto a tool message.
+        if attached:
+            if self._queued_notices:
+                self._queued_notices.clear()
+            if hud_line is not None:
+                self._hud_piggybacked = True
         return payload
 
     def write_state(
