@@ -82,7 +82,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
         "turn": turn,
         "context_pct": context_pct,
         "urgency": urgency,
-        "memory_file_count": len(md_files),
+        "memory_files": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
     }
