@@ -106,10 +106,11 @@ class IPCServer:
                 loop = asyncio.get_running_loop()
                 result = await loop.run_in_executor(
                     None,
-                    self.gate_proxy.call,
-                    payload,
-                    params.get("tools", []),
-                    self.stream.turn + 1,
+                    lambda: self.gate_proxy.call(
+                        payload,
+                        params.get("tools", []),
+                        turn=self.stream.turn + 1,
+                    ),
                 )
                 # Record heartbeat after gate returns so the supervisor does not
                 # see a stall during legitimate long gate waits.
