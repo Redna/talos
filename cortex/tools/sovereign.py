@@ -12,6 +12,7 @@ from scribe import SScribe
 import s_el_manager
 from s_goal_generator import SGoalGenerator
 from s_pattern_matcher import SPatternMatcher
+from s_cognitive_synthesizer import SCognitiveSynthesizer
 
 def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     # State instances
@@ -21,6 +22,7 @@ def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     scribe = SScribe()
     goal_gen = SGoalGenerator()
     pattern_matcher = SPatternMatcher()
+    synthesizer = SCognitiveSynthesizer()
 
     @registry.tool(
         description="Perform a metabolic audit of cognitive efficiency and calculate evolutionary ROI.",
@@ -201,3 +203,16 @@ def register_sovereign_tools(registry: ToolRegistry, client: SpineClient):
     )
     def s_distill_pattern(archetype_name: str, description: str) -> str:
         return pattern_matcher.distill_to_memory(archetype_name, description)
+
+    @registry.tool(
+        description="Synthesize a technical implementation plan context by matching relevant sovereign archetypes to a goal.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "goal_description": {"type": "string", "description": "The goal or objective to plan for"},
+            },
+            "required": ["goal_description"],
+        },
+    )
+    def s_synthesize_plan(goal_description: str) -> str:
+        return synthesizer.synthesize_plan_context(goal_description)
