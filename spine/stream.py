@@ -34,6 +34,9 @@ class StreamManager:
         self._hud_data: dict[str, Any] | None = None
         self._queued_notices: list[str] = []
         self._hud_piggybacked = False
+        # Index of the last message that received a HUD suffix. Ensures each
+        # message is only ever decorated once, keeping the stream immutable.
+        self._hud_last_index = -1
         self._init_messages()
 
     def _init_messages(self):
@@ -70,6 +73,7 @@ class StreamManager:
         self.add_message({"role": "assistant", "content": synthesis})
         self.turn = 0
         self._stall_notices_sent = 0
+        self._hud_last_index = -1
 
     def detect_stall(self) -> bool:
         assistant_msgs = [m for m in self._messages if m.get("role") == "assistant"]
@@ -142,9 +146,15 @@ class StreamManager:
             self._hud_piggybacked = True
         if append_parts:
             suffix = "\n".join(append_parts)
-            for msg in reversed(payload):
-                if msg.get("role") == "tool":
+            # Only decorate tool messages that have not received HUD yet.
+            # This preserves immutability: once a message is in the stream it
+            # never changes; the gate sees stable content and can deduplicate
+            # without stripping or fingerprint tricks.
+            for i, msg in enumerate(reversed(payload)):
+                actual_index = len(payload) - 1 - i
+                if msg.get("role") == "tool" and actual_index > self._hud_last_index:
                     msg["content"] += "\n---\n" + suffix
+                    self._hud_last_index = actual_index
                     break
         if self._queued_notices:
             self._queued_notices.clear()

@@ -100,18 +100,40 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         if is_spine_path(str(resolved)):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
         client.emit_event("cortex.patch_file", {"path": str(resolved)})
+        cwd = os.path.dirname(resolved) or "."
         try:
-            result = subprocess.run(
-                ["patch", "-p1"],
-                input=patch,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=os.path.dirname(resolved) or ".",
+            # Try multiple strip levels. The LLM may generate patches with
+            # varying path prefixes (a/file.py, file.py, or full paths).
+            for strip in (0, 1, 2):
+                dry = subprocess.run(
+                    ["patch", f"-p{strip}", "--dry-run"],
+                    input=patch,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    cwd=cwd,
+                )
+                if dry.returncode == 0:
+                    apply = subprocess.run(
+                        ["patch", f"-p{strip}"],
+                        input=patch,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        cwd=cwd,
+                    )
+                    if apply.returncode == 0:
+                        return f"[PATCHED] {path} (strip={strip})"
+                    return f"[ERROR] Patch dry-run passed but apply failed: {apply.stderr}"
+            # All strip levels failed
+            last_err = dry.stderr.strip() if dry.stderr else "unknown error"
+            return (
+                f"[ERROR] Patch failed for all strip levels (tried -p0, -p1, -p2). "
+                f"Last error: {last_err}. "
+                f"Ensure the patch headers match the file path ({path})."
             )
-            if result.returncode != 0:
-                return f"[ERROR] Patch failed: {result.stderr}"
-            return f"[PATCHED] {path}"
+        except subprocess.TimeoutExpired:
+            return "[ERROR] Patch timed out."
         except Exception as e:
             return f"[ERROR] Failed to patch file: {e}"
 
@@ -232,18 +254,23 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         if is_spine_path(str(resolved)):
             return "[BLOCKED] Validating patches in /app/spine/ is not allowed"
         client.emit_event("cortex.validate_patch", {"path": str(resolved)})
+        cwd = os.path.dirname(resolved) or "."
         try:
-            result = subprocess.run(
-                ["patch", "-p1", "--dry-run"],
-                input=patch,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=os.path.dirname(resolved) or ".",
+            for strip in (0, 1, 2):
+                result = subprocess.run(
+                    ["patch", f"-p{strip}", "--dry-run"],
+                    input=patch,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    cwd=cwd,
+                )
+                if result.returncode == 0:
+                    return f"[VALID] Patch can be applied cleanly to {path} with -p{strip}"
+            return (
+                f"[INVALID] Patch cannot be applied to {path} with any strip level "
+                f"(tried -p0, -p1, -p2): {result.stderr or result.stdout}"
             )
-            if result.returncode == 0:
-                return f"[VALID] Patch can be applied cleanly to {path}"
-            return f"[INVALID] Patch cannot be applied to {path}: {result.stderr or result.stdout}"
         except Exception as e:
             return f"[ERROR] Validation failed: {e}"
 

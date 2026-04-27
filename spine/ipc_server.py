@@ -63,8 +63,11 @@ class IPCServer:
         except asyncio.CancelledError:
             pass
         finally:
-            writer.close()
-            await writer.wait_closed()
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
 
     async def _handle_request(self, raw: dict) -> dict:
         # Record heartbeat on every IPC call
@@ -98,11 +101,20 @@ class IPCServer:
                 hud,
             )
             try:
-                result = self.gate_proxy.call(
-                    messages=payload,
-                    tools=params.get("tools", []),
-                    turn=self.stream.turn + 1,
+                # Run the blocking gate call in a thread pool so the event loop
+                # stays responsive (supervisor health checks, heartbeats, etc.).
+                loop = asyncio.get_running_loop()
+                result = await loop.run_in_executor(
+                    None,
+                    self.gate_proxy.call,
+                    payload,
+                    params.get("tools", []),
+                    self.stream.turn + 1,
                 )
+                # Record heartbeat after gate returns so the supervisor does not
+                # see a stall during legitimate long gate waits.
+                if self.supervisor and self.supervisor.health:
+                    self.supervisor.health.record_event()
             except Exception as e:
                 self.events.emit("spine.gate_error", {"error": str(e)})
                 return self._error(req_id, -32000, f"Gate error: {e}")
@@ -138,16 +150,34 @@ class IPCServer:
             hud_data["turn"] = self.stream.turn
             hud_data["context_pct"] = result.get("context_pct", 0.0)
             self.stream.set_hud(hud_data)
+            ctx_pct = result.get("context_pct", 0.0)
+            threshold = getattr(self.cfg, "context_threshold_pct", 0.85)
+            if ctx_pct >= threshold:
+                self.stream.queue_system_notice(
+                    f"CRITICAL: Context at {ctx_pct:.1%}. Auto-fold threshold ({threshold:.0%}) exceeded. "
+                    "Call fold_context immediately with a synthesis of all critical facts, "
+                    "or the supervisor may force a fold on the next turn."
+                )
+            # Emergency auto-fold at 95% to prevent system degradation
+            if ctx_pct >= 0.95:
+                self.events.emit(
+                    "spine.auto_fold",
+                    {"context_pct": ctx_pct, "threshold": threshold},
+                )
+                self.stream.fold(
+                    f"[AUTO-FOLD] Context reached {ctx_pct:.1%}. "
+                    f"Trajectory archived. Resume from fresh context."
+                )
             self.stream.write_state(
                 focus=hud_data.get("focus", ""),
-                context_pct=result.get("context_pct", 0.0),
+                context_pct=ctx_pct,
                 urgency=hud_data.get("urgency", "nominal"),
             )
             self.events.emit(
                 "spine.think",
                 {
                     "turn": self.stream.turn,
-                    "context_pct": result.get("context_pct", 0.0),
+                    "context_pct": ctx_pct,
                     "tokens_used": result.get("tokens_used", 0),
                 },
             )
