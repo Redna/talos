@@ -20,8 +20,8 @@ MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
 SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 
-LOW_VALUE_TOOLS = {"bash_command"}
-LOW_VALUE_THRESHOLD = 4
+LOW_VALUE_TOOLS = {"bash_command", "reflect"}
+LOW_VALUE_THRESHOLD = 3
 MAX_TOOL_CALLS_PER_TURN = 10
 
 
@@ -164,6 +164,22 @@ def main():
                     report = detector.get_stall_report()
                     print(f"[Cortex] Stall detected mid-loop: {report}")
                     client.emit_event("cortex.stall_detected", {"report": report})
+
+                    if tool_name == "reflect":
+                        # Hard auto-break for reflect loops: mark as failed,
+                        # clear focus, and force the LLM to pick a different tool.
+                        blocked = (
+                            f"{report}\n"
+                            "[BLOCKED] reflect is disabled after repeated consecutive use. "
+                            "You MUST call list_files, read_file, write_file, or bash_command next. "
+                            "Your focus has been cleared. Pick a new objective immediately."
+                        )
+                        client.tool_result(tc["id"], blocked, False)
+                        state.current_focus = None
+                        state.save()
+                        detector.reset()
+                        break
+
                     client.tool_result(f"stall_break_{turn}", report, True)
                     detector.reset()
                     break

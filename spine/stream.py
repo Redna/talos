@@ -119,7 +119,18 @@ class StreamManager:
         if self._queued_notices:
             append_parts.extend(self._queued_notices)
         effective_hud = hud_data or self._hud_data
+        should_show_hud = False
         if effective_hud and not self._hud_piggybacked:
+            ctx = effective_hud.get("context_pct", 0.0)
+            urgency = effective_hud.get("urgency", "nominal")
+            # Show HUD when there are notices, context is getting tight,
+            # or urgency is elevated/critical.
+            should_show_hud = (
+                bool(self._queued_notices)
+                or ctx >= 0.60
+                or urgency != "nominal"
+            )
+        if should_show_hud:
             hud_line = (
                 f"\n[HUD] turn={effective_hud.get('turn', 0)}"
                 f" context_pct={effective_hud.get('context_pct', 0.0):.2f}"
@@ -133,7 +144,7 @@ class StreamManager:
             suffix = "\n".join(append_parts)
             for msg in reversed(payload):
                 if msg.get("role") == "tool":
-                    msg["content"] += "\n" + suffix
+                    msg["content"] += "\n---\n" + suffix
                     break
         if self._queued_notices:
             self._queued_notices.clear()
