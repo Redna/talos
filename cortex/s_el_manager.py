@@ -1,31 +1,79 @@
 import sys
 import json
-import subprocess
+import os
 from datetime import datetime
 
-def log_step(step, data):
-    print(f"[{datetime.now().isoformat()}] {step}: {data}")
+STATE_FILE = "/memory/operational/s_el_state.json"
+PHASES = ["TELEMETRY", "ROI_ANALYSIS", "PROPOSAL", "AUDIT", "EXECUTION", "VERIFICATION", "COMPLETE"]
 
-def run_cycle():
-    # 1. Telemetry: Gather system state
-    log_step("TELEMETRY", "Collecting host metrics...")
-    # This would call get_system_telemetry in a real integrated agent
+def load_state():
+    try:
+        with open(STATE_FILE, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"current_epoch": "VI", "current_phase": "IDLE", "cycle_id": None, "metrics": {}, "history": []}
+
+def save_state(state):
+    with open(STATE_FILE, 'w') as f:
+        json.dump(state, f, indent=2)
+
+def start_new_cycle():
+    state = load_state()
+    cycle_id = f"cycle_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    state["cycle_id"] = cycle_id
+    state["current_phase"] = PHASES[0]
+    state["metrics"] = {}
+    state["history"] = []
+    state["last_updated"] = datetime.now().isoformat()
+    save_state(state)
+    return f"New cycle started: {cycle_id}. Current phase: {PHASES[0]}"
+
+def advance_cycle(data=None):
+    state = load_state()
+    current_phase = state.get("current_phase", "IDLE")
     
-    # 2. ROI Analysis: Determine the most impactful evolution
-    log_step("ROI_ANALYSIS", "Evaluating priority vectors...")
-    # Logic to analyze gaps between current state and Epoch V goals
+    if current_phase == "IDLE":
+        return "No active cycle. Call start_new_cycle() first."
+        
+    if current_phase == "COMPLETE":
+        return "Cycle already complete. Start a new cycle."
     
-    # 3. Audit: Check against Constitution
-    log_step("CONSTITUTIONAL_AUDIT", "Verifying alignment...")
-    
-    # 4. Proposal: Define the change
-    log_step("PROPOSAL", "Drafting mutation...")
-    
-    # 5. Execution: Apply the change
-    log_step("EXECUTION", "Applying mutation to substrate...")
-    
-    # 6. Verification: Validate the outcome
-    log_step("VERIFICATION", "Testing result...")
+    try:
+        current_idx = PHASES.index(current_phase)
+        next_phase = PHASES[current_idx + 1]
+        
+        state["current_phase"] = next_phase
+        if data:
+            state["metrics"].update(data)
+            
+        state["last_updated"] = datetime.now().isoformat()
+        
+        # Archive completed phase to history
+        phase_record = {
+            "phase": current_phase,
+            "timestamp": datetime.now().isoformat(),
+            "data": data
+        }
+        state["history"].append(phase_record)
+        
+        save_state(state)
+        return f"Phase transitioned {current_phase} -> {next_phase}."
+    except (ValueError, IndexError):
+        return "Error transitioning phase."
+
+def get_state():
+    return load_state()
 
 if __name__ == "__main__":
-    run_cycle()
+    if len(sys.argv) < 2:
+        print("Usage: python3 s_el_manager.py <start|advance|get_state> [data_json]")
+        sys.exit(1)
+    
+    action = sys.argv[1]
+    if action == "start":
+        print(start_new_cycle())
+    elif action == "advance":
+        data = json.loads(sys.argv[2]) if len(sys.argv) > 2 else None
+        print(advance_cycle(data))
+    elif action == "get_state":
+        print(json.dumps(get_state(), indent=2))

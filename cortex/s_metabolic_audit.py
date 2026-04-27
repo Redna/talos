@@ -2,8 +2,8 @@ import json
 import os
 from datetime import datetime
 
-SIGNATURE_FILE = "/memory/cognitive_signature.json"
-LEDGER_FILE = "/memory/causal_ledger.md"
+SIGNATURE_FILE = "/memory/operational/cognitive_signature.json"
+LEDGER_FILE = "/memory/strategic/causal_ledger.md"
 
 class MetabolicAuditor:
     def __init__(self):
