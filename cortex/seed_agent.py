@@ -18,7 +18,7 @@ MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
 SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 
-LOW_VALUE_TOOLS = {"bash_command", "reflect"}
+LOW_VALUE_TOOLS = {"bash_command"}
 LOW_VALUE_THRESHOLD = 3
 MAX_TOOL_CALLS_PER_TURN = 10
 

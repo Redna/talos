@@ -60,7 +60,7 @@ class IPCServer:
                 resp = await self._handle_request(raw)
                 writer.write((json.dumps(resp) + "\n").encode())
                 await writer.drain()
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, ConnectionResetError, BrokenPipeError):
             pass
         finally:
             try:
