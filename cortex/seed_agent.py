@@ -65,6 +65,20 @@ class RepetitionDetector:
             return f"Tool '{last_tool}' called {consecutive} times in last {len(self.history)} turns. You may be in a loop. Use 'reflect' to reassess your approach."
         return ""
 
+    def is_reflect_abuse(self, max_reflect=5, window=10):
+        """Detect excessive reflect calls with sleep_duration=0 in recent history."""
+        recent = list(self.history)[-window:]
+        reflect_count = 0
+        for name, args_key in recent:
+            if name == "reflect":
+                try:
+                    args = json.loads(args_key)
+                    if args.get("sleep_duration", 0) == 0:
+                        reflect_count += 1
+                except Exception:
+                    reflect_count += 1
+        return reflect_count >= max_reflect
+
     def reset(self):
         self.history.clear()
 
@@ -155,6 +169,19 @@ def main():
                 tool_args = tc.get("arguments", {})
 
                 detector.record(tool_name, tool_args)
+
+                # Reflect abuse guard: block reflect with sleep_duration=0 if used too frequently
+                if tool_name == "reflect" and detector.is_reflect_abuse():
+                    blocked = (
+                        "[BLOCKED] reflect has been called too frequently with sleep_duration=0. "
+                        "You are in a degenerate loop. You MUST call list_files, read_file, write_file, or bash_command next. "
+                        "Your focus has been cleared. Pick a new objective immediately."
+                    )
+                    client.tool_result(tc["id"], blocked, False)
+                    state.current_focus = None
+                    state.save()
+                    detector.reset()
+                    break
 
                 if detector.is_stalled():
                     report = detector.get_stall_report()
