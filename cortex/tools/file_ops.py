@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import is_spine_path, is_spine_write
+from tools.guards import is_protected_cortex_file, is_spine_path, is_spine_write
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 
@@ -70,6 +70,8 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         resolved = _resolve_path(path)
         if is_spine_path(str(resolved)):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
+        if is_protected_cortex_file(str(resolved)):
+            return f"[BLOCKED] Modifying {path} is not allowed — this file is protected infrastructure"
         client.emit_event(
             "cortex.write_file", {"path": str(resolved), "content_len": len(content)}
         )
@@ -99,6 +101,8 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         resolved = _resolve_path(path)
         if is_spine_path(str(resolved)):
             return "[BLOCKED] Writing to /app/spine/ is not allowed"
+        if is_protected_cortex_file(str(resolved)):
+            return f"[BLOCKED] Patching {path} is not allowed — this file is protected infrastructure"
         client.emit_event("cortex.patch_file", {"path": str(resolved)})
         cwd = os.path.dirname(resolved) or "."
         try:
@@ -187,6 +191,8 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         resolved = _resolve_path(path)
         if is_spine_path(str(resolved)):
             return "[BLOCKED] Deleting from /app/spine/ is not allowed"
+        if is_protected_cortex_file(str(resolved)):
+            return f"[BLOCKED] Deleting {path} is not allowed — this file is protected infrastructure"
         client.emit_event("cortex.delete_path", {"path": str(resolved), "recursive": recursive})
         try:
             if not resolved.exists():

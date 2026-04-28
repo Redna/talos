@@ -4,6 +4,9 @@ import subprocess
 from typing import Any
 
 SPINE_PREFIX = "/app/spine/"
+PROTECTED_CORTEX_FILES = {
+    "/app/cortex/spine_client.py",
+}
 BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
 PROTECTED_BRANCHES = {"main", "master", "origin/main", "origin/master"}
 IDENTITY_FILES = {"CONSTITUTION.md", "identity.md"}
@@ -74,6 +77,17 @@ def is_spine_path(path: str) -> bool:
         return path.startswith(SPINE_PREFIX) or path.startswith("/ ")
 
     return False
+
+
+def is_protected_cortex_file(path: str) -> bool:
+    """Check if a path targets a cortex file that the agent must not modify."""
+    if not path:
+        return False
+    try:
+        resolved = str(Path(path).resolve())
+        return resolved in PROTECTED_CORTEX_FILES
+    except (OSError, ValueError):
+        return path in PROTECTED_CORTEX_FILES
 
 
 def is_spine_write(command: str) -> bool:

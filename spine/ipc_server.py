@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,8 @@ class IPCServer:
         self.events = events
         self.gate_proxy = gate_proxy
         self._server: asyncio.Server | None = None
+        self._consecutive_high_context = 0
+        self._last_tool_event_time: float = 0.0
 
     async def start(self):
         socket_path = self.cfg.socket_path
@@ -153,21 +156,73 @@ class IPCServer:
             self.stream.set_hud(hud_data)
             ctx_pct = result.get("context_pct", 0.0)
             threshold = getattr(self.cfg, "context_threshold_pct", 0.85)
-            if ctx_pct >= threshold:
-                self.stream.queue_system_notice(
-                    f"CRITICAL: Context at {ctx_pct:.1%}. Auto-fold threshold ({threshold:.0%}) exceeded. "
-                    "Call fold_context immediately with a synthesis of all critical facts, "
-                    "or the supervisor may force a fold on the next turn."
-                )
-            # Emergency auto-fold at 95% to prevent system degradation
-            if ctx_pct >= 0.95:
+
+            # Second signal: spine's own context estimate from message
+            # buffer size. Guards against Ollama token-count glitches.
+            spine_estimate = self.stream.estimate_context_pct()
+            if abs(ctx_pct - spine_estimate) > 0.5:
                 self.events.emit(
-                    "spine.auto_fold",
-                    {"context_pct": ctx_pct, "threshold": threshold},
+                    "spine.context_divergence",
+                    {
+                        "ollama_pct": ctx_pct,
+                        "spine_estimate": spine_estimate,
+                    },
                 )
-                self.stream.fold(
-                    f"[AUTO-FOLD] Context reached {ctx_pct:.1%}. "
-                    f"Trajectory archived. Resume from fresh context."
+            # Use spine estimate when Ollama reports nonsense (>100%)
+            decision_pct = spine_estimate if ctx_pct > 1.0 else ctx_pct
+
+            # --- Escalating auto-fold guard ---
+
+            if decision_pct >= threshold:
+                self._consecutive_high_context += 1
+                if decision_pct >= 0.95:
+                    # Debounce: require 2 consecutive readings above 95%
+                    # to prevent Ollama glitch-triggered false folds
+                    if self._consecutive_high_context >= 2:
+                        self.events.emit(
+                            "spine.auto_fold",
+                            {
+                                "context_pct": decision_pct,
+                                "threshold": threshold,
+                                "consecutive_readings": self._consecutive_high_context,
+                            },
+                        )
+                        self.stream.fold(
+                            f"[AUTO-FOLD] Context at {decision_pct:.1%} for "
+                            f"{self._consecutive_high_context} consecutive turns. "
+                            f"Trajectory archived. Resume from fresh context."
+                        )
+                        self._consecutive_high_context = 0
+                    else:
+                        self.stream.queue_system_notice(
+                            f"EMERGENCY: Context at {decision_pct:.1%}. One more "
+                            f"reading above 95% will force an automatic fold. "
+                            f"Call fold_context NOW to control the synthesis."
+                        )
+                elif decision_pct >= 0.90:
+                    self.stream.queue_system_notice(
+                        f"URGENT: Context at {decision_pct:.1%}. fold_context is "
+                        f"REQUIRED on your next turn. Other tool calls will be "
+                        f"blocked until context is folded."
+                    )
+                else:
+                    self.stream.queue_system_notice(
+                        f"CRITICAL: Context at {decision_pct:.1%}. Auto-fold "
+                        f"threshold ({threshold:.0%}) exceeded. Call fold_context "
+                        f"immediately with a synthesis of all critical facts."
+                    )
+            else:
+                self._consecutive_high_context = 0
+
+            # Telemetry staleness: warn if no tool activity in >60 minutes.
+            # Prevents the agent from pattern-matching on fossil data.
+            now = time.time()
+            if self._last_tool_event_time > 0 and (now - self._last_tool_event_time) > 3600:
+                staleness_hours = (now - self._last_tool_event_time) / 3600
+                self.stream.queue_system_notice(
+                    f"WARNING: No tool activity recorded in {staleness_hours:.1f} "
+                    f"hours. Telemetry may be stale. Run a concrete tool "
+                    f"(bash_command, write_file, send_message) to verify operation."
                 )
             self.stream.write_state(
                 focus=hud_data.get("focus", ""),
@@ -193,6 +248,7 @@ class IPCServer:
                 },
             )
         elif method == "tool_result":
+            self._last_tool_event_time = time.time()
             self.stream.record_tool_result(
                 params.get("tool_call_id", ""),
                 params.get("output", ""),
