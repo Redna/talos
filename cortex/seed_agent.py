@@ -16,9 +16,10 @@ from tools.git_ops import register_git_ops_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
+SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 
 LOW_VALUE_TOOLS = {"bash_command"}
-LOW_VALUE_THRESHOLD = 4
+LOW_VALUE_THRESHOLD = 3
 MAX_TOOL_CALLS_PER_TURN = 10
 
 
@@ -64,6 +65,20 @@ class RepetitionDetector:
             return f"Tool '{last_tool}' called {consecutive} times in last {len(self.history)} turns. You may be in a loop. Use 'reflect' to reassess your approach."
         return ""
 
+    def is_reflect_abuse(self, max_reflect=5, window=10):
+        """Detect excessive reflect calls with sleep_duration=0 in recent history."""
+        recent = list(self.history)[-window:]
+        reflect_count = 0
+        for name, args_key in recent:
+            if name == "reflect":
+                try:
+                    args = json.loads(args_key)
+                    if args.get("sleep_duration", 0) == 0:
+                        reflect_count += 1
+                except Exception:
+                    reflect_count += 1
+        return reflect_count >= max_reflect
+
     def reset(self):
         self.history.clear()
 
@@ -80,7 +95,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
         "turn": turn,
         "context_pct": context_pct,
         "urgency": urgency,
-        "memory_file_count": len(md_files),
+        "memory_files": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
     }
@@ -98,10 +113,21 @@ def main():
 
     detector = RepetitionDetector()
     turn = 0
+    context_pct = 0.0
 
     while True:
+        paused = (SPINE_DIR / ".paused").exists()
+        single_step = (SPINE_DIR / ".single_step").exists()
+        was_single_step = single_step
         try:
-            hud_data = _build_hud(state)
+            if paused and not single_step:
+                time.sleep(1)
+                continue
+
+            if single_step:
+                (SPINE_DIR / ".single_step").unlink(missing_ok=True)
+
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
 
             try:
                 response = client.think(
@@ -116,8 +142,8 @@ def main():
                 continue
 
             context_pct = response.get("context_pct", 0.0)
-            resp_turn = response.get("turn", 0)
-            hud_data = _build_hud(state, context_pct=context_pct, turn=resp_turn)
+            turn = response.get("turn", 0)
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
 
             state.total_tokens_consumed += response.get("tokens_used", 0)
             state.save()
@@ -127,8 +153,6 @@ def main():
             tool_calls = response.get("tool_calls", [])
             if not tool_calls:
                 continue
-
-            turn += 1
 
             if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:
                 print(
@@ -146,10 +170,39 @@ def main():
 
                 detector.record(tool_name, tool_args)
 
+                # Reflect abuse guard: block reflect with sleep_duration=0 if used too frequently
+                if tool_name == "reflect" and detector.is_reflect_abuse():
+                    blocked = (
+                        "[BLOCKED] reflect has been called too frequently with sleep_duration=0. "
+                        "You are in a degenerate loop. You MUST call list_files, read_file, write_file, or bash_command next. "
+                        "Your focus has been cleared. Pick a new objective immediately."
+                    )
+                    client.tool_result(tc["id"], blocked, False)
+                    state.current_focus = None
+                    state.save()
+                    detector.reset()
+                    break
+
                 if detector.is_stalled():
                     report = detector.get_stall_report()
                     print(f"[Cortex] Stall detected mid-loop: {report}")
                     client.emit_event("cortex.stall_detected", {"report": report})
+
+                    if tool_name == "reflect":
+                        # Hard auto-break for reflect loops: mark as failed,
+                        # clear focus, and force the LLM to pick a different tool.
+                        blocked = (
+                            f"{report}\n"
+                            "[BLOCKED] reflect is disabled after repeated consecutive use. "
+                            "You MUST call list_files, read_file, write_file, or bash_command next. "
+                            "Your focus has been cleared. Pick a new objective immediately."
+                        )
+                        client.tool_result(tc["id"], blocked, False)
+                        state.current_focus = None
+                        state.save()
+                        detector.reset()
+                        break
+
                     client.tool_result(f"stall_break_{turn}", report, True)
                     detector.reset()
                     break
@@ -193,6 +246,9 @@ def main():
             state.save()
             time.sleep(1)
             continue
+        finally:
+            if was_single_step:
+                (SPINE_DIR / ".paused").touch(exist_ok=True)
 
 
 if __name__ == "__main__":

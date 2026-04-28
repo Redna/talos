@@ -14,4 +14,4 @@ def load_system_prompt(constitution_path: str, identity_path: str) -> str:
         identity = Path(identity_path).read_text()
     else:
         identity = _DEFAULT_IDENTITY
-    return f"{constitution}\n\n{identity}"
+    return f"{identity}\n\n{constitution}"

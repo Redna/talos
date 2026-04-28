@@ -18,15 +18,45 @@ def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):
     def git_commit(message: str) -> str:
         client.emit_event("cortex.git_commit", {"message": message[:100]})
         try:
+            # Check for staged changes first
+            diff = subprocess.run(
+                ["git", "diff", "--cached", "--quiet"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if diff.returncode == 0:
+                return (
+                    "[ERROR] Nothing staged to commit. "
+                    "Use git_add_files or bash_command to stage changes first."
+                )
+
+            # Check for common git state issues
+            status = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if status.returncode != 0:
+                return f"[ERROR] Git status check failed: {status.stderr.strip()}"
+
             result = subprocess.run(
                 ["git", "commit", "-m", message],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=60,
             )
             if result.returncode != 0:
-                return f"[ERROR] Commit failed: {result.stderr.strip()}"
+                stderr = result.stderr.strip()
+                if "pre-commit" in stderr.lower():
+                    return f"[ERROR] Pre-commit hook failed: {stderr}"
+                if "nothing to commit" in stderr.lower():
+                    return "[ERROR] Nothing staged to commit. Stage files first."
+                return f"[ERROR] Commit failed: {stderr}"
             return f"[COMMITTED] {result.stdout.strip()}"
+        except subprocess.TimeoutExpired:
+            return "[ERROR] Commit timed out (pre-commit hook may be slow)."
         except Exception as e:
             return f"[ERROR] Failed to commit: {e}"
 

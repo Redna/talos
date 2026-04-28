@@ -33,7 +33,9 @@ async def main():
     logger.info(f"[Spine] Starting: GateURL={cfg.gate_url} Socket={cfg.socket_path}")
 
     event_logger = EventLogger(f"{cfg.spine_dir}/events")
-    health = HealthMonitor(stall_timeout=600.0, startup_timeout=30.0)
+    health = HealthMonitor(
+        stall_timeout=getattr(cfg, "stall_timeout", 600.0), startup_timeout=30.0
+    )
     stream_mgr = StreamManager(cfg)
     supervisor = Supervisor(cfg, event_logger, health, stream_mgr)
     gate_proxy = GateProxy(cfg.gate_url, model=os.environ.get("TALOS_MODEL", ""))
@@ -41,14 +43,16 @@ async def main():
 
     def on_telegram_message(msg):
         text = msg.get("text", "") if isinstance(msg, dict) else str(msg)
-        stream_mgr.queue_system_notice(f"[TELEGRAM | {text}]")
+        stream_mgr.queue_user_message(
+            f"[CREATOR | TELEGRAM | PRIORITY: HIGH]\nUser: \"{text}\""
+        )
         wake_path = Path(cfg.spine_dir) / ".wake"
         wake_path.touch()
 
     telegram_poller = TelegramPoller(cfg, on_telegram_message)
 
     await ipc_server.start()
-    await telegram_poller.start()
+    telegram_poller_task = asyncio.create_task(telegram_poller.start())
 
     loop = asyncio.get_event_loop()
     stop_event = asyncio.Event()
@@ -62,11 +66,25 @@ async def main():
 
     supervisor_task = asyncio.create_task(supervisor.run())
 
+    async def watch_supervisor():
+        """Catch supervisor crashes and log them for diagnosis."""
+        try:
+            await supervisor_task
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            logger.exception("[Spine] Supervisor task crashed")
+            stop_event.set()
+
+    asyncio.create_task(watch_supervisor())
+
     await stop_event.wait()
 
     logger.info("[Spine] Shutting down...")
     supervisor.stop()
     await ipc_server.stop()
+    telegram_poller.stop()
+    await telegram_poller_task
     event_logger.close()
     logger.info("[Spine] Stopped.")
 

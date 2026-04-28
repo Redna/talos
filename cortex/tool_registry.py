@@ -16,10 +16,7 @@ class ToolRegistry:
                     "function": {
                         "name": func.__name__,
                         "description": description,
-                        "parameters": {
-                            "type": "object",
-                            "properties": parameters,
-                        },
+                        "parameters": parameters,
                     },
                 }
             )

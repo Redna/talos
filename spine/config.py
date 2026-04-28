@@ -1,4 +1,5 @@
 import json
+import os
 from dataclasses import dataclass, fields
 
 
@@ -13,11 +14,15 @@ class SpineConfig:
     identity_path: str = "/app/identity.md"
     context_threshold_pct: float = 0.85
     telegram_bot_token: str = ""
-    telegram_chat_id: str = "0"
+    telegram_chat_id: str = ""
+    stall_timeout: float = 300.0
 
 
 def load_config(path: str) -> SpineConfig:
     cfg = SpineConfig()
+    # Environment overrides for secrets/sensitive config
+    cfg.telegram_bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    cfg.telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID", cfg.telegram_chat_id)
     try:
         with open(path) as f:
             data = json.load(f)

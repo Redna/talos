@@ -6,3 +6,5 @@ dist/
 build/
 .pytest_cache/
 .mypy_cache/
+memory/.agent_state.json
+.venv/

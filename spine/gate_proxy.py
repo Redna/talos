@@ -19,12 +19,15 @@ class GateProxy:
         messages: list[dict],
         tools: list[dict],
         model: str = "",
+        turn: int | None = None,
     ) -> dict[str, Any]:
         body = {
             "messages": messages,
             "tools": tools if tools else None,
             "tool_choice": "auto" if tools else None,
         }
+        if turn is not None:
+            body["turn"] = turn
         effective_model = model or self.model
         if effective_model:
             body["model"] = effective_model
@@ -56,6 +59,7 @@ class GateProxy:
 
         return {
             "assistant_message": message.get("content", ""),
+            "reasoning": message.get("reasoning", ""),
             "tool_calls": tool_calls,
             "context_pct": usage.get("context_pct", 0.0),
             "tokens_used": usage.get("total_tokens", 0),

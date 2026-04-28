@@ -18,14 +18,26 @@ class StreamManager:
     def __init__(self, cfg: SpineConfig):
         self.cfg = cfg
         self._messages: list[dict[str, Any]] = []
-        self.turn = 0
+        state_path = Path(cfg.spine_dir) / "state.json"
+        if state_path.exists():
+            try:
+                saved = json.loads(state_path.read_text())
+                self.turn = saved.get("turn", 0)
+            except Exception:
+                self.turn = 0
+        else:
+            self.turn = 0
         self._system_prompt = load_system_prompt(
             cfg.constitution_path, cfg.identity_path
         )
         self._stall_notices_sent = 0
         self._hud_data: dict[str, Any] | None = None
         self._queued_notices: list[str] = []
+        self._user_messages: list[str] = []
         self._hud_piggybacked = False
+        # Index of the last message that received a HUD suffix. Ensures each
+        # message is only ever decorated once, keeping the stream immutable.
+        self._hud_last_index = -1
         self._init_messages()
 
     def _init_messages(self):
@@ -52,6 +64,20 @@ class StreamManager:
         self._hud_data = dict(hud_data)
         self._hud_piggybacked = False
 
+    def estimate_context_pct(self) -> float:
+        """Estimate context usage from cumulative message buffer size.
+
+        Uses a rough heuristic (4 chars per token) as a second signal
+        alongside Ollama's prompt_tokens count, which can be
+        non-deterministic or report bogus values >100%.
+        """
+        total_chars = sum(
+            len(json.dumps(m, ensure_ascii=False)) for m in self._messages
+        )
+        estimated_tokens = total_chars / 4.0
+        window = getattr(self.cfg, "context_window", 71680)
+        return min(estimated_tokens / window, 1.0)
+
     def fold(self, synthesis: str):
         traj_dir = Path(self.cfg.spine_dir) / "trajectories"
         traj_dir.mkdir(parents=True, exist_ok=True)
@@ -62,6 +88,7 @@ class StreamManager:
         self.add_message({"role": "assistant", "content": synthesis})
         self.turn = 0
         self._stall_notices_sent = 0
+        self._hud_last_index = -1
 
     def detect_stall(self) -> bool:
         assistant_msgs = [m for m in self._messages if m.get("role") == "assistant"]
@@ -103,6 +130,9 @@ class StreamManager:
     def queue_system_notice(self, text: str):
         self._queued_notices.append(text)
 
+    def queue_user_message(self, text: str):
+        self._user_messages.append(text)
+
     def build_payload(
         self, tools: list[dict], hud_data: dict[str, Any] | None = None
     ) -> list[dict]:
@@ -111,24 +141,54 @@ class StreamManager:
         if self._queued_notices:
             append_parts.extend(self._queued_notices)
         effective_hud = hud_data or self._hud_data
+        should_show_hud = False
         if effective_hud and not self._hud_piggybacked:
+            ctx = effective_hud.get("context_pct", 0.0)
+            urgency = effective_hud.get("urgency", "nominal")
+            # Show HUD when there are notices, user messages, context is tight,
+            # or urgency is elevated/critical.
+            should_show_hud = (
+                bool(self._queued_notices)
+                or bool(self._user_messages)
+                or ctx >= 0.60
+                or urgency != "nominal"
+            )
+        hud_line = None
+        if should_show_hud:
             hud_line = (
-                f"\n[HUD] turn={effective_hud.get('turn', 0)}"
+                f"---\n[HUD] turn={effective_hud.get('turn', 0)}"
                 f" context_pct={effective_hud.get('context_pct', 0.0):.2f}"
                 f" urgency={effective_hud.get('urgency', 'nominal')}"
                 f" memory_files={effective_hud.get('memory_files', 0)}"
                 f" focus={effective_hud.get('focus', '')}"
             )
             append_parts.append(hud_line)
-            self._hud_piggybacked = True
+        # User messages (e.g. Telegram) appear after the HUD for visibility.
+        if self._user_messages:
+            append_parts.extend(self._user_messages)
+        attached = False
         if append_parts:
             suffix = "\n".join(append_parts)
-            for msg in reversed(payload):
-                if msg.get("role") == "tool":
-                    msg["content"] += "\n" + suffix
+            # Queue semantics: only flush onto a *tool* message.  If there is
+            # no eligible tool message the notices survive to the next turn.
+            target_index = -1
+            for i, msg in enumerate(reversed(payload)):
+                actual_index = len(payload) - 1 - i
+                if msg.get("role") == "tool" and actual_index > self._hud_last_index:
+                    target_index = actual_index
                     break
-        if self._queued_notices:
-            self._queued_notices.clear()
+            if target_index >= 0:
+                payload[target_index]["content"] += "\n---\n" + suffix
+                self._hud_last_index = target_index
+                attached = True
+        # Only clear the queue when piggybacked onto a tool message.
+        if attached:
+            if self._queued_notices:
+                self._queued_notices.clear()
+            if self._user_messages:
+                self._user_messages.clear()
+            if hud_line is not None:
+                self._hud_piggybacked = True
         return payload
 
     def write_state(

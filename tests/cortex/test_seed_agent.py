@@ -36,5 +36,5 @@ def test_build_hud(tmp_path):
     (memory_dir / "lessons.md").write_text("# Lessons")
     state = AgentState(memory_dir)
     hud = _build_hud(state)
-    assert hud["memory_file_count"] == 2
+    assert hud["memory_files"] == 2
     assert hud["urgency"] == "nominal"

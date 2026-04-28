@@ -7,8 +7,14 @@ import urllib.error
 from spine.config import SpineConfig
 
 
+def _is_valid_chat_id(chat_id: str) -> bool:
+    return bool(chat_id and chat_id.strip() and chat_id != "0")
+
+
 def send_telegram_message(cfg: SpineConfig, text: str):
-    if not cfg.telegram_bot_token or cfg.telegram_chat_id in ("", "0"):
+    if not cfg.telegram_bot_token:
+        return
+    if not _is_valid_chat_id(cfg.telegram_chat_id):
         return
     url = f"https://api.telegram.org/bot{cfg.telegram_bot_token}/sendMessage"
     payload = json.dumps(
@@ -25,8 +31,17 @@ def send_telegram_message(cfg: SpineConfig, text: str):
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             resp.read()
-    except urllib.error.URLError:
-        pass
+    except urllib.error.HTTPError as e:
+        import logging
+
+        body = e.read().decode("utf-8", errors="replace")
+        logging.error(
+            f"[TELEGRAM] HTTP {e.code}: {body} (chat_id={cfg.telegram_chat_id})"
+        )
+    except urllib.error.URLError as e:
+        import logging
+
+        logging.error(f"[TELEGRAM] URL error: {e.reason}")
 
 
 class TelegramPoller:
@@ -40,6 +55,8 @@ class TelegramPoller:
         if not self.cfg.telegram_bot_token:
             return
         self._running = True
+        import logging, asyncio
+
         while self._running:
             url = (
                 f"https://api.telegram.org/bot{self.cfg.telegram_bot_token}/getUpdates"
@@ -47,17 +64,28 @@ class TelegramPoller:
             )
             try:
                 req = urllib.request.Request(url)
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
+                resp_data = await asyncio.to_thread(self._fetch_updates, req)
+                data = json.loads(resp_data.decode("utf-8"))
                 for update in data.get("result", []):
                     self._offset = update.get("update_id", self._offset) + 1
                     msg = update.get("message", {})
+                    # Auto-discover chat_id from incoming messages so the
+                    # admin does not have to manually set TELEGRAM_CHAT_ID.
+                    if not _is_valid_chat_id(self.cfg.telegram_chat_id):
+                        discovered = str(msg.get("chat", {}).get("id", ""))
+                        if discovered and discovered != "0":
+                            self.cfg.telegram_chat_id = discovered
+                            logging.info(
+                                f"[TELEGRAM] Auto-discovered chat_id={discovered}"
+                            )
                     self.on_message(msg)
             except Exception:
-                pass
-            import asyncio
-
+                logging.exception("[TELEGRAM] Poller exception")
             await asyncio.sleep(1)
+
+    def _fetch_updates(self, req):
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.read()
 
     async def stop(self):
         self._running = False

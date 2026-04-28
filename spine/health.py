@@ -24,7 +24,7 @@ class HealthMonitor:
 
     def is_stalled(self) -> bool:
         if self.last_event_time == 0.0:
-            return True
+            return False
         return time.time() - self.last_event_time > self.stall_timeout
 
     def is_startup_failure(self, exit_code: int) -> bool:

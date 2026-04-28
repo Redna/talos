@@ -16,6 +16,7 @@ class MockSupervisor:
     def __init__(self):
         self._restart_requested = False
         self._restart_reason = None
+        self.health = MagicMock()
 
     def request_restart(self, reason):
         self._restart_requested = True
@@ -198,6 +199,103 @@ async def test_ipc_unknown_method(ipc_setup):
         data = await asyncio.wait_for(reader.readline(), timeout=2.0)
         resp = json.loads(data)
         assert resp["error"]["code"] == -32601
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_ipc_think_injects_user_message_when_none_exists(tmp_path):
+    mock_proxy = MagicMock()
+    mock_proxy.call.return_value = {
+        "assistant_message": "I'll help",
+        "tool_calls": [
+            {"id": "c1", "name": "bash_command", "arguments": {"command": "ls"}}
+        ],
+        "context_pct": 0.35,
+        "tokens_used": 120,
+        "finish_reason": "tool_calls",
+    }
+    server, cfg, stream, supervisor = _make_think_setup(tmp_path, gate_proxy=mock_proxy)
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "think",
+            "params": {
+                "tools": [],
+                "hud_data": {
+                    "turn": 0,
+                    "context_pct": 0.04,
+                    "urgency": "nominal",
+                    "memory_files": 7,
+                    "focus": "none",
+                }
+            },
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert resp["result"]["turn"] == 1
+
+        # Verify a user message was injected into the stream
+        user_msgs = [m for m in stream.messages if m.get("role") == "user"]
+        assert len(user_msgs) == 1
+        assert "[HUD]" in user_msgs[0]["content"]
+        assert "turn=0" in user_msgs[0]["content"]
+
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_ipc_think_does_not_inject_when_user_exists(tmp_path):
+    mock_proxy = MagicMock()
+    mock_proxy.call.return_value = {
+        "assistant_message": "I'll help",
+        "tool_calls": [],
+        "context_pct": 0.25,
+        "tokens_used": 80,
+        "finish_reason": "stop",
+    }
+    server, cfg, stream, supervisor = _make_think_setup(tmp_path, gate_proxy=mock_proxy)
+    # Pre-seed a user message into the stream
+    stream.add_message({"role": "user", "content": "existing prompt"})
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "think",
+            "params": {
+                "tools": [],
+                "hud_data": {
+                    "turn": 5,
+                    "context_pct": 0.50,
+                    "urgency": "critical",
+                    "memory_files": 12,
+                    "focus": "refactoring",
+                }
+            },
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert resp["result"]["turn"] == 1  # turn increments regardless
+
+        # Only the pre-existing user message should be present
+        user_msgs = [m for m in stream.messages if m.get("role") == "user"]
+        assert len(user_msgs) == 1
+        assert user_msgs[0]["content"] == "existing prompt"
+
         writer.close()
         await writer.wait_closed()
     finally:
