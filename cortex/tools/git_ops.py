@@ -1,7 +1,7 @@
 import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import BLOCKED_FLAGS, is_spine_write, PROTECTED_BRANCHES
+from tools.guards import BLOCKED_FLAGS, PROTECTED_BRANCHES
 
 
 def register_git_ops_tools(registry: ToolRegistry, client: SpineClient):

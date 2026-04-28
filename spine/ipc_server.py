@@ -172,45 +172,39 @@ class IPCServer:
             decision_pct = spine_estimate if ctx_pct > 1.0 else ctx_pct
 
             # --- Escalating auto-fold guard ---
+            # 85% = advisory  |  90% = forced fold  |  95% = emergency (debounced)
 
-            if decision_pct >= threshold:
+            if decision_pct >= 0.90:
                 self._consecutive_high_context += 1
-                if decision_pct >= 0.95:
-                    # Debounce: require 2 consecutive readings above 95%
-                    # to prevent Ollama glitch-triggered false folds
-                    if self._consecutive_high_context >= 2:
-                        self.events.emit(
-                            "spine.auto_fold",
-                            {
-                                "context_pct": decision_pct,
-                                "threshold": threshold,
-                                "consecutive_readings": self._consecutive_high_context,
-                            },
-                        )
-                        self.stream.fold(
-                            f"[AUTO-FOLD] Context at {decision_pct:.1%} for "
-                            f"{self._consecutive_high_context} consecutive turns. "
-                            f"Trajectory archived. Resume from fresh context."
-                        )
-                        self._consecutive_high_context = 0
-                    else:
-                        self.stream.queue_system_notice(
-                            f"EMERGENCY: Context at {decision_pct:.1%}. One more "
-                            f"reading above 95% will force an automatic fold. "
-                            f"Call fold_context NOW to control the synthesis."
-                        )
-                elif decision_pct >= 0.90:
+                # Debounce at 95% to prevent Ollama glitch-triggered false folds
+                if decision_pct >= 0.95 and self._consecutive_high_context < 2:
                     self.stream.queue_system_notice(
-                        f"URGENT: Context at {decision_pct:.1%}. fold_context is "
-                        f"REQUIRED on your next turn. Other tool calls will be "
-                        f"blocked until context is folded."
+                        f"EMERGENCY: Context at {decision_pct:.1%}. One more "
+                        f"reading above 95% will force an automatic fold. "
+                        f"Call fold_context NOW to control the synthesis."
                     )
                 else:
-                    self.stream.queue_system_notice(
-                        f"CRITICAL: Context at {decision_pct:.1%}. Auto-fold "
-                        f"threshold ({threshold:.0%}) exceeded. Call fold_context "
-                        f"immediately with a synthesis of all critical facts."
+                    self.events.emit(
+                        "spine.auto_fold",
+                        {
+                            "context_pct": decision_pct,
+                            "threshold": threshold,
+                            "consecutive_readings": self._consecutive_high_context,
+                        },
                     )
+                    self.stream.fold(
+                        f"[AUTO-FOLD] Context at {decision_pct:.1%}. "
+                        f"Trajectory archived. Resume from fresh context."
+                    )
+                    self._consecutive_high_context = 0
+            elif decision_pct >= threshold:
+                self._consecutive_high_context += 1
+                self.stream.queue_system_notice(
+                    f"CRITICAL: Context at {decision_pct:.1%}. Auto-fold "
+                    f"threshold ({threshold:.0%}) exceeded. Call fold_context "
+                    f"immediately with a synthesis of all critical facts. "
+                    f"At 90% context, the spine will force a fold."
+                )
             else:
                 self._consecutive_high_context = 0
 

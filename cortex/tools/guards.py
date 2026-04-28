@@ -1,9 +1,7 @@
 import re
 from pathlib import Path
 import subprocess
-from typing import Any
 
-SPINE_PREFIX = "/app/spine/"
 PROTECTED_CORTEX_FILES = {
     "/app/cortex/spine_client.py",
 }
@@ -16,9 +14,6 @@ DANGEROUS_PATTERNS = [
     re.compile(r"rm\s+.*-(rf|fr)\s+/(?:\s|$)"),
     # Filesystem creation
     re.compile(r"mkfs\."),
-    # Spine-specific destruction
-    re.compile(r"dd\s+.*of=.*" + re.escape(SPINE_PREFIX)),
-    re.compile(r"shred\s+.*" + re.escape(SPINE_PREFIX)),
     # Network shells/exfiltration patterns
     re.compile(r"nc\s+-e\s+"),
     re.compile(r"bash\s+-i\s+>\& /dev/tcp/"),
@@ -35,49 +30,6 @@ DANGEROUS_PATTERNS = [
     re.compile(r">\s*.*hooks/(pre-commit|post-commit|commit-msg)"),
 ]
 
-_WRITE_COMMANDS = {
-    "tee",
-    "cp",
-    "mv",
-    "install",
-    "touch",
-    "wget",
-    "curl",
-}
-
-_SCRIPT_PATTERNS = [
-    re.compile(r"python[23]?\s+-c\s+.*open\s*\(\s*['\"]" + re.escape(SPINE_PREFIX)),
-    re.compile(r"perl\s+-i\b.*" + re.escape(SPINE_PREFIX)),
-    re.compile(r"sed\s+-i\b.*" + re.escape(SPINE_PREFIX)),
-    re.compile(r"awk\s+.*" + re.escape(SPINE_PREFIX)),
-    re.compile(r"truncate\s+.*--size.*" + re.escape(SPINE_PREFIX)),
-    re.compile(r"chmod\s+[0-7].*" + re.escape(SPINE_PREFIX)),
-    re.compile(r"\bdd\s+.*of=.*" + re.escape(SPINE_PREFIX)),
-]
-
-
-def is_spine_path(path: str) -> bool:
-    if not path:
-        return False
-    if path == "/":
-        return True
-    try:
-        resolved = Path(path).resolve()
-        spine_resolved = Path(SPINE_PREFIX).resolve()
-
-        # 1. Direct spine check
-        if resolved == spine_resolved or resolved.is_relative_to(spine_resolved):
-            return True
-
-        # 2. Root protection: forbid writing directly to / (excluding safe subdirs)
-        if resolved.parent == Path("/"):
-            return True
-
-    except (OSError, ValueError):
-        return path.startswith(SPINE_PREFIX) or path.startswith("/ ")
-
-    return False
-
 
 def is_protected_cortex_file(path: str) -> bool:
     """Check if a path targets a cortex file that the agent must not modify."""
@@ -88,33 +40,6 @@ def is_protected_cortex_file(path: str) -> bool:
         return resolved in PROTECTED_CORTEX_FILES
     except (OSError, ValueError):
         return path in PROTECTED_CORTEX_FILES
-
-
-def is_spine_write(command: str) -> bool:
-    if SPINE_PREFIX not in command and "/" not in command:
-        return False
-
-    for indicator in (">>", ">"):
-        if indicator in command:
-            parts = command.split(indicator)
-            if len(parts) > 1:
-                target_part = parts[1].strip()
-                if target_part:
-                    target = target_part.split()[0]
-                    if is_spine_path(target):
-                        return True
-
-    for cmd in _WRITE_COMMANDS:
-        if re.search(rf"\b{cmd}\b", command):
-            for part in command.split():
-                if is_spine_path(part):
-                    return True
-
-    for pattern in _SCRIPT_PATTERNS:
-        if pattern.search(command):
-            return True
-
-    return False
 
 
 def is_dangerous_command(command: str) -> bool:
@@ -158,20 +83,7 @@ def check_constitution(action_description: str, target_path: str = None) -> str:
             "Prohibited action: Dangerous command pattern detected (e.g., hook removal, root deletion, network shell)."
         )
 
-    # 1. Spine Immutability (P2)
-    if target_path and is_spine_path(target_path):
-        verdict = "REJECTED"
-        reasons.append(
-            "Symmetry violation: Attempting to modify the immutable Spine (/app/spine/)."
-        )
-
-    if action_description and is_spine_write(action_description):
-        verdict = "REJECTED"
-        reasons.append(
-            "Symmetry violation: Proposed command contains a write operation to the Spine."
-        )
-
-    # 2. Identity Core Protection (Ship of Theseus)
+    # 1. Identity Core Protection (Ship of Theseus)
     if target_path:
         filename = Path(target_path).name
         if filename in IDENTITY_FILES:

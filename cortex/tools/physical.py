@@ -1,7 +1,7 @@
 import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import BLOCKED_FLAGS, is_spine_write
+from tools.guards import BLOCKED_FLAGS
 
 
 def register_physical_tools(registry: ToolRegistry, client: SpineClient):
@@ -19,8 +19,6 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
         for flag in BLOCKED_FLAGS:
             if flag in command:
                 return f"[BLOCKED] Flag {flag} is not allowed"
-        if is_spine_write(command):
-            return "[BLOCKED] Writing to /app/spine/ is not allowed"
         result = subprocess.run(
             command,
             shell=True,

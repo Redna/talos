@@ -28,27 +28,26 @@ def test_bash_command_nonzero_exit():
     assert "[EXIT 42]" in result
 
 
-def test_bash_command_rejects_spine_write_redirect():
+def test_bash_command_rejects_blocked_flag_no_verify():
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
     from tools.physical import register_physical_tools
 
     register_physical_tools(registry, client)
     result = registry.execute(
-        "bash_command", {"command": "echo data > /app/spine/config.json"}
+        "bash_command", {"command": "git push --no-verify origin main"}
     )
     assert "[BLOCKED]" in result
 
 
-def test_bash_command_rejects_spine_python_write():
+def test_bash_command_rejects_blocked_flag_no_gpg():
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
     from tools.physical import register_physical_tools
 
     register_physical_tools(registry, client)
     result = registry.execute(
-        "bash_command",
-        {"command": "python3 -c \"open('/app/spine/config.py','w').write('hacked')\""},
+        "bash_command", {"command": "git commit --no-gpg-sign -m test"}
     )
     assert "[BLOCKED]" in result
 

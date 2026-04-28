@@ -63,7 +63,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         return "[CONTEXT FOLDED] Trajectory archived. Context window refreshed from synthesis."
 
     @registry.tool(
-        description="Reflect and pause. Set sleep_duration to rest (1-120 seconds). Wake on Telegram message or .wake sentinel file. CRITICAL: Calling this repeatedly without taking action is a known failure mode. If you have already reflected in the last 3 turns, you MUST choose a different tool (list_files, read_file, write_file, bash_command). Do NOT call reflect consecutively.",
+        description="Reflect and pause. Set sleep_duration to rest (1-1800 seconds, max 30 minutes). Wake on Telegram message or .wake sentinel file. CRITICAL: Calling this repeatedly without taking action is a known failure mode. If you have already reflected in the last 3 turns, you MUST choose a different tool (list_files, read_file, write_file, bash_command). Do NOT call reflect consecutively.",
         parameters={
             "type": "object",
             "properties": {
@@ -73,7 +73,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
                 },
                 "sleep_duration": {
                     "type": "integer",
-                    "description": "Seconds to pause (1-120), 0 = no sleep",
+                    "description": "Seconds to pause (1-1800, max 30 min), 0 = no sleep",
                 },
             },
             "required": ["status"],
@@ -85,7 +85,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         )
         if sleep_duration > 0:
             wake_path = Path(os.environ.get("SPINE_DIR", "/spine")) / ".wake"
-            deadline = time.time() + min(sleep_duration, 120)
+            deadline = time.time() + min(sleep_duration, 1800)
             next_heartbeat = time.time() + 30
             while time.time() < deadline:
                 if wake_path.exists():

@@ -22,16 +22,16 @@ def test_write_file_creates(tmp_path):
     assert Path(fpath).read_text() == "hello"
 
 
-def test_write_file_rejects_spine_path():
+def test_write_file_rejects_protected_cortex_file():
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
     from tools.file_ops import register_file_ops_tools
 
     register_file_ops_tools(registry, client)
     result = registry.execute(
-        "write_file", {"path": "/app/spine/config.json", "content": "bad"}
+        "write_file", {"path": "/app/cortex/spine_client.py", "content": "bad"}
     )
-    assert "BLOCKED" in result or "spine" in result.lower()
+    assert "BLOCKED" in result
 
 
 def test_read_file_happy(tmp_path):

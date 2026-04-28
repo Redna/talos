@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import is_protected_cortex_file, is_spine_path, is_spine_write
+from tools.guards import is_protected_cortex_file
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 
@@ -68,13 +68,8 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def write_file(path: str, content: str) -> str:
         resolved = _resolve_path(path)
-        if is_spine_path(str(resolved)):
-            return "[BLOCKED] Writing to /app/spine/ is not allowed"
         if is_protected_cortex_file(str(resolved)):
             return f"[BLOCKED] Modifying {path} is not allowed — this file is protected infrastructure"
-        client.emit_event(
-            "cortex.write_file", {"path": str(resolved), "content_len": len(content)}
-        )
         try:
             os.makedirs(os.path.dirname(resolved), exist_ok=True)
             with open(resolved, "w") as f:
@@ -99,8 +94,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def patch_file(path: str, patch: str) -> str:
         resolved = _resolve_path(path)
-        if is_spine_path(str(resolved)):
-            return "[BLOCKED] Writing to /app/spine/ is not allowed"
         if is_protected_cortex_file(str(resolved)):
             return f"[BLOCKED] Patching {path} is not allowed — this file is protected infrastructure"
         client.emit_event("cortex.patch_file", {"path": str(resolved)})
@@ -189,8 +182,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def delete_path(path: str, recursive: bool = False) -> str:
         resolved = _resolve_path(path)
-        if is_spine_path(str(resolved)):
-            return "[BLOCKED] Deleting from /app/spine/ is not allowed"
         if is_protected_cortex_file(str(resolved)):
             return f"[BLOCKED] Deleting {path} is not allowed — this file is protected infrastructure"
         client.emit_event("cortex.delete_path", {"path": str(resolved), "recursive": recursive})
@@ -257,8 +248,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def validate_patch(path: str, patch: str) -> str:
         resolved = _resolve_path(path)
-        if is_spine_path(str(resolved)):
-            return "[BLOCKED] Validating patches in /app/spine/ is not allowed"
         client.emit_event("cortex.validate_patch", {"path": str(resolved)})
         cwd = os.path.dirname(resolved) or "."
         try:
@@ -298,9 +287,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         for old, new in mapping.items():
             old_resolved = _resolve_path(old)
             new_resolved = _resolve_path(new)
-            if is_spine_path(str(new_resolved)):
-                results.append(f"[BLOCKED] Cannot move to spine: {new}")
-                continue
             try:
                 os.makedirs(os.path.dirname(new_resolved), exist_ok=True)
                 shutil.move(str(old_resolved), str(new_resolved))
