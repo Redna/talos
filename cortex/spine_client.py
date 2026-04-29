@@ -30,11 +30,20 @@ class SpineClient:
         try:
             sock.sendall((json.dumps(request) + "\n").encode("utf-8"))
             response_data = b""
+            max_buffer = 10 * 1024 * 1024  # 10 MB
             while True:
                 chunk = sock.recv(65536)
                 if not chunk:
-                    break
+                    raise SpineError(
+                        -32000,
+                        "Connection closed by Spine before receiving a complete response",
+                    )
                 response_data += chunk
+                if len(response_data) > max_buffer:
+                    raise SpineError(
+                        -32000,
+                        f"Response exceeded maximum buffer size of {max_buffer} bytes",
+                    )
                 if b"\n" in response_data:
                     break
             response = json.loads(response_data.decode("utf-8").strip())

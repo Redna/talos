@@ -153,14 +153,21 @@ def main():
                 continue
 
             if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:
-                print(
-                    f"[Cortex] LLM returned {len(tool_calls)} tool calls, capping to {MAX_TOOL_CALLS_PER_TURN}"
+                error_msg = (
+                    f"[REJECTED] LLM returned {len(tool_calls)} tool calls, "
+                    f"but the maximum per turn is {MAX_TOOL_CALLS_PER_TURN}. "
+                    f"The entire batch has been rejected to prevent partial execution "
+                    f"and dirty repository state. Please reduce the number of "
+                    f"simultaneous tool calls and try again."
                 )
+                print(f"[Cortex] {error_msg}")
+                first_tc_id = tool_calls[0]["id"]
+                client.tool_result(first_tc_id, error_msg, False)
                 client.emit_event(
-                    "cortex.tool_calls_capped",
+                    "cortex.tool_calls_rejected",
                     {"original_count": len(tool_calls), "cap": MAX_TOOL_CALLS_PER_TURN},
                 )
-                tool_calls = tool_calls[:MAX_TOOL_CALLS_PER_TURN]
+                continue
 
             for tc in tool_calls:
                 tool_name = tc["name"]

@@ -38,3 +38,7 @@ def test_build_hud(tmp_path):
     hud = _build_hud(state)
     assert hud["memory_files"] == 2
     assert hud["urgency"] == "nominal"
+
+
+def test_max_tool_calls_per_turn_value():
+    assert MAX_TOOL_CALLS_PER_TURN == 10

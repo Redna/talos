@@ -270,6 +270,70 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Validation failed: {e}"
 
     @registry.tool(
+        description="Replace exact strings in a file. Cannot modify protected cortex files.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "File path to modify"},
+                "old_string": {
+                    "type": "string",
+                    "description": "The exact string to find and replace",
+                },
+                "new_string": {
+                    "type": "string",
+                    "description": "The replacement string",
+                },
+                "replace_all": {
+                    "type": "boolean",
+                    "description": "If True, replace all occurrences. If False (default), fail if more than one match is found.",
+                },
+            },
+            "required": ["path", "old_string", "new_string"],
+        },
+    )
+    def search_and_replace(
+        path: str, old_string: str, new_string: str, replace_all: bool = False
+    ) -> str:
+        resolved = _resolve_path(path)
+        if is_protected_cortex_file(str(resolved)):
+            return f"[BLOCKED] Modifying {path} is not allowed — this file is protected infrastructure"
+        client.emit_event("cortex.search_and_replace", {"path": str(resolved)})
+        try:
+            with open(resolved, "r") as f:
+                content = f.read()
+        except FileNotFoundError:
+            return f"[ERROR] File not found: {path} (resolved: {resolved})"
+        except Exception as e:
+            return f"[ERROR] Failed to read file: {e}"
+
+        occurrences = content.count(old_string)
+        if occurrences == 0:
+            return f"[ERROR] The string to replace was not found in {path} (even after relaxing whitespace). Check the exact string and try again."
+
+        if occurrences > 1 and not replace_all:
+            lines = []
+            for i, line in enumerate(content.split("\n"), 1):
+                if old_string in line:
+                    lines.append(str(i))
+            return (
+                f"[ERROR] Found {occurrences} occurrences of the string in {path} "
+                f"on lines {', '.join(lines)}. "
+                f"Set replace_all=True to replace all occurrences, "
+                f"or provide a more specific string."
+            )
+
+        new_content = content.replace(old_string, new_string)
+        try:
+            os.makedirs(os.path.dirname(resolved), exist_ok=True)
+            with open(resolved, "w") as f:
+                f.write(new_content)
+        except Exception as e:
+            return f"[ERROR] Failed to write file: {e}"
+
+        replaced = occurrences if replace_all else 1
+        return f"[REPLACED] {replaced} occurrence(s) replaced in {path}"
+
+    @registry.tool(
         description="Bulk rename/move files based on a mapping.",
         parameters={
             "type": "object",
@@ -287,6 +351,16 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         for old, new in mapping.items():
             old_resolved = _resolve_path(old)
             new_resolved = _resolve_path(new)
+            if is_protected_cortex_file(str(old_resolved)):
+                results.append(
+                    f"[BLOCKED] Modifying {old} is not allowed — this file is protected infrastructure"
+                )
+                continue
+            if is_protected_cortex_file(str(new_resolved)):
+                results.append(
+                    f"[BLOCKED] Writing to {new} is not allowed — this path is protected infrastructure"
+                )
+                continue
             try:
                 os.makedirs(os.path.dirname(new_resolved), exist_ok=True)
                 shutil.move(str(old_resolved), str(new_resolved))
