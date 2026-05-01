@@ -10,6 +10,7 @@ from typing import Any
 from spine.config import SpineConfig
 from spine.events import EventLogger
 from spine.stream import StreamManager
+from spine.whisper import WhisperManager
 
 
 class IPCServer:
@@ -29,6 +30,7 @@ class IPCServer:
         self._server: asyncio.Server | None = None
         self._consecutive_high_context = 0
         self._last_tool_event_time: float = 0.0
+        self.whisper = WhisperManager()
 
     async def start(self):
         socket_path = self.cfg.socket_path
@@ -98,6 +100,14 @@ class IPCServer:
                     f" focus={hud.get('focus', '')}"
                 )
                 self.stream.add_message({"role": "user", "content": hud_line})
+
+            # Whisper: inject a reflective question when focus is empty and the
+            # agent just returned from a reflect pause.
+            if self.whisper.should_whisper(
+                hud.get("focus", ""), self.stream.messages
+            ):
+                question = self.whisper.pick()
+                self.stream.queue_system_notice(f"[WHISPER] {question}")
 
             payload = self.stream.build_payload(
                 params.get("tools", []),
