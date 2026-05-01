@@ -52,6 +52,7 @@ class IPCServer:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         try:
+            reader._limit = 10 * 1024 * 1024  # 10MB — handle large tool outputs
             while True:
                 line = await reader.readline()
                 if not line:
