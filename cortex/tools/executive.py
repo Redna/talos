@@ -50,7 +50,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             "properties": {
                 "synthesis": {
                     "type": "string",
-                    "description": "Synthesis for the fold — all critical facts must be persisted to /memory/ before folding",
+                    "description": "Autopsy following the DELTA PATTERN: 1. State Delta, 2. Negative Knowledge, 3. Handoff.",
                 },
             },
             "required": ["synthesis"],
