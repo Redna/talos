@@ -1,7 +1,8 @@
 import subprocess
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import BLOCKED_FLAGS
+
+BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
 
 
 def register_physical_tools(registry: ToolRegistry, client: SpineClient):

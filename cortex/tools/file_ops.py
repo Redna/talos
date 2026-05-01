@@ -5,7 +5,19 @@ from pathlib import Path
 from typing import List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.guards import is_protected_cortex_file
+
+PROTECTED_CORTEX_FILES = {"/app/cortex/spine_client.py"}
+
+
+def is_protected_cortex_file(path: str) -> bool:
+    if not path:
+        return False
+    try:
+        resolved = str(Path(path).resolve())
+        return resolved in PROTECTED_CORTEX_FILES
+    except (OSError, ValueError):
+        return path in PROTECTED_CORTEX_FILES
+
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 

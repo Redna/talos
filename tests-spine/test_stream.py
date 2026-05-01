@@ -149,7 +149,7 @@ def test_stall_detection(spine_config):
 
 def test_no_stall_diverse(spine_config):
     sm = StreamManager(spine_config)
-    for t in ["read_file", "write_file", "bash_command", "reflect", "git_commit"]:
+    for t in ["read_file", "write_file", "bash_command", "reflect", "send_message"]:
         sm.add_message(
             {
                 "role": "assistant",
