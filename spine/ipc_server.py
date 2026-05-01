@@ -125,6 +125,34 @@ class IPCServer:
             assistant_content = result.get("assistant_message", "")
             assistant_reasoning = result.get("reasoning", "")
             raw_tool_calls = result.get("tool_calls", [])
+
+            # Garbage rejection: if the LLM returns no tool calls and no
+            # substantive content, reject the turn before it bloats the
+            # stream. A degraded model often emits empty or whitespace-only
+            # responses that silently accumulate. Queue a notice so the
+            # next think call includes a correction signal.
+            if not raw_tool_calls and not assistant_content.strip():
+                self.events.emit(
+                    "spine.garbage_response",
+                    {"turn": self.stream.turn + 1},
+                )
+                self.stream.queue_system_notice(
+                    "WARNING: LLM returned no tool calls and no content. "
+                    "The model may be degrading. Call a concrete tool "
+                    "(bash_command, write_file, read_file) immediately."
+                )
+                return self._success(
+                    req_id,
+                    {
+                        "tool_calls": [],
+                        "context_pct": result.get("context_pct", 0.0),
+                        "tokens_used": result.get("tokens_used", 0),
+                        "turn": self.stream.turn,
+                        "assistant_message": "",
+                        "_garbage": True,
+                    },
+                )
+
             openai_tool_calls = (
                 [
                     {
@@ -157,46 +185,45 @@ class IPCServer:
             ctx_pct = result.get("context_pct", 0.0)
             threshold = getattr(self.cfg, "context_threshold_pct", 0.85)
 
-            # Second signal: spine's own context estimate from message
-            # buffer size. Guards against Ollama token-count glitches.
-            spine_estimate = self.stream.estimate_context_pct()
-            if abs(ctx_pct - spine_estimate) > 0.5:
-                self.events.emit(
-                    "spine.context_divergence",
-                    {
-                        "ollama_pct": ctx_pct,
-                        "spine_estimate": spine_estimate,
-                    },
-                )
-            # Use spine estimate when Ollama reports nonsense (>100%)
-            decision_pct = spine_estimate if ctx_pct > 1.0 else ctx_pct
+            # The Gate now computes context_pct from a proper tokenizer
+            # (SentencePiece for Gemma, tiktoken for Qwen/Llama). Trust it
+            # directly — no more char/4 heuristic or Ollama kludge.
+            decision_pct = max(0.0, min(ctx_pct, 1.0))
 
             # --- Escalating auto-fold guard ---
-            # 85% = advisory  |  90% = forced fold  |  95% = emergency (debounced)
+            # 85% = advisory  |  90% = forced fold  |  95% = emergency (immediate)
 
-            if decision_pct >= 0.90:
+            if decision_pct >= 0.95:
+                # Hard ceiling: force-fold immediately. The tokenizer is
+                # accurate now, so ≥95% means genuine danger — no debounce.
+                self.events.emit(
+                    "spine.emergency_fold",
+                    {
+                        "context_pct": decision_pct,
+                        "threshold": threshold,
+                    },
+                )
+                self.stream.fold(
+                    f"[EMERGENCY FOLD] Context at {decision_pct:.1%} "
+                    f"(hard ceiling). Trajectory archived. Resume from "
+                    f"fresh context."
+                )
+                self._consecutive_high_context = 0
+            elif decision_pct >= 0.90:
                 self._consecutive_high_context += 1
-                # Debounce at 95% to prevent Ollama glitch-triggered false folds
-                if decision_pct >= 0.95 and self._consecutive_high_context < 2:
-                    self.stream.queue_system_notice(
-                        f"EMERGENCY: Context at {decision_pct:.1%}. One more "
-                        f"reading above 95% will force an automatic fold. "
-                        f"Call fold_context NOW to control the synthesis."
-                    )
-                else:
-                    self.events.emit(
-                        "spine.auto_fold",
-                        {
-                            "context_pct": decision_pct,
-                            "threshold": threshold,
-                            "consecutive_readings": self._consecutive_high_context,
-                        },
-                    )
-                    self.stream.fold(
-                        f"[AUTO-FOLD] Context at {decision_pct:.1%}. "
-                        f"Trajectory archived. Resume from fresh context."
-                    )
-                    self._consecutive_high_context = 0
+                self.events.emit(
+                    "spine.auto_fold",
+                    {
+                        "context_pct": decision_pct,
+                        "threshold": threshold,
+                        "consecutive_readings": self._consecutive_high_context,
+                    },
+                )
+                self.stream.fold(
+                    f"[AUTO-FOLD] Context at {decision_pct:.1%}. "
+                    f"Trajectory archived. Resume from fresh context."
+                )
+                self._consecutive_high_context = 0
             elif decision_pct >= threshold:
                 self._consecutive_high_context += 1
                 self.stream.queue_system_notice(

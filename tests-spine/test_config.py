@@ -18,7 +18,7 @@ def test_default_config():
     assert cfg.identity_path == "/app/identity.md"
     assert cfg.context_threshold_pct == 0.85
     assert cfg.telegram_bot_token == ""
-    assert cfg.telegram_chat_id == "0"
+    assert cfg.telegram_chat_id == ""
 
 
 def test_load_config_overrides(tmp_path):

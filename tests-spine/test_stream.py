@@ -44,7 +44,7 @@ def test_hud_piggybacks_on_tool_result(spine_config):
     sm = StreamManager(spine_config)
     sm.add_message({"role": "assistant", "content": "", "tool_calls": []})
     sm.add_message({"role": "tool", "tool_call_id": "tc_1", "content": "result"})
-    sm.set_hud({"turn": 1, "context_pct": 0.5, "urgency": "nominal", "memory_files": 3})
+    sm.set_hud({"turn": 1, "context_pct": 0.65, "urgency": "nominal", "memory_files": 3})
     payload = sm.build_payload(tools=[])
     tool_msgs = [m for m in payload if m["role"] == "tool"]
     assert any("[HUD]" in m["content"] for m in tool_msgs)

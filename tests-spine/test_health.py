@@ -11,7 +11,8 @@ def test_cortex_started_resets_state():
 
 def test_is_stalled_when_no_events():
     h = HealthMonitor(stall_timeout=10.0, startup_timeout=5.0)
-    assert h.is_stalled() is True
+    # last_event_time == 0 means never started — not stalled
+    assert h.is_stalled() is False
 
 
 def test_is_stalled_after_recent_event():

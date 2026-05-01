@@ -30,7 +30,7 @@ class FakeGateProxy(GateProxy):
         self._responses = list(responses)
         self._idx = 0
 
-    def call(self, messages, tools, model=""):
+    def call(self, messages, tools, model="", turn=None):
         if self._idx >= len(self._responses):
             raise RuntimeError("FakeGateProxy ran out of scripted responses")
         resp = self._responses[self._idx]
@@ -72,7 +72,7 @@ def server(test_env):
             "tool_calls": [
                 {"id": "tc_1", "name": "bash_command", "arguments": {"command": "pwd"}},
             ],
-            "context_pct": 0.15,
+            "context_pct": 0.65,
             "tokens_used": 120,
             "finish_reason": "tool_calls",
         },
@@ -123,7 +123,7 @@ async def test_think_returns_tool_calls(server):
 
         assert "result" in resp, resp
         assert resp["result"]["tool_calls"][0]["name"] == "bash_command"
-        assert resp["result"]["context_pct"] == 0.15
+        assert resp["result"]["context_pct"] == 0.65
         assert resp["result"]["turn"] == 1
     finally:
         await srv.stop()
@@ -151,7 +151,7 @@ async def test_state_json_written_after_think(server):
         assert state_file.exists(), "state.json should exist after think()"
         state = json.loads(state_file.read_text())
         assert state["turn"] == 1
-        assert state["context_pct"] == 0.15
+        assert state["context_pct"] == 0.65
     finally:
         await srv.stop()
 
@@ -206,9 +206,10 @@ async def test_no_user_messages_after_system_in_stream(server):
 
         assert resp3["result"]["tool_calls"][0]["name"] == "read_file"
 
-        # Verify conversation pattern
+        # Verify conversation pattern: one synthetic user message from
+        # the Spine's first-turn HUD injection is expected.
         user_msgs = [m for m in stream.messages if m["role"] == "user"]
-        assert len(user_msgs) == 0, f"Expected 0 user messages, got {len(user_msgs)}"
+        assert len(user_msgs) == 1, f"Expected 1 user message (first-turn HUD), got {len(user_msgs)}"
 
         assistant_msgs = [m for m in stream.messages if m["role"] == "assistant"]
         # 2 assistant turns (system is its own role, not included)
@@ -267,7 +268,7 @@ async def test_tool_result_records_in_stream(server):
 async def test_hud_piggybacked_on_tool_payload_not_stream(server):
     cfg, srv, stream = server
     stream.set_hud(
-        {"turn": 42, "context_pct": 0.5, "urgency": "nominal", "memory_files": 3}
+        {"turn": 42, "context_pct": 0.65, "urgency": "nominal", "memory_files": 3}
     )
     await srv.start()
     try:

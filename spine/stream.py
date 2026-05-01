@@ -64,20 +64,6 @@ class StreamManager:
         self._hud_data = dict(hud_data)
         self._hud_piggybacked = False
 
-    def estimate_context_pct(self) -> float:
-        """Estimate context usage from cumulative message buffer size.
-
-        Uses a rough heuristic (4 chars per token) as a second signal
-        alongside Ollama's prompt_tokens count, which can be
-        non-deterministic or report bogus values >100%.
-        """
-        total_chars = sum(
-            len(json.dumps(m, ensure_ascii=False)) for m in self._messages
-        )
-        estimated_tokens = total_chars / 4.0
-        window = getattr(self.cfg, "context_window", 71680)
-        return min(estimated_tokens / window, 1.0)
-
     def fold(self, synthesis: str):
         traj_dir = Path(self.cfg.spine_dir) / "trajectories"
         traj_dir.mkdir(parents=True, exist_ok=True)
