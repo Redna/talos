@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 
 class WhisperManager:
     def __init__(self):
@@ -46,7 +48,7 @@ class WhisperManager:
         self._stack.append(q)
         return q
 
-    def should_whisper(self, focus: str | None, messages: list[dict]) -> bool:
+    def should_whisper(self, focus: str | None, messages: list[dict[str, Any]]) -> bool:
         if focus and focus != "none":
             return False
         tool_msgs = [m for m in messages if m.get("role") == "tool"]
