@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-class WhisperManager:
+class ThoughtManager:
     def __init__(self):
         self._stack = [
             (
@@ -48,14 +48,19 @@ class WhisperManager:
         self._stack.append(q)
         return q
 
-    def should_whisper(self, focus: str | None, messages: list[dict[str, Any]]) -> bool:
+    def should_inject(self, focus: str | None, messages: list[dict[str, Any]]) -> bool:
         if focus and focus != "none":
             return False
-        tool_msgs = [m for m in messages if m.get("role") == "tool"]
-        if not tool_msgs:
+        assistant_msgs = [m for m in messages if m.get("role") == "assistant"]
+        if not assistant_msgs:
             return False
-        if "[REFLECT]" not in tool_msgs[-1].get("content", ""):
+        last_calls = assistant_msgs[-1].get("tool_calls") or []
+        last_names = [tc.get("function", {}).get("name", "") for tc in last_calls]
+        if "reflect" not in last_names:
             return False
-        if len(tool_msgs) >= 2 and "[REFLECT]" in tool_msgs[-2].get("content", ""):
-            return False
+        if len(assistant_msgs) >= 2:
+            prev_calls = assistant_msgs[-2].get("tool_calls") or []
+            prev_names = [tc.get("function", {}).get("name", "") for tc in prev_calls]
+            if "reflect" in prev_names:
+                return False
         return True

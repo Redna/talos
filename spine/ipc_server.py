@@ -10,7 +10,7 @@ from typing import Any
 from spine.config import SpineConfig
 from spine.events import EventLogger
 from spine.stream import StreamManager
-from spine.whisper import WhisperManager
+from spine.thought import ThoughtManager
 
 
 class IPCServer:
@@ -30,7 +30,8 @@ class IPCServer:
         self._server: asyncio.Server | None = None
         self._consecutive_high_context = 0
         self._last_tool_event_time: float = 0.0
-        self.whisper = WhisperManager()
+        self._last_focus: str = ""
+        self.thought = ThoughtManager()
 
     async def start(self):
         socket_path = self.cfg.socket_path
@@ -88,6 +89,7 @@ class IPCServer:
                 return self._error(req_id, -32000, "No gate proxy configured")
             hud = params.get("hud_data", {})
             hud.setdefault("turn", self.stream.turn)
+            self._last_focus = hud.get("focus", "")
 
             # Inject a synthetic user message on first turn if stream has no user input
             has_user = any(m.get("role") == "user" for m in self.stream.messages)
@@ -100,14 +102,6 @@ class IPCServer:
                     f" focus={hud.get('focus', '')}"
                 )
                 self.stream.add_message({"role": "user", "content": hud_line})
-
-            # Whisper: inject a reflective question when focus is empty and the
-            # agent just returned from a reflect pause.
-            if self.whisper.should_whisper(
-                hud.get("focus", ""), self.stream.messages
-            ):
-                question = self.whisper.pick()
-                self.stream.queue_system_notice(f"[WHISPER] {question}")
 
             payload = self.stream.build_payload(
                 params.get("tools", []),
@@ -279,10 +273,21 @@ class IPCServer:
                 },
             )
         elif method == "tool_result":
+            output = params.get("output", "")
+            # Inject a reflective thought when the agent is unfocused and just
+            # returned from a reflect pause. The thought is appended directly to
+            # the reflect tool result so the agent sees it immediately.
+            if (
+                "[REFLECT]" in output
+                and self._last_focus in ("", "none")
+                and self.thought.should_inject(self._last_focus, self.stream.messages)
+            ):
+                question = self.thought.pick()
+                output += f"\n\n---\n[THOUGHT] {question}"
             self._last_tool_event_time = time.time()
             self.stream.record_tool_result(
                 params.get("tool_call_id", ""),
-                params.get("output", ""),
+                output,
                 params.get("success", True),
             )
             return self._success(req_id, "ok")

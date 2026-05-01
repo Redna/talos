@@ -316,24 +316,20 @@ async def test_hud_piggybacked_on_tool_payload_not_stream(server):
 
 
 @pytest.mark.asyncio
-async def test_whisper_injected_on_empty_focus_after_reflect(test_env):
+async def test_thought_injected_into_reflect_tool_result(test_env):
     cfg, events, stream, supervisor = test_env
-    # Set up: no focus, a reflect tool result in the stream
-    stream.add_message({"role": "assistant", "content": "", "tool_calls": []})
-    stream.record_tool_result("tc_reflect", "[REFLECT] idle", True)
-
-    # Spy gate that captures the payload sent to it
-    captured = []
-
+    # Spy gate returns a reflect tool call so the assistant message gets a
+    # reflect tool_call record (needed for should_inject anti-loop check).
     class SpyGate(FakeGateProxy):
         def call(self, messages, tools, model="", turn=None):
-            captured.append(messages)
             return {
-                "assistant_message": "Ok.",
-                "tool_calls": [],
-                "context_pct": 0.30,
-                "tokens_used": 60,
-                "finish_reason": "stop",
+                "assistant_message": "Pausing.",
+                "tool_calls": [
+                    {"id": "tc_r", "name": "reflect", "arguments": {"status": "idle"}},
+                ],
+                "context_pct": 0.35,
+                "tokens_used": 80,
+                "finish_reason": "tool_calls",
             }
 
     gate = SpyGate(cfg, [])
@@ -341,6 +337,8 @@ async def test_whisper_injected_on_empty_focus_after_reflect(test_env):
     await srv.start()
     try:
         reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        # Step 1: think with empty focus — records assistant msg with reflect
+        # tool_call and stores _last_focus = "none".
         req = {
             "jsonrpc": "2.0",
             "id": 1,
@@ -350,12 +348,27 @@ async def test_whisper_injected_on_empty_focus_after_reflect(test_env):
         writer.write((json.dumps(req) + "\n").encode())
         await writer.drain()
         await reader.readline()
+
+        # Step 2: tool_result for the reflect — the thought should be injected
+        # into the output before recording.
+        req2 = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tool_result",
+            "params": {"tool_call_id": "tc_r", "output": "[REFLECT] idle", "success": True},
+        }
+        writer.write((json.dumps(req2) + "\n").encode())
+        await writer.drain()
+        await reader.readline()
         writer.close()
         await writer.wait_closed()
 
-        assert len(captured) == 1
-        tool_msgs = [m for m in captured[0] if m.get("role") == "tool"]
-        whisper_msgs = [m for m in tool_msgs if "[WHISPER]" in m.get("content", "")]
-        assert len(whisper_msgs) == 1, "whisper should be injected into tool payload"
+        # The thought should now be in the stream's reflect tool result.
+        tool_msgs = [m for m in stream.messages if m.get("role") == "tool"]
+        reflect_msgs = [m for m in tool_msgs if "[REFLECT]" in m.get("content", "")]
+        assert len(reflect_msgs) == 1
+        assert "[THOUGHT]" in reflect_msgs[0]["content"], (
+            "thought should be injected into reflect tool result in stream"
+        )
     finally:
         await srv.stop()
