@@ -25,7 +25,7 @@ class SpineClient:
         }
 
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(120)
+        sock.settimeout(300)
         sock.connect(self.socket_path)
         try:
             sock.sendall((json.dumps(request) + "\n").encode("utf-8"))
