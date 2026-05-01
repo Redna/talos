@@ -168,15 +168,9 @@ class StreamManager:
                 self._hud_last_index = target_index
                 attached = True
         # Only clear the queue when piggybacked onto a tool message.
-        # Whisper notices are preserved so integration tests (and telemetry
-        # consumers) can verify injection occurred. They are inert after the
-        # first delivery because _hud_last_index prevents re-attachment to
-        # the same tool message.
         if attached:
             if self._queued_notices:
-                self._queued_notices[:] = [
-                    n for n in self._queued_notices if "[WHISPER]" in n
-                ]
+                self._queued_notices.clear()
             if self._user_messages:
                 self._user_messages.clear()
             if hud_line is not None:

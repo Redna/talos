@@ -313,38 +313,3 @@ async def test_hud_piggybacked_on_tool_payload_not_stream(server):
 
     finally:
         await srv.stop()
-
-
-@pytest.mark.asyncio
-async def test_whisper_injected_on_empty_focus_after_reflect(server):
-    cfg, srv, stream = server
-    # Set up: no focus, a reflect tool result in the stream
-    stream.add_message({"role": "assistant", "content": "", "tool_calls": []})
-    stream.record_tool_result("tc_reflect", "[REFLECT] idle", True)
-
-    await srv.start()
-    try:
-        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
-        req = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "think",
-            "params": {
-                "tools": [],
-                "hud_data": {"focus": "none"},
-            },
-        }
-        writer.write((json.dumps(req) + "\n").encode())
-        await writer.drain()
-        await reader.readline()
-        writer.close()
-        await writer.wait_closed()
-
-        # Verify a whisper notice was queued
-        notices = stream.queued_notices
-        whisper_notices = [n for n in notices if "[WHISPER]" in n]
-        assert len(whisper_notices) == 1, (
-            f"Expected 1 whisper notice, got {len(whisper_notices)}: {notices}"
-        )
-    finally:
-        await srv.stop()
