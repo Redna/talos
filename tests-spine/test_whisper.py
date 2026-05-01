@@ -10,11 +10,9 @@ def _make_messages(*tool_contents: str) -> list[dict]:
 
 def test_pick_rotates():
     w = WhisperManager()
-    first = w._stack[0]
-    picked = w.pick()
-    assert picked == first
-    assert w._stack[-1] == first  # pushed to end
-    assert len(w._stack) == 6    # all 6 still there
+    seen = [w.pick() for _ in range(6)]
+    assert len(set(seen)) == 6  # all 6 distinct
+    assert w.pick() == seen[0]  # wraps around to first
 
 
 def test_should_whisper_empty_focus_after_reflect():
