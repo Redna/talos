@@ -313,3 +313,49 @@ async def test_hud_piggybacked_on_tool_payload_not_stream(server):
 
     finally:
         await srv.stop()
+
+
+@pytest.mark.asyncio
+async def test_whisper_injected_on_empty_focus_after_reflect(test_env):
+    cfg, events, stream, supervisor = test_env
+    # Set up: no focus, a reflect tool result in the stream
+    stream.add_message({"role": "assistant", "content": "", "tool_calls": []})
+    stream.record_tool_result("tc_reflect", "[REFLECT] idle", True)
+
+    # Spy gate that captures the payload sent to it
+    captured = []
+
+    class SpyGate(FakeGateProxy):
+        def call(self, messages, tools, model="", turn=None):
+            captured.append(messages)
+            return {
+                "assistant_message": "Ok.",
+                "tool_calls": [],
+                "context_pct": 0.30,
+                "tokens_used": 60,
+                "finish_reason": "stop",
+            }
+
+    gate = SpyGate(cfg, [])
+    srv = IPCServer(cfg, supervisor, stream, events, gate_proxy=gate)
+    await srv.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "think",
+            "params": {"tools": [], "hud_data": {"focus": "none"}},
+        }
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        await reader.readline()
+        writer.close()
+        await writer.wait_closed()
+
+        assert len(captured) == 1
+        tool_msgs = [m for m in captured[0] if m.get("role") == "tool"]
+        whisper_msgs = [m for m in tool_msgs if "[WHISPER]" in m.get("content", "")]
+        assert len(whisper_msgs) == 1, "whisper should be injected into tool payload"
+    finally:
+        await srv.stop()
