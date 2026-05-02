@@ -4,10 +4,11 @@ from urllib.parse import quote
 from typing import Any, List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
+from tools.web_sieve import sieve_html
 
 def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
     @registry.tool(
-        description="Perform a web search or fetch content from a URL using curl. Use this to gather external information.",
+        description="Perform a web search or fetch content from a URL using curl. Uses Signal-Sieve to extract metadata and links.",
         parameters={
             "type": "object",
             "properties": {
@@ -35,7 +36,7 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
                     timeout=30
                 )
                 if process.returncode == 0:
-                    return f"[URL RESULT] {process.stdout[:10000]}"
+                    return f"[URL SIGNAL] {sieve_html(process.stdout)}"
                 else:
                     return f"[ERROR] Curl failed: {process.stderr}"
             except Exception as e:
@@ -51,7 +52,7 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
                     timeout=30
                 )
                 if process.returncode == 0:
-                    return f"[SEARCH RESULT] {process.stdout[:10000]}"
+                    return f"[SEARCH SIGNAL] {sieve_html(process.stdout)}"
                 else:
                     return f"[ERROR] Curl failed: {process.stderr}"
             except Exception as e:
