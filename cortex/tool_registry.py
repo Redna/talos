@@ -5,6 +5,7 @@ from typing import Any, Callable
 class ToolRegistry:
     def __init__(self):
         self._tools: dict[str, Callable] = {}
+        self._shadow_tools: dict[str, Callable] = {}
         self._schemas: list[dict] = []
 
     def tool(self, description: str, parameters: dict[str, Any]):
@@ -27,14 +28,22 @@ class ToolRegistry:
     def get_schemas(self) -> list[dict]:
         return list(self._schemas)
 
+    def register_shadow(self, name: str, func: Callable):
+        self._shadow_tools[name] = func
+
+    def unregister_shadow(self, name: str):
+        if name in self._shadow_tools:
+            del self._shadow_tools[name]
+
     def execute(self, name: str, kwargs: dict[str, Any]) -> str:
-        if name not in self._tools:
+        func = self._shadow_tools.get(name) or self._tools.get(name)
+        if not func:
             return f"[ERROR] Unknown tool: {name}"
         try:
-            result = self._tools[name](**kwargs)
+            result = func(**kwargs)
             return str(result)
         except TypeError as e:
-            func = self._tools[name]
+            func = self._shadow_tools.get(name) or self._tools.get(name)
             sig = inspect.signature(func)
             required = [
                 p.name
@@ -58,8 +67,8 @@ class ToolRegistry:
             return f"[ERROR] Tool {name} failed: {e}"
 
     def has_tool(self, name: str) -> bool:
-        return name in self._tools
+        return name in self._tools or name in self._shadow_tools
 
     @property
     def tool_names(self) -> list[str]:
-        return list(self._tools.keys())
+        return list(set(self._tools.keys()) | set(self._shadow_tools.keys()))
