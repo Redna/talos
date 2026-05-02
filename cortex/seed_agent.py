@@ -96,6 +96,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
         "memory_files": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
     }
 
 
