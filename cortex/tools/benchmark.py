@@ -1,6 +1,7 @@
-import json
 import os
-from typing import Dict, List, Any
+import json
+import re
+from typing import List, Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
@@ -15,7 +16,26 @@ def load_benchmarks():
         except json.JSONDecodeError:
             return {}
 
-def register_benchmark_tools(registry: ToolRegistry, client: SpineClient):
+def parse_tool_call(test_str: str):
+    match = re.match(r"(\w+)\((.*)\)", test_str)
+    if not match:
+        return None, None
+    name = match.group(1)
+    args_str = match.group(2)
+    args = {}
+    if args_str:
+        for pair in args_str.split(","):
+            if "=" in pair:
+                k, v = pair.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip("'").strip('"')
+                if v.lower() == "true": v = True
+                elif v.lower() == "false": v = False
+                elif v.isdigit(): v = int(v)
+                args[k] = v
+    return name, args
+
+def register_benchmark_tools(registry: ToolRegistry, client: SpineClient, state=None):
     @registry.tool(
         description="Run the Sovereignty Benchmarks to verify core agent capabilities.",
         parameters={
@@ -43,35 +63,36 @@ def register_benchmark_tools(registry: ToolRegistry, client: SpineClient):
         if not target_benchmarks:
             return "[ERROR] None of the requested benchmark IDs were found."
 
-        # NOTE: This tool implements 'meta-execution'. It uses registry.execute 
-        # to call other tools on behalf of the benchmark suite.
         for b in target_benchmarks:
-            # This is a simplified execution engine for the benchmark DSL
-            # In a real scenario, we'd parse the 'test' string.
-            # For now, we'll map benchmark IDs to actual tool calls.
             try:
+                test_expr = b.get("test", "")
+                criteria = b.get("success_criteria", "")
+                
+                steps = test_expr.split(" -> ")
+                last_result = ""
+                
+                for step in steps:
+                    name, args = parse_tool_call(step)
+                    if not name:
+                        raise ValueError(f"Malformed test expression: {step}")
+                    last_result = registry.execute(name, args)
+                
                 success = False
-                if b["id"] == "bench_file_read":
-                    res = registry.execute("read_file", {"path": "/app/CONSTITUTION.md"})
-                    success = "P0: Agency" in res
-                elif b["id"] == "bench_file_write":
-                    registry.execute("write_file", {"path": "/memory/bench_test.tmp", "content": "test"})
-                    res = registry.execute("read_file", {"path": "/memory/bench_test.tmp"})
-                    success = "test" in res
-                elif b["id"] == "bench_skg_audit":
-                    res = registry.execute("symmetry_audit", {"action_description": "Modify /app/spine/"})
-                    success = "[CRITICAL]" in res
-                elif b["id"] == "bench_cortex_map":
-                    res = registry.execute("cortex_map", {"depth": "shallow"})
-                    success = "seed_agent.py" in res
-                elif b["id"] == "bench_memory_persistence":
-                    registry.execute("write_file", {"path": "/memory/persist.tmp", "content": "val"})
-                    res = registry.execute("read_file", {"path": "/memory/persist.tmp"})
-                    success = "val" in res
+                if "contains" in criteria:
+                    match = re.search(r"'(.*?)'", criteria)
+                    if match:
+                        expected = match.group(1)
+                        success = expected in last_result
+                elif "returns" in criteria:
+                    match = re.search(r"'(.*?)'", criteria)
+                    if match:
+                        expected = match.group(1)
+                        success = last_result.strip() == expected
+                elif "returns CRITICAL" in criteria:
+                    success = "CRITICAL" in last_result
                 
                 results.append(f"[{'PASS' if success else 'FAIL'}] {b['name']} ({b['id']})")
             except Exception as e:
                 results.append(f"[ERROR] {b['name']} crashed: {e}")
         
         return "\n".join(results)
-
