@@ -69,11 +69,11 @@ def test_request_restart_dirty_repo():
 
     register_physical_tools(registry, client)
     with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(stdout="M file.py\n", returncode=0)
+        mock_run.side_effect = [
+            MagicMock(stdout="M file.py\n", returncode=0),          # git status
+            MagicMock(stdout="Saved working directory", returncode=0),  # git stash
+            MagicMock(stdout="", returncode=0),                     # git ls-files (no untracked)
+        ]
         result = registry.execute("request_restart", {"reason": "stuck loop"})
-    assert (
-        "[BLOCKED]" in result
-        or "dirty" in result.lower()
-        or "uncommitted" in result.lower()
-    )
-    client.request_restart.assert_not_called()
+    assert "[RESTART REQUESTED]" in result
+    client.request_restart.assert_called_once_with("stuck loop")
