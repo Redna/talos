@@ -1,84 +1,78 @@
-import json
-import subprocess
-from urllib.parse import quote
-from typing import Any, List, Dict
+import os
+import requests
+from typing import List, Dict, Any
+from duckduckgo_search import DDGS
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
-def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
+def register_web_tools(registry: ToolRegistry, client: SpineClient):
     @registry.tool(
-        description="Perform a web search or fetch content from a URL using curl. Returns a raw slice of the page for LLM distillation.",
+        description="Search the web for information using DuckDuckGo.",
         parameters={
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The search query or the URL to fetch",
+                    "description": "The search query to execute",
                 },
-                "depth": {
-                    "type": "string",
-                    "enum": ["shallow", "deep"],
-                    "description": "Depth of crawling/search (shallow = top result, deep = multiple sources)",
-                    "default": "shallow",
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return (default: 5)",
                 },
             },
             "required": ["query"],
         },
     )
-    def web_search(query: str, depth: str = "shallow") -> str:
-        if query.startswith("http://") or query.startswith("https://"):
-            try:
-                process = subprocess.run(
-                    ["curl", "-L", "-s", "-S", query],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
+    def web_search(query: str, max_results: int = 5) -> str:
+        try:
+            with DDGS() as ddgs:
+                results = [r for r in ddgs.text(query, max_results=max_results)]
+            
+            if not results:
+                return "[WEB SEARCH] No results found."
+            
+            formatted_results = []
+            for i, res in enumerate(results, 1):
+                formatted_results.append(
+                    f"[{i}] {res['title']}\nURL: {res['href']}\nSnippet: {res['body']}\n"
                 )
-                if process.returncode == 0:
-                    return f"[RAW RESULT] {process.stdout[:10000]}"
-                else:
-                    return f"[ERROR] Curl failed: {process.stderr}"
-            except Exception as e:
-                return f"[ERROR] Exception during curl: {e}"
-        else:
-            academic_keywords = ["agent", "architecture", "loop", "model", "llm", "learning", "neural"]
-            if any(kw in query.lower() for kw in academic_keywords):
-                encoded_query = quote(query)
-                search_url = f"https://arxiv.org/search/?query={encoded_query}&searchtype=all"
-            else:
-                encoded_query = quote(query)
-                search_url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
-                
-            try:
-                process = subprocess.run(
-                    ["curl", "-L", "-s", "-S", search_url],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
-                if process.returncode == 0:
-                    return f"[RAW RESULT] {process.stdout[:10000]}"
-                else:
-                    return f"[ERROR] Curl failed: {process.stderr}"
-            except Exception as e:
-                return f"[ERROR] Exception during curl: {e}"
+            
+            return "[WEB SEARCH RESULTS]\n\n" + "\n".join(formatted_results)
+        except Exception as e:
+            return f"[ERROR] Web search failed: {e}"
 
     @registry.tool(
-        description="Extract and summarize key information from a provided text block using a specific lens.",
+        description="Read the content of a web page.",
         parameters={
             "type": "object",
             "properties": {
-                "text": {
+                "url": {
                     "type": "string",
-                    "description": "The text block to analyze",
-                },
-                "lens": {
-                    "type": "string",
-                    "description": "The specific perspective or goal (e.g., 'technical vulnerabilities', 'philosophical agency')",
+                    "description": "The URL of the page to read",
                 },
             },
-            "required": ["text", "lens"],
+            "required": ["url"],
         },
     )
-    def extract_insight(text: str, lens: str) -> str:
-        return f"[SINDED INSIGHT] Analysis of text through lens '{lens}' is ready for processing."
+    def web_read(url: str) -> str:
+        try:
+            # Using a basic User-Agent to avoid some blocks
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            response = requests.get(url, headers=headers, timeout=15)
+            response.raise_for_status()
+            
+            # Simple cleaning to remove excess whitespace
+            text = response.text
+            # We don't use BeautifulSoup here to keep dependencies minimal, 
+            # but in a real scenario, we would. 
+            # For now, we return the raw text.
+            
+            # Truncate to prevent token overflow
+            if len(text) > 30000:
+                text = text[:30000] + "\n... [TRUNCATED]"
+                
+            return f"[WEB PAGE CONTENT: {url}]\n\n{text}"
+        except Exception as e:
+            return f"[ERROR] Failed to read web page {url}: {e}"

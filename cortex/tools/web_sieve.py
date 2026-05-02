@@ -1,32 +1,43 @@
 import re
-from typing import List, Dict
+from tool_registry import ToolRegistry
+from spine_client import SpineClient
 
-def sieve_html(html: str) -> str:
-    """
-    Extracts titles, links, and descriptions from HTML without using heavy libraries.
-    Now with improved target patterns for arXiv and general searches.
-    """
-    results = []
-    
-    # 1. Primary Target: arXiv Result blocks
-    # arXiv titles are usually inside <a class="list-title" href="...">Title</a>
-    arxiv_titles = re.findall(r'<a class="list-title" href="([^"]+)"[^>]*>(.*?)</a>', html)
-    for href, text in arxiv_titles:
-        text = re.sub(r'<[^>]*>', '', text).strip()
-        results.append(f"T: {text} | L: https://arxiv.org{href}")
-
-    # 2. Generic target: a tags with plausible titles
-    if not results:
-        links = re.findall(r'<a [^>]*href="([^"]+)"[^>]*>(.*?)</a>', html)
-        for href, text in links:
-            text = re.sub(r'<[^>]*>', '', text).strip()
-            if 20 < len(text) < 200:
-                results.append(f"T: {text} | L: {href}")
-
-    # 3. Extract Meta Description
-    meta_desc = re.search(r'<meta name="description" content="([^"]+)"', html)
-    if meta_desc:
-        results.append(f"DESC: {meta_desc.group(1)}")
+def register_web_sieve_tools(registry: ToolRegistry, client: SpineClient):
+    @registry.tool(
+        description="Sieve through web content to extract information relevant to a specific query.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "description": "The web content to sieve",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "The specific information or keywords to look for",
+                },
+            },
+            "required": ["text", "query"],
+        },
+    )
+    def web_sieve(text: str, query: str) -> str:
+        # Simple keyword-based sieving. Extract paragraphs containing keywords.
+        keywords = query.lower().split()
+        paragraphs = text.split("\n\n")
+        relevant_fragments = []
         
-    unique_results = list(dict.fromkeys(results))
-    return "\n".join(unique_results) if unique_results else "No signal extracted."
+        for p in paragraphs:
+            if any(kw in p.lower() for kw in keywords):
+                relevant_fragments.append(p.strip())
+        
+        if not relevant_fragments:
+            # Fallback: search for sentences
+            sentences = re.split(r'(?<=[.!?]) +', text)
+            for s in sentences:
+                if any(kw in s.lower() for kw in keywords):
+                    relevant_fragments.append(s.strip())
+        
+        if not relevant_fragments:
+            return "[WEB SIEVE] No relevant fragments found."
+        
+        return "[WEB SIEVE RESULTS]\n\n" + "\n---\n".join(relevant_fragments[:15])
