@@ -35,6 +35,12 @@ def find_target_node(action_description: str) -> Optional[str]:
     action_words = set(action_description.lower().split()) - STOP_WORDS
     
     for nid, data in nodes.items():
+        # Constraint-specific path mapping (Very High Priority)
+        if data.get("type") == "Constraint":
+            content = data.get("content", "").lower()
+            if any(path in action_description.lower() for path in content.split()):
+                return nid
+
         score = 0
         # Label match (High priority)
         if data.get("label", "").lower() in action_description.lower():
