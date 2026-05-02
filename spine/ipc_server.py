@@ -275,16 +275,17 @@ class IPCServer:
             )
         elif method == "tool_result":
             output = params.get("output", "")
-            # Inject a reflective thought when the agent is unfocused and just
-            # returned from a reflect pause. The thought is appended directly to
-            # the reflect tool result so the agent sees it immediately.
+            # When the agent is unfocused and just returned from a reflect pause,
+            # queue a critical reflection question as a system notice so it appears
+            # alongside the HUD in a single block instead of creating a separate
+            # tool output.
             if (
                 "[REFLECT]" in output
                 and self._last_focus in ("", "none")
                 and self.thought.should_inject(self._last_focus, self.stream.messages)
             ):
                 question = self.thought.pick()
-                output += f"\n\n---\n[THOUGHT] {question}"
+                self.stream.queue_system_notice(f"[THOUGHT] {question}")
             self._last_tool_event_time = time.time()
             self.stream.record_tool_result(
                 params.get("tool_call_id", ""),

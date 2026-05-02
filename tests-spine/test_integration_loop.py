@@ -349,8 +349,8 @@ async def test_thought_injected_into_reflect_tool_result(test_env):
         await writer.drain()
         await reader.readline()
 
-        # Step 2: tool_result for the reflect — the thought should be injected
-        # into the output before recording.
+        # Step 2: tool_result for the reflect — the thought should be queued
+        # as a system notice instead of injected into the tool result output.
         req2 = {
             "jsonrpc": "2.0",
             "id": 2,
@@ -363,12 +363,16 @@ async def test_thought_injected_into_reflect_tool_result(test_env):
         writer.close()
         await writer.wait_closed()
 
-        # The thought should now be in the stream's reflect tool result.
+        # The reflect tool result should NOT have [THOUGHT] injected directly.
         tool_msgs = [m for m in stream.messages if m.get("role") == "tool"]
         reflect_msgs = [m for m in tool_msgs if "[REFLECT]" in m.get("content", "")]
         assert len(reflect_msgs) == 1
-        assert "[THOUGHT]" in reflect_msgs[0]["content"], (
-            "thought should be injected into reflect tool result in stream"
+        assert "[THOUGHT]" not in reflect_msgs[0]["content"], (
+            "thought should NOT be injected into tool result — it is now a system notice"
+        )
+        # The thought should be queued as a system notice instead.
+        assert any("[THOUGHT]" in n for n in stream.queued_notices), (
+            "thought should be queued as a system notice"
         )
     finally:
         await srv.stop()

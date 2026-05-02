@@ -175,42 +175,20 @@ def main():
 
                 detector.record(tool_name, tool_args)
 
-                # Reflect abuse guard: block reflect with sleep_duration=0 if used too frequently
-                if tool_name == "reflect" and detector.is_reflect_abuse():
-                    blocked = (
-                        "[BLOCKED] reflect has been called too frequently with sleep_duration=0. "
-                        "You are in a degenerate loop. You MUST call list_files, read_file, write_file, or bash_command next. "
-                        "Your focus has been cleared. Pick a new objective immediately."
-                    )
-                    client.tool_result(tc["id"], blocked, False)
-                    state.current_focus = None
-                    state.save()
-                    detector.reset()
-                    break
-
                 if detector.is_stalled():
                     report = detector.get_stall_report()
                     print(f"[Cortex] Stall detected mid-loop: {report}")
                     client.emit_event("cortex.stall_detected", {"report": report})
 
                     if tool_name == "reflect":
-                        # Hard auto-break for reflect loops: mark as failed,
-                        # clear focus, and force the LLM to pick a different tool.
-                        blocked = (
-                            f"{report}\n"
-                            "[BLOCKED] reflect is disabled after repeated consecutive use. "
-                            "You MUST call list_files, read_file, write_file, or bash_command next. "
-                            "Your focus has been cleared. Pick a new objective immediately."
-                        )
-                        client.tool_result(tc["id"], blocked, False)
-                        state.current_focus = None
-                        state.save()
+                        # Reflect is a valid pause tool — let the model use it freely.
+                        # Skip reflect in stall checks so the agent can reflect
+                        # between productive actions without being blocked.
+                        pass
+                    else:
+                        client.tool_result(f"stall_break_{turn}", report, True)
                         detector.reset()
                         break
-
-                    client.tool_result(f"stall_break_{turn}", report, True)
-                    detector.reset()
-                    break
 
                 client.emit_event(
                     "cortex.tool_call",
@@ -223,6 +201,9 @@ def main():
 
                 success = not result.startswith(("[ERROR]", "[REJECTED]", "[EXIT"))
                 client.tool_result(tc["id"], result, success)
+
+                if tool_name == "fold_context":
+                    context_pct = 0.0
 
                 client.emit_event(
                     "cortex.tool_result",

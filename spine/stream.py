@@ -75,6 +75,8 @@ class StreamManager:
         self.turn = 0
         self._stall_notices_sent = 0
         self._hud_last_index = -1
+        self._hud_data = None
+        self._hud_piggybacked = False
 
     def detect_stall(self) -> bool:
         assistant_msgs = [m for m in self._messages if m.get("role") == "assistant"]

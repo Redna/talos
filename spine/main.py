@@ -46,7 +46,7 @@ async def main():
         stream_mgr.queue_user_message(
             f"[CREATOR | TELEGRAM | PRIORITY: HIGH]\nUser: \"{text}\""
         )
-        wake_path = Path(cfg.spine_dir) / ".wake"
+        wake_path = Path(cfg.spine_dir) / "events" / ".wake"
         wake_path.touch()
 
     telegram_poller = TelegramPoller(cfg, on_telegram_message)
