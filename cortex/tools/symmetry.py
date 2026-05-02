@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import List, Dict, Optional
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
@@ -32,23 +33,27 @@ def get_edges():
 def find_target_node(action_description: str) -> Optional[str]:
     nodes = get_nodes()
     scored_nodes = []
-    action_words = set(action_description.lower().split()) - STOP_WORDS
+    action_description_lower = action_description.lower()
+    action_words = set(action_description_lower.split()) - STOP_WORDS
     
     for nid, data in nodes.items():
-        # Constraint-specific path mapping (Very High Priority)
+        # Constraint-specific path mapping (Highest Priority)
         if data.get("type") == "Constraint":
             content = data.get("content", "").lower()
-            if any(path in action_description.lower() for path in content.split()):
-                return nid
+            # Extract paths from constraint content
+            paths = re.findall(r'/[a-zA-Z0-9/_.-]+', content)
+            for path in paths:
+                if path in action_description_lower:
+                    return nid
 
         score = 0
         # Label match (High priority)
-        if data.get("label", "").lower() in action_description.lower():
+        if data.get("label", "").lower() in action_description_lower:
             score += 10
         
         # Content word overlap
-        content = data.get("content", "")
-        content_words = set(content.lower().split()) - STOP_WORDS
+        content = data.get("content", "").lower()
+        content_words = set(content.split()) - STOP_WORDS
         overlap = action_words.intersection(content_words)
         score += len(overlap) * 2
         
