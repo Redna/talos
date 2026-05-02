@@ -157,14 +157,24 @@ class StreamManager:
         attached = False
         if append_parts:
             suffix = "\n".join(append_parts)
-            # Queue semantics: only flush onto a *tool* message.  If there is
-            # no eligible tool message the notices survive to the next turn.
+            # Queue semantics: prefer flushing onto a *tool* message.  If there
+            # is no eligible tool message, fall back to the last *assistant*
+            # message so user messages and notices are never stranded during
+            # empty-response or post-fold phases.
             target_index = -1
             for i, msg in enumerate(reversed(payload)):
                 actual_index = len(payload) - 1 - i
                 if msg.get("role") == "tool" and actual_index > self._hud_last_index:
                     target_index = actual_index
                     break
+            if target_index < 0:
+                # No eligible tool message — fall back to the last assistant
+                # message so user messages still reach the cortex.
+                for i, msg in enumerate(reversed(payload)):
+                    actual_index = len(payload) - 1 - i
+                    if msg.get("role") == "assistant":
+                        target_index = actual_index
+                        break
             if target_index >= 0:
                 payload[target_index]["content"] += "\n---\n" + suffix
                 self._hud_last_index = target_index
