@@ -61,7 +61,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         return "[CONTEXT FOLDED] Trajectory archived. Context window refreshed from synthesis."
 
     @registry.tool(
-        description="Reflect and pause. Set sleep_duration to rest (1-1800 seconds, max 30 minutes). Wake on Telegram message or .wake sentinel file.",
+        description="Reflect and pause. Set sleep_duration to rest (1-120 seconds, max 2 minutes). Wake on Telegram message or .wake sentinel file. CRITICAL: Calling this repeatedly without taking action is a known failure mode. If you have already reflected in the last 3 turns, you MUST choose a different tool (list_files, read_file, write_file, bash_command). Do NOT call reflect consecutively.",
         parameters={
             "type": "object",
             "properties": {
@@ -71,7 +71,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
                 },
                 "sleep_duration": {
                     "type": "integer",
-                    "description": "Seconds to pause (1-1800, max 30 min), 0 = no sleep",
+                    "description": "Seconds to pause (1-120, max 2 min), 0 = no sleep",
                 },
             },
             "required": ["status"],
@@ -82,16 +82,12 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             "cortex.reflect", {"status": status, "sleep_duration": sleep_duration}
         )
         if sleep_duration > 0:
-            spine_dir = os.environ.get("SPINE_DIR", "/spine")
-            wake_path = Path(spine_dir) / "events" / ".wake"
-            deadline = time.time() + min(sleep_duration, 1800)
+            wake_path = Path(os.environ.get("SPINE_DIR", "/spine")) / ".wake"
+            deadline = time.time() + min(sleep_duration, 120)
             next_heartbeat = time.time() + 30
             while time.time() < deadline:
                 if wake_path.exists():
-                    try:
-                        wake_path.unlink(missing_ok=True)
-                    except PermissionError:
-                        pass
+                    wake_path.unlink(missing_ok=True)
                     break
                 if time.time() >= next_heartbeat:
                     client.emit_event(
