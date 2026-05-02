@@ -29,6 +29,7 @@ class IPCServer:
         self.gate_proxy = gate_proxy
         self._server: asyncio.Server | None = None
         self._consecutive_high_context = 0
+        self._consecutive_garbage = 0
         self._last_tool_event_time: float = 0.0
         self._last_focus: str = ""
         self.thought = ThoughtManager()
@@ -136,16 +137,41 @@ class IPCServer:
             # stream. A degraded model often emits empty or whitespace-only
             # responses that silently accumulate. Queue a notice so the
             # next think call includes a correction signal.
+            #
+            # If the model produces 5+ consecutive garbage responses, force
+            # a fold: the message count has likely hit the model's effective
+            # ceiling (the "98-wall" for gemma4:31b) and further retries
+            # only burn tokens.
             if not raw_tool_calls and not assistant_content.strip():
+                self._consecutive_garbage += 1
                 self.events.emit(
                     "spine.garbage_response",
-                    {"turn": self.stream.turn + 1},
+                    {"turn": self.stream.turn + 1, "consecutive": self._consecutive_garbage},
                 )
-                self.stream.queue_system_notice(
-                    "WARNING: LLM returned no tool calls and no content. "
-                    "The model may be degrading. Call a concrete tool "
-                    "(bash_command, write_file, read_file) immediately."
-                )
+                if self._consecutive_garbage >= 5:
+                    self.events.emit(
+                        "spine.garbage_fold",
+                        {
+                            "consecutive_garbage": self._consecutive_garbage,
+                            "stream_messages": len(self.stream.messages),
+                        },
+                    )
+                    self.stream.fold(
+                        f"[GARBAGE-FOLD] {self._consecutive_garbage} consecutive empty "
+                        f"responses at {len(self.stream.messages)} messages. "
+                        f"Model message ceiling reached. Trajectory archived."
+                    )
+                    self._consecutive_garbage = 0
+                    self._consecutive_high_context = 0
+                else:
+                    self.stream.queue_system_notice(
+                        f"WARNING: LLM returned no tool calls and no content "
+                        f"(#{self._consecutive_garbage}/5). The model may be "
+                        f"degrading or the message count may be at ceiling. "
+                        f"Call a concrete tool (bash_command, write_file, read_file) "
+                        f"immediately. At 5 consecutive empty responses, the spine "
+                        f"will force a context fold."
+                    )
                 return self._success(
                     req_id,
                     {
@@ -157,6 +183,8 @@ class IPCServer:
                         "_garbage": True,
                     },
                 )
+
+            self._consecutive_garbage = 0
 
             openai_tool_calls = (
                 [
@@ -249,6 +277,23 @@ class IPCServer:
                     f"WARNING: No tool activity recorded in {staleness_hours:.1f} "
                     f"hours. Telemetry may be stale. Run a concrete tool "
                     f"(bash_command, write_file, send_message) to verify operation."
+                )
+
+            # Message-count ceiling: gemma4:31b degrades at ~90-98 messages
+            # regardless of context_pct. Warn when approaching the ceiling so
+            # the agent can fold proactively.
+            msg_count = len(self.stream.messages)
+            if msg_count >= 90:
+                self.stream.queue_system_notice(
+                    f"CRITICAL: {msg_count} messages in stream — message ceiling "
+                    f"imminent. Call fold_context immediately with a synthesis of "
+                    f"all critical facts."
+                )
+            elif msg_count >= 75:
+                self.stream.queue_system_notice(
+                    f"ADVISORY: {msg_count} messages in stream — approaching the "
+                    f"effective message ceiling (~90-98). Consider calling "
+                    f"fold_context soon with a synthesis of critical facts."
                 )
             self.stream.write_state(
                 focus=hud_data.get("focus", ""),

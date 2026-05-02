@@ -300,3 +300,128 @@ async def test_ipc_think_does_not_inject_when_user_exists(tmp_path):
         await writer.wait_closed()
     finally:
         await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_ipc_garbage_fold_after_five_consecutive(tmp_path):
+    """After 5 consecutive empty responses, the spine force-folds the stream."""
+    mock_proxy = MagicMock()
+    mock_proxy.call.return_value = {
+        "assistant_message": "",
+        "tool_calls": [],
+        "context_pct": 0.34,
+        "tokens_used": 50,
+        "finish_reason": "stop",
+    }
+    server, cfg, stream, supervisor = _make_think_setup(tmp_path, gate_proxy=mock_proxy)
+    # Pre-seed enough messages so the stream is non-empty post-fold
+    stream.add_message({"role": "user", "content": "hello"})
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "think",
+            "params": {"tools": [], "hud_data": {}},
+        }
+
+        # First 4 garbage responses should NOT trigger a fold
+        for i in range(4):
+            writer.write((json.dumps(req) + "\n").encode())
+            await writer.drain()
+            data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+            resp = json.loads(data)
+            assert resp["result"].get("_garbage") is True, f"Turn {i+1}: expected garbage"
+            assert len(stream.messages) > 0, "Stream should not be folded yet"
+
+        # 5th garbage response triggers the fold
+        req["id"] = 5
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp = json.loads(data)
+        assert resp["result"].get("_garbage") is True
+
+        # After fold, stream should only have the fold synthesis message
+        assert len(stream.messages) < 3, (
+            f"Stream should be folded (reset), got {len(stream.messages)} messages"
+        )
+
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_ipc_garbage_counter_resets_on_success(tmp_path):
+    """Consecutive garbage counter resets when a successful response arrives."""
+    mock_proxy = MagicMock()
+    # First call: garbage, second call: success
+    mock_proxy.call.side_effect = [
+        {
+            "assistant_message": "",
+            "tool_calls": [],
+            "context_pct": 0.34,
+            "tokens_used": 50,
+            "finish_reason": "stop",
+        },
+        {
+            "assistant_message": "Got it.",
+            "tool_calls": [
+                {"id": "c1", "name": "bash_command", "arguments": {"command": "ls"}}
+            ],
+            "context_pct": 0.35,
+            "tokens_used": 60,
+            "finish_reason": "tool_calls",
+        },
+        {
+            "assistant_message": "",
+            "tool_calls": [],
+            "context_pct": 0.36,
+            "tokens_used": 50,
+            "finish_reason": "stop",
+        },
+    ]
+    server, cfg, stream, supervisor = _make_think_setup(tmp_path, gate_proxy=mock_proxy)
+    stream.add_message({"role": "user", "content": "hello"})
+    await server.start()
+    try:
+        reader, writer = await asyncio.open_unix_connection(cfg.socket_path)
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "think",
+            "params": {"tools": [], "hud_data": {}},
+        }
+
+        # Turn 1: garbage (#1)
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data1 = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp1 = json.loads(data1)
+        assert resp1["result"]["_garbage"] is True
+
+        # Turn 2: success — resets garbage counter
+        req["id"] = 2
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data2 = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp2 = json.loads(data2)
+        assert "_garbage" not in resp2["result"]
+
+        # Turn 3: garbage (#1 again, not #3) — counter was reset
+        req["id"] = 3
+        writer.write((json.dumps(req) + "\n").encode())
+        await writer.drain()
+        data3 = await asyncio.wait_for(reader.readline(), timeout=2.0)
+        resp3 = json.loads(data3)
+        assert resp3["result"]["_garbage"] is True
+        # Stream should NOT have been folded (only 1st garbage after reset)
+        assert len(stream.messages) >= 3, "Stream should not be folded after 1 garbage"
+
+        writer.close()
+        await writer.wait_closed()
+    finally:
+        await server.stop()
