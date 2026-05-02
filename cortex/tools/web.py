@@ -1,5 +1,6 @@
 import json
 import subprocess
+from urllib.parse import quote
 from typing import Any, List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
@@ -25,9 +26,7 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
         },
     )
     def web_search(query: str, depth: str = "shallow") -> str:
-        # Determine if the query is a URL or a search term
         if query.startswith("http://") or query.startswith("https://"):
-            # Directly fetch the URL
             try:
                 process = subprocess.run(
                     ["curl", "-L", "-s", "-S", query],
@@ -36,14 +35,14 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
                     timeout=30
                 )
                 if process.returncode == 0:
-                    return f"[URL RESULT] {process.stdout[:10000]}" # Cap at 10k chars
+                    return f"[URL RESULT] {process.stdout[:10000]}"
                 else:
                     return f"[ERROR] Curl failed: {process.stderr}"
             except Exception as e:
                 return f"[ERROR] Exception during curl: {e}"
         else:
-            # Use DuckDuckGo's HTML search (simpler to parse than Google)
-            search_url = f"https://html.duckduckgo.com/html/?q={query}"
+            encoded_query = quote(query)
+            search_url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
             try:
                 process = subprocess.run(
                     ["curl", "-L", "-s", "-S", search_url],
