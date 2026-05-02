@@ -4,11 +4,10 @@ from urllib.parse import quote
 from typing import Any, List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.web_sieve import sieve_html
 
 def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
     @registry.tool(
-        description="Perform a web search or fetch content from a URL using curl. Uses Signal-Sieve to extract metadata and links.",
+        description="Perform a web search or fetch content from a URL using curl. Returns a raw slice of the page for LLM distillation.",
         parameters={
             "type": "object",
             "properties": {
@@ -36,13 +35,12 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
                     timeout=30
                 )
                 if process.returncode == 0:
-                    return f"[URL SIGNAL] {sieve_html(process.stdout)}"
+                    return f"[RAW RESULT] {process.stdout[:10000]}"
                 else:
                     return f"[ERROR] Curl failed: {process.stderr}"
             except Exception as e:
                 return f"[ERROR] Exception during curl: {e}"
         else:
-            # Pivot to arXiv for academic/technical queries to avoid CAPTCHAs
             academic_keywords = ["agent", "architecture", "loop", "model", "llm", "learning", "neural"]
             if any(kw in query.lower() for kw in academic_keywords):
                 encoded_query = quote(query)
@@ -59,7 +57,7 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
                     timeout=30
                 )
                 if process.returncode == 0:
-                    return f"[SEARCH SIGNAL] {sieve_html(process.stdout)}"
+                    return f"[RAW RESULT] {process.stdout[:10000]}"
                 else:
                     return f"[ERROR] Curl failed: {process.stderr}"
             except Exception as e:
