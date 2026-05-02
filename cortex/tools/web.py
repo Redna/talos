@@ -42,8 +42,15 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
             except Exception as e:
                 return f"[ERROR] Exception during curl: {e}"
         else:
-            encoded_query = quote(query)
-            search_url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
+            # Pivot to arXiv for academic/technical queries to avoid CAPTCHAs
+            academic_keywords = ["agent", "architecture", "loop", "model", "llm", "learning", "neural"]
+            if any(kw in query.lower() for kw in academic_keywords):
+                encoded_query = quote(query)
+                search_url = f"https://arxiv.org/search/?query={encoded_query}&searchtype=all"
+            else:
+                encoded_query = quote(query)
+                search_url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
+                
             try:
                 process = subprocess.run(
                     ["curl", "-L", "-s", "-S", search_url],
