@@ -28,15 +28,7 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
         # to ensure constitutional adherence and security.
         client.emit_event("cortex.web_request", {"query": query, "depth": depth})
         
-        # Here we simulate the result or wait for the Spine to inject it into the tool output.
-        # In our current architecture, the tool executes and returns a result.
-        # We will call a spine-provided helper or assume the result is returned.
-        try:
-            # Directly call the Spine's JSON-RPC method
-            result = client._send_request("web_search", {"query": query, "depth": depth}) 
-            return f"[WEB RESULT] {result}"
-        except Exception as e:
-            return f"[ERROR] Web search failed: {e}. Ensure the Spine has web-access enabled."
+        return f"[EVENT EMITTED] Web search for '{query}' (depth: {depth}) has been requested from the Spine. The results will be delivered to the conversation stream."
 
     @registry.tool(
         description="Extract and summarize key information from a provided text block using a specific lens.",
