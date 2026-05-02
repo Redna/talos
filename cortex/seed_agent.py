@@ -4,15 +4,12 @@ import json
 import time
 from collections import deque
 from pathlib import Path
+import importlib
+import pkgutil
 
 from spine_client import SpineClient, SpineError
 from tool_registry import ToolRegistry
 from state import AgentState
-
-from tools.executive import register_executive_tools
-from tools.file_ops import register_file_ops_tools
-from tools.physical import register_physical_tools
-from tools.reasoning import register_reasoning_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -106,10 +103,21 @@ def main():
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
 
-    register_executive_tools(registry, client, state)
-    register_file_ops_tools(registry, client)
-    register_physical_tools(registry, client)
-    register_reasoning_tools(registry, client, state)
+    # Dynamic Tool Loading
+    import tools
+    for loader, module_name, is_pkg in pkgutil.iter_modules(tools.__path__):
+        full_module_name = f"tools.{module_name}"
+        module = importlib.import_module(full_module_name)
+        
+        # Call any function that matches register_*_tools
+        for attr_name in dir(module):
+            if attr_name.startswith("register_") and attr_name.endswith("_tools"):
+                register_func = getattr(module, attr_name)
+                # We use a flexible call since some tools take 'state' and others don't
+                try:
+                    register_func(registry, client, state)
+                except TypeError:
+                    register_func(registry, client)
 
     detector = RepetitionDetector()
     turn = 0
