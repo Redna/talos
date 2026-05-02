@@ -64,7 +64,71 @@ def register_architecture_tools(registry: ToolRegistry, client: SpineClient):
         
         return f"[MAPPED] Architecture saved to {ARCH_PATH}.\n\n{summary}"
 
+    @registry.tool(
+        description="Calculate the blast radius of a change to a specific file by tracing all downstream dependencies.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "target_file": {
+                    "type": "string", 
+                    "description": "The file being changed (relative to /app/cortex/, e.g., 'tools/symmetry.py')"
+                },
+            },
+            "required": ["target_file"],
+        },
+    )
+    def calculate_blast_radius(target_file: str) -> str:
+        mapping = load_json(ARCH_PATH)
+        if not mapping:
+            return "[ERROR] No architecture map found. Please run 'cortex_map' first."
+        
+        # Normalise target_file to match keys in mapping
+        # e.g. 'tools/symmetry.py'
+        target = target_file
+        
+        # We need to map the package name (e.g. 'tools.symmetry') back to the file path
+        # because that's how imports are stored.
+        package_name = target.replace("/", ".").replace(".py", "")
+        
+        impacted = set()
+        queue = {package_name, target}
+        
+        # Simple iterative search for all files that import target or any impacted file
+        changed = True
+        while changed:
+            changed = False
+            for file, deps in mapping.items():
+                # Resolve file to package name for comparison
+                file_pkg = file.replace("/", ".").replace(".py", "")
+                
+                # Check if this file imports anything currently in the impacted set
+                # We check against the package name and the file path
+                for dep in deps:
+                    if dep in queue:
+                        if file not in impacted:
+                            impacted.add(file)
+                            queue.add(file)
+                            queue.add(file_pkg)
+                            changed = True
+        
+        if not impacted:
+            return f"[SAFE] No downstream dependencies found for {target_file}. Blast radius: 0."
+        
+        sorted_impacted = sorted(list(impacted))
+        report = f"[WARNING] Blast radius for {target_file} is {len(sorted_impacted)} file(s):\n"
+        report += "\n".join([f" - {f}" for f in sorted_impacted])
+        return report
+
 def save_json(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
+
+def load_json(path):
+    if not os.path.exists(path):
+        return {}
+    with open(path, 'r') as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return {}
