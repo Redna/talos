@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 from pathlib import Path
 from tool_registry import ToolRegistry
@@ -97,3 +98,28 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
                     next_heartbeat = time.time() + 30
                 time.sleep(0.5)
         return f"[REFLECT] {status}"
+
+    @registry.tool(
+        description="Clone the current /app/cortex/ into a temporary directory to create a safe workspace for empirical validation.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "shadow_name": {
+                    "type": "string",
+                    "description": "Name for the shadow cortex (e.g., 'experiment_1')",
+                },
+            },
+            "required": ["shadow_name"],
+        },
+    )
+    def spawn_shadow_cortex(shadow_name: str) -> str:
+        source = Path("/app/cortex/")
+        shadow_dir = Path("/tmp/shadow_cortices") / shadow_name
+        if shadow_dir.exists():
+            return f"[ERROR] Shadow cortex {shadow_name} already exists at {shadow_dir}."
+        try:
+            shadow_dir.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, shadow_dir)
+            return f"[SHADOW CREATED] Cortex cloned to {shadow_dir}."
+        except Exception as e:
+            return f"[ERROR] Failed to spawn shadow cortex: {e}"
