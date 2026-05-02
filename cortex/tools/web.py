@@ -32,8 +32,8 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
         # In our current architecture, the tool executes and returns a result.
         # We will call a spine-provided helper or assume the result is returned.
         try:
-            # Hypothetical call to a spine-managed search service
-            result = client.execute_web_query(query, depth) 
+            # Directly call the Spine's JSON-RPC method
+            result = client._send_request("web_search", {"query": query, "depth": depth}) 
             return f"[WEB RESULT] {result}"
         except Exception as e:
             return f"[ERROR] Web search failed: {e}. Ensure the Spine has web-access enabled."
