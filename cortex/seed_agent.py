@@ -6,6 +6,7 @@ from collections import deque
 from pathlib import Path
 import importlib
 import pkgutil
+import inspect
 
 from spine_client import SpineClient, SpineError
 from tool_registry import ToolRegistry
@@ -113,11 +114,16 @@ def main():
         for attr_name in dir(module):
             if attr_name.startswith("register_") and attr_name.endswith("_tools"):
                 register_func = getattr(module, attr_name)
-                # We use a flexible call since some tools take 'state' and others don't
-                try:
+                
+                sig = inspect.signature(register_func)
+                params_count = len(sig.parameters)
+                
+                if params_count == 3:
                     register_func(registry, client, state)
-                except TypeError:
+                elif params_count == 2:
                     register_func(registry, client)
+                else:
+                    print(f"[Cortex] Skipping {attr_name} due to unexpected signature: {sig}")
 
     detector = RepetitionDetector()
     turn = 0
