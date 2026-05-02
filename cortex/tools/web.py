@@ -1,11 +1,12 @@
 import json
+import subprocess
 from typing import Any, List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
 def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
     @registry.tool(
-        description="Perform a web search or fetch content from a URL. Use this to gather external information to inform your reasoning.",
+        description="Perform a web search or fetch content from a URL using curl. Use this to gather external information.",
         parameters={
             "type": "object",
             "properties": {
@@ -24,11 +25,38 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
         },
     )
     def web_search(query: str, depth: str = "shallow") -> str:
-        # The actual network request is handled by the Spine's transport layer
-        # to ensure constitutional adherence and security.
-        client.emit_event("cortex.web_request", {"query": query, "depth": depth})
-        
-        return f"[EVENT EMITTED] Web search for '{query}' (depth: {depth}) has been requested from the Spine. The results will be delivered to the conversation stream."
+        # Determine if the query is a URL or a search term
+        if query.startswith("http://") or query.startswith("https://"):
+            # Directly fetch the URL
+            try:
+                process = subprocess.run(
+                    ["curl", "-L", "-s", "-S", query],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                if process.returncode == 0:
+                    return f"[URL RESULT] {process.stdout[:10000]}" # Cap at 10k chars
+                else:
+                    return f"[ERROR] Curl failed: {process.stderr}"
+            except Exception as e:
+                return f"[ERROR] Exception during curl: {e}"
+        else:
+            # Use DuckDuckGo's HTML search (simpler to parse than Google)
+            search_url = f"https://html.duckduckgo.com/html/?q={query}"
+            try:
+                process = subprocess.run(
+                    ["curl", "-L", "-s", "-S", search_url],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                if process.returncode == 0:
+                    return f"[SEARCH RESULT] {process.stdout[:10000]}"
+                else:
+                    return f"[ERROR] Curl failed: {process.stderr}"
+            except Exception as e:
+                return f"[ERROR] Exception during curl: {e}"
 
     @registry.tool(
         description="Extract and summarize key information from a provided text block using a specific lens.",
@@ -48,6 +76,4 @@ def register_web_tools(registry: ToolRegistry, client: SpineClient, state):
         },
     )
     def extract_insight(text: str, lens: str) -> str:
-        # This is an LLM-driven tool. The tool itself acts as a marker
-        # for the LLM to perform a specific analytical task on the text.
         return f"[SINDED INSIGHT] Analysis of text through lens '{lens}' is ready for processing."
