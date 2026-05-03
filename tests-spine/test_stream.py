@@ -119,7 +119,8 @@ def test_fold_archives_and_resets(spine_config):
     count_before = len(sm.messages)
     sm.fold("Synthesis of what happened")
     assert len(sm.messages) == 2
-    assert sm.messages[-1]["content"] == "Synthesis of what happened"
+    assert sm.messages[-1]["role"] == "user"
+    assert sm.messages[-1]["content"] == "[FOLD SYNTHESIS]\nSynthesis of what happened"
     archive_dir = Path(spine_config.spine_dir) / "trajectories"
     archives = list(archive_dir.glob("*.json"))
     assert len(archives) == 1
