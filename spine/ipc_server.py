@@ -53,7 +53,7 @@ class IPCServer:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         try:
-            reader._limit = 10 * 1024 * 1024  # 10MB — handle large tool outputs
+            reader._limit = 50 * 1024 * 1024  # 50MB — tool schemas grew past 10MB
             while True:
                 line = await reader.readline()
                 if not line:
