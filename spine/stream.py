@@ -71,7 +71,7 @@ class StreamManager:
         traj_path = traj_dir / f"{ts}.json"
         traj_path.write_text(json.dumps(self._messages, indent=2))
         self._init_messages()
-        self.add_message({"role": "assistant", "content": synthesis})
+        self.add_message({"role": "user", "content": f"[FOLD SYNTHESIS]\n{synthesis}"})
         self.turn = 0
         self._stall_notices_sent = 0
         self._hud_last_index = -1
