@@ -26,8 +26,8 @@ class MacroManager:
         """Registers the core sovereign macros."""
         self.register_macro("cognitive_research", self._cognitive_research_logic)
         self.register_macro("skg_consistency_audit", self._skg_consistency_audit_logic)
+        self.register_macro("knowledge_harvest", self._knowledge_harvest_logic)
         # Future additions:
-        # self.register_macro("knowledge_harvest", self._knowledge_harvest_logic)
         # self.register_macro("heal_fragility", self._heal_fragility_logic)
 
     def register_macro(self, name: str, func: Callable):
@@ -154,6 +154,45 @@ class MacroManager:
             f"Total Benchmarks: {len(benchmarks)}\n"
             f"Gaps Identified: {gaps_found}\n"
             f"Details:\n" + "\n".join(results)
+        )
+
+    def _knowledge_harvest_logic(self, params: Dict[str, Any], state) -> str:
+        """
+        Sovereign Cycle: Transform a gap into a cognitive upgrade.
+        Parameters: gap_id, analysis, rule_text, rule_path
+        """
+        gap_id = params.get("gap_id")
+        analysis = params.get("analysis")
+        rule_text = params.get("rule_text")
+        rule_path = params.get("rule_path")
+
+        if not all([gap_id, analysis, rule_text, rule_path]):
+            return "[ERROR] Missing required parameters for knowledge_harvest: gap_id, analysis, rule_text, rule_path"
+
+        try:
+            with open(rule_path, "w") as f:
+                f.write(f"# Rule: {gap_id}\n\n## Analysis\n{analysis}\n\n## Rule\n{rule_text}")
+        except Exception as e:
+            return f"[ERROR] Failed to write rule to {rule_path}: {str(e)}"
+
+        resolved_node_id = f"res_{gap_id}"
+        label = f"Symmetry Resolution: {gap_id}"
+        content = f"The gap identified in {gap_id} has been closed by rule at {rule_path}."
+        symmetry_add_node_logic(resolved_node_id, label, "resolution", content, "knowledge_harvest")
+        symmetry_add_edge_logic(resolved_node_id, gap_id, "closes_gap")
+
+        exp_entry = {"gap_id": gap_id, "analysis": analysis, "rule": rule_text, "timestamp": "now"}
+        try:
+            with open(f"{state.memory_dir}/experience_buffer.json", "a") as f:
+                f.write(json.dumps(exp_entry) + "\n")
+        except Exception as e:
+            logger.warning(f"Experience buffer write failed: {str(e)}")
+
+        return (
+            f"[KNOWLEDGE HARVEST COMPLETE]\n"
+            f"Gap {gap_id} resolved.\n"
+            f"Rule persisted to: {rule_path}\n"
+            f"SKG Update: Node {resolved_node_id} created."
         )
 
 def register_macro_tools(registry: ToolRegistry, client: SpineClient, state):
