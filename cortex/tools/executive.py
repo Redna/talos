@@ -1,5 +1,7 @@
 import os
 import time
+import re
+import json
 from pathlib import Path
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
@@ -101,3 +103,36 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
                     next_heartbeat = time.time() + 30
                 time.sleep(0.5)
         return f"[REFLECT] {status}"
+
+    @registry.tool(
+        description="Extract a specific value from a text string using a regex pattern or JSON path.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "The input text to extract from"},
+                "pattern": {"type": "string", "description": "The regex pattern or JSON path (e.g., '$.path.to.value')"},
+            },
+            "required": ["text", "pattern"],
+        },
+    )
+    def extract_value(text: str, pattern: str) -> str:
+        # Try JSON path first
+        if pattern.startswith("$"):
+            try:
+                data = json.loads(text)
+                # Simple path resolution: $.a.b -> data['a']['b']
+                parts = pattern[2:].split('.')
+                val = data
+                for p in parts:
+                    val = val[p]
+                return str(val)
+            except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+                pass
+        
+        # Fallback to Regex
+        match = re.search(pattern, text)
+        if match:
+            return match.group(1) if match.groups() else match.group(0)
+        return "[ERROR] No match found."
+
+    return None # Registration happens via the decorators
