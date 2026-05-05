@@ -12,6 +12,7 @@ from state import AgentState
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
+from tools.macro_manager import register_macro_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -108,6 +109,7 @@ def main():
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
+    register_macro_tools(registry, client, state)
 
     detector = RepetitionDetector()
     turn = 0
@@ -186,9 +188,6 @@ def main():
                     client.emit_event("cortex.stall_detected", {"report": report})
 
                     if tool_name == "reflect":
-                        # Reflect is a valid pause tool — let the model use it freely.
-                        # Skip reflect in stall checks so the agent can reflect
-                        # between productive actions without being blocked.
                         pass
                     else:
                         client.tool_result(f"stall_break_{turn}", report, True)
