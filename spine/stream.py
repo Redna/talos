@@ -64,14 +64,79 @@ class StreamManager:
         self._hud_data = dict(hud_data)
         self._hud_piggybacked = False
 
-    def fold(self, synthesis: str):
+    def _build_hud_message(self) -> dict:
+        """Build a minimal HUD user message for post-fold stream anchoring."""
+        mem_dir = Path(self.cfg.memory_dir)
+        md_files = sorted(mem_dir.glob("*.md")) if mem_dir.exists() else []
+        return {
+            "role": "user",
+            "content": (
+                f"[HUD] turn=0 context_pct=0.00 urgency=nominal "
+                f"memory_files={len(md_files)} focus=none"
+            ),
+        }
+
+    def _fold_metadata(self, msg_count: int) -> str:
+        """Build a metadata line describing what was folded."""
+        total_chars = sum(
+            len(json.dumps(m, ensure_ascii=False)) for m in self._messages
+        )
+        approx_tokens = max(1, int(total_chars / 3.5))
+        return (
+            f"[METADATA] {msg_count} messages archived, "
+            f"~{approx_tokens} tokens, ~{total_chars} chars"
+        )
+
+    def fold(self, synthesis: str, is_cortex_initiated: bool = False):
+        msg_count = len(self._messages)
+        metadata = self._fold_metadata(msg_count)
+
+        # Capture last assistant + tool messages before archiving
+        preserved_assistant = None
+        preserved_tool = None
+        if is_cortex_initiated and msg_count >= 2:
+            last = self._messages[-1]
+            second_last = self._messages[-2]
+            if second_last.get("role") == "assistant" and last.get("role") == "tool":
+                preserved_assistant = dict(second_last)
+                preserved_tool = dict(last)
+
+        # Archive
         traj_dir = Path(self.cfg.spine_dir) / "trajectories"
         traj_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         traj_path = traj_dir / f"{ts}.json"
         traj_path.write_text(json.dumps(self._messages, indent=2))
-        self._init_messages()
-        self.add_message({"role": "user", "content": f"[FOLD SYNTHESIS]\n{synthesis}"})
+
+        # Rebuild stream
+        self._init_messages()  # system prompt
+        self.add_message(self._build_hud_message())
+
+        if preserved_assistant is not None and preserved_tool is not None:
+            self.add_message(preserved_assistant)
+            tool_content = preserved_tool.get("content", "")
+            preserved_tool["content"] = f"{tool_content}\n\n{metadata}"
+            self.add_message(preserved_tool)
+        else:
+            fold_reason = synthesis if synthesis else "Context auto-folded by spine."
+            self.add_message({
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [{
+                    "id": "auto_fold",
+                    "type": "function",
+                    "function": {
+                        "name": "fold_context",
+                        "arguments": json.dumps({"synthesis": fold_reason}),
+                    },
+                }],
+            })
+            self.add_message({
+                "role": "tool",
+                "tool_call_id": "auto_fold",
+                "content": f"[CONTEXT FOLDED] {fold_reason}\n\n{metadata}",
+            })
+
         self.turn = 0
         self._stall_notices_sent = 0
         self._hud_last_index = -1
@@ -79,13 +144,12 @@ class StreamManager:
         self._hud_piggybacked = False
 
     def fold_with_truncate(self, synthesis: str):
-        """Fold with truncation: archive all messages and reset cleanly.
+        """Fold with immediate archival for context-overflow / error recovery.
 
-        Identical to fold() in behavior — the fold itself is the truncation.
-        The caller (IPC server) uses this for context-overflow recovery where
-        immediate action is needed rather than waiting for consecutive errors.
+        Same as fold(is_cortex_initiated=False) — the fold itself is the
+        truncation since all accumulated history is archived.
         """
-        self.fold(synthesis)
+        self.fold(synthesis, is_cortex_initiated=False)
 
     def detect_stall(self) -> bool:
         assistant_msgs = [m for m in self._messages if m.get("role") == "assistant"]

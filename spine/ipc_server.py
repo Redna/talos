@@ -376,7 +376,7 @@ class IPCServer:
             )
             return self._success(req_id, "ok")
         elif method == "request_fold":
-            self.stream.fold(params.get("synthesis", ""))
+            self.stream.fold(params.get("synthesis", ""), is_cortex_initiated=True)
             return self._success(req_id, "ok")
         elif method == "request_restart":
             self.supervisor.request_restart(params.get("reason", ""))
