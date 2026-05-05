@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable
+from typing import Any, Callable, Optional
+from state import AgentState
 
 
 class ToolRegistry:
@@ -27,9 +28,26 @@ class ToolRegistry:
     def get_schemas(self) -> list[dict]:
         return list(self._schemas)
 
-    def execute(self, name: str, kwargs: dict[str, Any]) -> str:
+    def execute(self, name: str, kwargs: dict[str, Any], state: Optional[AgentState] = None) -> str:
         if name not in self._tools:
             return f"[ERROR] Unknown tool: {name}"
+        
+        if state:
+            state.turns_since_pulse += 1
+            state.save()
+            
+            if state.turns_since_pulse >= 10:
+                pulse_tools = {
+                    "read_file", "write_file", "list_files", "search_code", 
+                    "set_focus", "resolve_focus", "reflect", "extract_value"
+                }
+                if name not in pulse_tools:
+                    return f"[REJECTED] Curiosity Pulse is due (Turns: {state.turns_since_pulse}). Evolution takes priority. Please execute the Curiosity Pulse Protocol before proceeding."
+                
+                if name == "set_focus":
+                    state.turns_since_pulse = 0
+                    state.save()
+
         try:
             result = self._tools[name](**kwargs)
             return str(result)

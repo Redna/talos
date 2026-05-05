@@ -12,6 +12,9 @@ from state import AgentState
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
+from tools.text_grad_optimizer import register_text_grad_optimizer
+from tools.sovereign_reflexion import register_sovereign_reflexion
+from tools.sovereign_macro_executor import register_macro_executor
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -97,6 +100,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
         "memory_files": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
+        "curiosity_pulse_due": turn > 0 and turn % 10 == 0,
     }
 
 
@@ -108,6 +112,9 @@ def main():
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
+    register_macro_executor(registry, client, state)
+    register_text_grad_optimizer(registry, client, state)
+    register_sovereign_reflexion(registry, client, state)
 
     detector = RepetitionDetector()
     turn = 0
@@ -201,7 +208,7 @@ def main():
                 )
 
                 start_time = time.time()
-                result = registry.execute(tool_name, tool_args)
+                result = registry.execute(tool_name, tool_args, state=state)
                 duration_ms = int((time.time() - start_time) * 1000)
 
                 success = not result.startswith(("[ERROR]", "[REJECTED]", "[EXIT"))
