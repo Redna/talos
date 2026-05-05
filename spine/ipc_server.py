@@ -142,6 +142,7 @@ class IPCServer:
                     self._consecutive_gate_errors = 0
                     self._consecutive_garbage = 0
                     self._consecutive_high_context = 0
+                    self._reset_trace_bg()
                     return self._error(req_id, -32000, f"Context overflow: {error_str}")
 
                 self._consecutive_gate_errors += 1
@@ -164,6 +165,7 @@ class IPCServer:
                     self._consecutive_gate_errors = 0
                     self._consecutive_garbage = 0
                     self._consecutive_high_context = 0
+                    self._reset_trace_bg()
                 return self._error(req_id, -32000, f"Gate error: {e}")
             assistant_content = result.get("assistant_message", "")
             assistant_reasoning = result.get("reasoning", "")
@@ -200,6 +202,7 @@ class IPCServer:
                     )
                     self._consecutive_garbage = 0
                     self._consecutive_high_context = 0
+                    self._reset_trace_bg()
                 else:
                     self.stream.queue_system_notice(
                         f"WARNING: LLM returned no tool calls and no content "
@@ -280,6 +283,7 @@ class IPCServer:
                     f"fresh context."
                 )
                 self._consecutive_high_context = 0
+                self._reset_trace_bg()
             elif decision_pct >= 0.90:
                 self._consecutive_high_context += 1
                 self.events.emit(
@@ -295,6 +299,7 @@ class IPCServer:
                     f"Trajectory archived. Resume from fresh context."
                 )
                 self._consecutive_high_context = 0
+                self._reset_trace_bg()
             elif decision_pct >= threshold:
                 self._consecutive_high_context += 1
                 self.stream.queue_system_notice(
@@ -386,6 +391,8 @@ class IPCServer:
         elif method == "request_fold":
             self.stream.fold(params.get("synthesis", ""), is_cortex_initiated=True)
             self._fold_just_happened = "call_fold"
+            if self.gate_proxy:
+                self.gate_proxy.reset_trace()
             return self._success(req_id, "ok")
         elif method == "request_restart":
             self.supervisor.request_restart(params.get("reason", ""))
@@ -407,6 +414,12 @@ class IPCServer:
             return self._success(req_id, {"turn": self.stream.turn})
         else:
             return self._error(req_id, -32601, "Method not found")
+
+    def _reset_trace_bg(self):
+        """Reset gate trace fingerprints in the background so the post-fold
+        system message and HUD are written fresh instead of being deduplicated."""
+        if self.gate_proxy:
+            self.gate_proxy.reset_trace()
 
     @staticmethod
     def _success(req_id: Any, result: Any) -> dict:

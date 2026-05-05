@@ -65,3 +65,12 @@ class GateProxy:
             "tokens_used": usage.get("total_tokens", 0),
             "finish_reason": choice.get("finish_reason", ""),
         }
+
+    def reset_trace(self):
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                resp = client.post(f"{self.gate_url.rsplit('/', 1)[0]}/xray/reset-trace")
+                if resp.status_code != 200:
+                    logger.warning(f"GateProxy: reset-trace returned {resp.status_code}")
+        except Exception:
+            logger.warning("GateProxy: failed to reset trace fingerprints", exc_info=True)
