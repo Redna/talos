@@ -146,13 +146,14 @@ def get_symmetry_suggestions(tool_name: str, output: str) -> Tuple[List[str], st
     
     return suggestions, " ".join(rationale_parts)
 
-def symmetry_add_node_logic(node_id: str, label: str, node_type: str, content: str, source: str) -> str:
+def symmetry_add_node_logic(node_id: str, label: str, node_type: str, content: str, source: str, status: str = "active") -> str:
     nodes = get_nodes()
     nodes[node_id] = {
         "label": label,
         "type": node_type,
         "content": content,
-        "source": source
+        "source": source,
+        "status": status
     }
     save_json(NODES_PATH, {"nodes": nodes})
     return f"[ADDED] Node {node_id} ({label}) added to SKG."
@@ -181,7 +182,7 @@ def symmetry_commit_path_logic(path: List[str], relation: str = "leads_to") -> s
         results.append(res)
     return "\n".join(results) if results else "[COMMIT] Path too short to link."
 
-def symmetry_audit_logic(action_description: str) -> str:
+def symmetry_audit_logic(action_description: str, plan_context: str = None) -> str:
     target = find_target_node(action_description)
     if not target:
         return "[AUDIT] No target node identified for action. No conflicts found, but action is not anchored in SKG."

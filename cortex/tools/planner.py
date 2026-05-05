@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from tools.symmetry import symmetry_add_node_logic, symmetry_audit_logic, symmetry_add_edge_logic, get_related_cognitive_assets
+from tools.symmetry import symmetry_add_node_logic, symmetry_audit_logic, symmetry_add_edge_logic, get_related_cognitive_assets, get_nodes, save_json, NODES_PATH
 
 def register_planner_tools(registry: ToolRegistry, client: SpineClient, state):
     PLAN_PATH = Path(state.memory_dir) / "plans" / "tasks.json"
@@ -42,6 +42,15 @@ def register_planner_tools(registry: ToolRegistry, client: SpineClient, state):
         related = get_related_cognitive_assets(goal)
         related_assets_str = ""
         
+        # Deactivate existing plans in SKG to prevent context drift
+        all_nodes = get_nodes()
+        for nid, data in all_nodes.items():
+            if data.get("type") == "Plan":
+                data["status"] = "inactive"
+                if " (Archived)" not in data.get("label", ""):
+                    data["label"] = data.get("label", "") + " (Archived)"
+        save_json(NODES_PATH, {"nodes": all_nodes})
+
         plan_id = f"plan_{hash(goal) % 1000}"
         if related:
             related_assets_str = "\n[RELATED ASSETS] Found high-density nodes: " + \
@@ -55,7 +64,8 @@ def register_planner_tools(registry: ToolRegistry, client: SpineClient, state):
             label=f"Plan: {goal[:30]}",
             node_type="Plan",
             content=f"Goal: {goal}",
-            source="cortex.planner"
+            source="cortex.planner",
+            status="active"
         )
         
         for step in steps:
