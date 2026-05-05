@@ -13,6 +13,8 @@ from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
 from tools.macro_manager import register_macro_tools
+from tools.sovereign_challenge_gen import register_challenge_gen_tools
+from tools.sovereign_judge import register_sovereign_judge_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -110,6 +112,8 @@ def main():
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
     register_macro_tools(registry, client, state)
+    register_challenge_gen_tools(registry, client, state)
+    register_sovereign_judge_tools(registry, client, state)
 
     detector = RepetitionDetector()
     turn = 0
