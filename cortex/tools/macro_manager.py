@@ -25,6 +25,7 @@ class MacroManager:
     def _initialize_default_macros(self):
         """Registers the core sovereign macros."""
         self.register_macro("cognitive_research", self._cognitive_research_logic)
+        self.register_macro("skg_consistency_audit", self._skg_consistency_audit_logic)
         # Future additions:
         # self.register_macro("knowledge_harvest", self._knowledge_harvest_logic)
         # self.register_macro("heal_fragility", self._heal_fragility_logic)
@@ -106,6 +107,53 @@ class MacroManager:
             f"Iterations: {len(full_trajectory)}\n"
             f"KB Final Update: {final_kb}\n"
             f"Trajectory: {len(full_trajectory)} anchors created."
+        )
+
+    def _skg_consistency_audit_logic(self, params: Dict[str, Any], state) -> str:
+        """
+        Sovereign Cycle: Audit SKG against external benchmarks.
+        """
+        # 1. Benchmark Load
+        from tools.benchmark import load_benchmarks
+        benchmarks_data = load_benchmarks()
+        benchmarks = benchmarks_data.get("sovereignty_benchmarks", [])
+        
+        if not benchmarks:
+            return "[ERROR] No benchmarks found in /memory/kb/benchmarks.json"
+        
+        results = []
+        gaps_found = 0
+        
+        for b in benchmarks:
+            b_id = b.get("id")
+            b_name = b.get("name")
+            b_test = b.get("test", "")
+            
+            # 2. Symmetry Gap Analysis
+            audit_signal = f"Audit requirement: {b_name} - {b_test}"
+            audit_res = symmetry_audit_logic(audit_signal)
+            
+            if "[CRITICAL]" in audit_res:
+                gaps_found += 1
+                # 3. State Correction
+                node_id = f"gap_{hashlib.md5(b_id.encode()).hexdigest()[:8]}"
+                label = f"Benchmark Gap: {b_name}"
+                content = f"SKG is missing or contradicts requirement: {b_test}"
+                symmetry_add_node_logic(node_id, label, "gap", content, "sovereign_audit")
+                
+                b_node_id = f"bench_{b_id}"
+                symmetry_add_node_logic(b_node_id, f"Benchmark {b_id}", "benchmark", b_name, "sovereign_audit")
+                symmetry_add_edge_logic(node_id, b_node_id, "identifies_gap_in")
+                
+                results.append(f"[GAP] {b_name}: {audit_res}")
+            else:
+                results.append(f"[OK] {b_name}: Consistent.")
+        
+        return (
+            f"[SKG CONSISTENCY AUDIT COMPLETE]\n"
+            f"Total Benchmarks: {len(benchmarks)}\n"
+            f"Gaps Identified: {gaps_found}\n"
+            f"Details:\n" + "\n".join(results)
         )
 
 def register_macro_tools(registry: ToolRegistry, client: SpineClient, state):
