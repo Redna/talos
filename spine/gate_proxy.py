@@ -68,8 +68,9 @@ class GateProxy:
 
     def reset_trace(self):
         try:
+            base = "/".join(self.gate_url.split("/")[:-2])  # strip /chat/completions
             with httpx.Client(timeout=5.0) as client:
-                resp = client.post(f"{self.gate_url.rsplit('/', 1)[0]}/xray/reset-trace")
+                resp = client.post(f"{base}/xray/reset-trace")
                 if resp.status_code != 200:
                     logger.warning(f"GateProxy: reset-trace returned {resp.status_code}")
         except Exception:
