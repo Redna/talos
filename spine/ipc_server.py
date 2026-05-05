@@ -127,10 +127,26 @@ class IPCServer:
                 if self.supervisor and self.supervisor.health:
                     self.supervisor.health.record_event()
             except Exception as e:
+                error_str = str(e)
+                # Context overflow from gate: fold immediately, don't wait for 3
+                if "context_overflow" in error_str.lower():
+                    self.events.emit(
+                        "spine.context_overflow",
+                        {"error": error_str, "stream_messages": len(self.stream.messages)},
+                    )
+                    self.stream.fold_with_truncate(
+                        "[AUTO-FOLD] Context overflow detected by gate. "
+                        "Context forcibly archived and truncated to fit model window."
+                    )
+                    self._consecutive_gate_errors = 0
+                    self._consecutive_garbage = 0
+                    self._consecutive_high_context = 0
+                    return self._error(req_id, -32000, f"Context overflow: {error_str}")
+
                 self._consecutive_gate_errors += 1
                 self.events.emit(
                     "spine.gate_error",
-                    {"error": str(e), "consecutive": self._consecutive_gate_errors},
+                    {"error": error_str, "consecutive": self._consecutive_gate_errors},
                 )
                 if self._consecutive_gate_errors >= 3:
                     self.events.emit(
@@ -140,10 +156,9 @@ class IPCServer:
                             "stream_messages": len(self.stream.messages),
                         },
                     )
-                    self.stream.fold(
+                    self.stream.fold_with_truncate(
                         "[AUTO-FOLD] 3 consecutive gate errors. "
-                        "Context forcibly archived to clear potential overflow "
-                        "or recover from backend outage."
+                        "Context forcibly archived and truncated to fit model window."
                     )
                     self._consecutive_gate_errors = 0
                     self._consecutive_garbage = 0

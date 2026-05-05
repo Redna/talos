@@ -78,6 +78,15 @@ class StreamManager:
         self._hud_data = None
         self._hud_piggybacked = False
 
+    def fold_with_truncate(self, synthesis: str):
+        """Fold with truncation: archive all messages and reset cleanly.
+
+        Identical to fold() in behavior — the fold itself is the truncation.
+        The caller (IPC server) uses this for context-overflow recovery where
+        immediate action is needed rather than waiting for consecutive errors.
+        """
+        self.fold(synthesis)
+
     def detect_stall(self) -> bool:
         assistant_msgs = [m for m in self._messages if m.get("role") == "assistant"]
         window = assistant_msgs[-STALL_WINDOW:]
