@@ -64,11 +64,16 @@ def register_cognitive_macro_tools(registry: ToolRegistry, client: SpineClient, 
             # This detects contradictions or missing phases based on the current knowledge graph
             audit_res = symmetry_audit_logic(f"Audit Signal: {insight}")
             
-            if audit_res["is_clear"] and not audit_res["blind_spots"]:
+            if isinstance(audit_res, str) and "[CLEAR]" in audit_res:
                 break
             
             # 5. Iteration: Refine query based on detected gaps
-            gaps = audit_res["blind_spots"] + audit_res["missing_phases"]
+            gaps = []
+            if isinstance(audit_res, dict):
+                gaps = audit_res.get("blind_spots", []) + audit_res.get("missing_phases", [])
+            elif isinstance(audit_res, str) and "[CRITICAL]" in audit_res:
+                gaps = [audit_res]
+
             if gaps:
                 # Extract the core gap to guide the next search
                 gap_seed = gaps[0].split(":")[0].strip() if ":" in gaps[0] else gaps[0]
