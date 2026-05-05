@@ -93,6 +93,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
         urgency = "elevated"
     if state.error_streak >= 5:
         urgency = "critical"
+    pulse_due = turn > 0 and turn % 10 == 0
     return {
         "turn": turn,
         "context_pct": context_pct,
@@ -100,7 +101,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
         "memory_files": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
-        "curiosity_pulse_due": turn > 0 and turn % 10 == 0,
+        "curiosity_pulse_due": pulse_due,
     }
 
 
@@ -133,10 +134,13 @@ def main():
                 (SPINE_DIR / ".single_step").unlink(missing_ok=True)
 
             hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
+            current_focus = state.current_focus or "No focus set"
+            if hud_data["curiosity_pulse_due"]:
+                current_focus = f"!!! CURIOSITY PULSE REQUIRED !!!\n{current_focus}"
 
             try:
                 response = client.think(
-                    focus=state.current_focus or "No focus set",
+                    focus=current_focus,
                     tools=registry.get_schemas(),
                     hud_data=hud_data,
                 )
