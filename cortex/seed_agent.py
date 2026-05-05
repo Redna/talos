@@ -137,6 +137,11 @@ def main():
                 print(f"[Cortex] Spine error: {e}")
                 state.error_streak += 1
                 state.save()
+                if state.error_streak >= 10:
+                    print("[Cortex] 10 consecutive transport errors. Restarting.")
+                    sys.exit(1)
+                backoff = min(0.5 * (2 ** (state.error_streak - 1)), 30.0)
+                time.sleep(backoff)
                 continue
 
             context_pct = response.get("context_pct", 0.0)

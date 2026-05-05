@@ -30,6 +30,7 @@ class IPCServer:
         self._server: asyncio.Server | None = None
         self._consecutive_high_context = 0
         self._consecutive_garbage = 0
+        self._consecutive_gate_errors = 0
         self._last_tool_event_time: float = 0.0
         self._last_focus: str = ""
         self.thought = ThoughtManager()
@@ -126,7 +127,27 @@ class IPCServer:
                 if self.supervisor and self.supervisor.health:
                     self.supervisor.health.record_event()
             except Exception as e:
-                self.events.emit("spine.gate_error", {"error": str(e)})
+                self._consecutive_gate_errors += 1
+                self.events.emit(
+                    "spine.gate_error",
+                    {"error": str(e), "consecutive": self._consecutive_gate_errors},
+                )
+                if self._consecutive_gate_errors >= 3:
+                    self.events.emit(
+                        "spine.gate_error_fold",
+                        {
+                            "consecutive_errors": self._consecutive_gate_errors,
+                            "stream_messages": len(self.stream.messages),
+                        },
+                    )
+                    self.stream.fold(
+                        "[AUTO-FOLD] 3 consecutive gate errors. "
+                        "Context forcibly archived to clear potential overflow "
+                        "or recover from backend outage."
+                    )
+                    self._consecutive_gate_errors = 0
+                    self._consecutive_garbage = 0
+                    self._consecutive_high_context = 0
                 return self._error(req_id, -32000, f"Gate error: {e}")
             assistant_content = result.get("assistant_message", "")
             assistant_reasoning = result.get("reasoning", "")
@@ -185,6 +206,7 @@ class IPCServer:
                 )
 
             self._consecutive_garbage = 0
+            self._consecutive_gate_errors = 0
 
             openai_tool_calls = (
                 [
