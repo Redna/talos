@@ -33,6 +33,7 @@ class IPCServer:
         self._consecutive_gate_errors = 0
         self._last_tool_event_time: float = 0.0
         self._last_focus: str = ""
+        self._fold_just_happened: str = ""  # tool_call_id of the fold we just synthesized
         self.thought = ThoughtManager()
 
     async def start(self):
@@ -357,6 +358,13 @@ class IPCServer:
             )
         elif method == "tool_result":
             output = params.get("output", "")
+            tool_call_id = params.get("tool_call_id", "")
+            # Skip the fold_context tool result if we just synthesized a fold
+            # turn (the synthetic turn already includes the result).
+            if self._fold_just_happened and tool_call_id and "[CONTEXT FOLDED]" in output:
+                self._fold_just_happened = ""
+                return self._success(req_id, "ok")
+            self._fold_just_happened = ""
             # When the agent is unfocused and just returned from a reflect pause,
             # queue a critical reflection question as a system notice so it appears
             # alongside the HUD in a single block instead of creating a separate
@@ -370,13 +378,14 @@ class IPCServer:
                 self.stream.queue_system_notice(f"[THOUGHT] {question}")
             self._last_tool_event_time = time.time()
             self.stream.record_tool_result(
-                params.get("tool_call_id", ""),
+                tool_call_id,
                 output,
                 params.get("success", True),
             )
             return self._success(req_id, "ok")
         elif method == "request_fold":
             self.stream.fold(params.get("synthesis", ""), is_cortex_initiated=True)
+            self._fold_just_happened = "call_fold"
             return self._success(req_id, "ok")
         elif method == "request_restart":
             self.supervisor.request_restart(params.get("reason", ""))

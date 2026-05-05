@@ -91,16 +91,6 @@ class StreamManager:
         msg_count = len(self._messages)
         metadata = self._fold_metadata(msg_count)
 
-        # Capture last assistant + tool messages before archiving
-        preserved_assistant = None
-        preserved_tool = None
-        if is_cortex_initiated and msg_count >= 2:
-            last = self._messages[-1]
-            second_last = self._messages[-2]
-            if second_last.get("role") == "assistant" and last.get("role") == "tool":
-                preserved_assistant = dict(second_last)
-                preserved_tool = dict(last)
-
         # Archive
         traj_dir = Path(self.cfg.spine_dir) / "trajectories"
         traj_dir.mkdir(parents=True, exist_ok=True)
@@ -112,30 +102,25 @@ class StreamManager:
         self._init_messages()  # system prompt
         self.add_message(self._build_hud_message())
 
-        if preserved_assistant is not None and preserved_tool is not None:
-            self.add_message(preserved_assistant)
-            tool_content = preserved_tool.get("content", "")
-            preserved_tool["content"] = f"{tool_content}\n\n{metadata}"
-            self.add_message(preserved_tool)
-        else:
-            fold_reason = synthesis if synthesis else "Context auto-folded by spine."
-            self.add_message({
-                "role": "assistant",
-                "content": None,
-                "tool_calls": [{
-                    "id": "auto_fold",
-                    "type": "function",
-                    "function": {
-                        "name": "fold_context",
-                        "arguments": json.dumps({"synthesis": fold_reason}),
-                    },
-                }],
-            })
-            self.add_message({
-                "role": "tool",
-                "tool_call_id": "auto_fold",
-                "content": f"[CONTEXT FOLDED] {fold_reason}\n\n{metadata}",
-            })
+        fold_reason = synthesis if synthesis else "Context auto-folded by spine."
+        fold_id = "call_fold" if is_cortex_initiated else "auto_fold"
+        self.add_message({
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [{
+                "id": fold_id,
+                "type": "function",
+                "function": {
+                    "name": "fold_context",
+                    "arguments": json.dumps({"synthesis": fold_reason}),
+                },
+            }],
+        })
+        self.add_message({
+            "role": "tool",
+            "tool_call_id": fold_id,
+            "content": f"[CONTEXT FOLDED] {fold_reason}\n\n{metadata}",
+        })
 
         self.turn = 0
         self._stall_notices_sent = 0
