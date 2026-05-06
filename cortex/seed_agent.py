@@ -27,6 +27,7 @@ from cortex.tools.text_grad_optimizer import register_text_grad_optimizer
 from cortex.tools.sovereign_reflexion import register_sovereign_reflexion
 from cortex.tools.sovereign_mirror import register_sovereign_mirror
 from cortex.tools.sovereign_macro_executor import register_macro_executor
+from cortex.tools.promotion import register_promotion_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -136,6 +137,7 @@ def main():
         register_sovereign_judge_tools,
         register_sovereign_audit_tools,
         register_macro_executor,
+    register_promotion_tools,
         register_text_grad_optimizer,
         register_sovereign_mirror,
         register_sovereign_reflexion,
