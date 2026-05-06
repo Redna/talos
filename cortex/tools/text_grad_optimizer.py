@@ -1,5 +1,6 @@
 import os
 import subprocess
+import re
 from typing import Any, Dict, List
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
@@ -11,6 +12,28 @@ def register_text_grad_optimizer(registry: ToolRegistry, client: SpineClient, st
     This tool transforms a critique (gradient) into a concrete unified diff patch.
     It includes an internal validation loop to ensure patch applicability.
     """
+
+    def _is_gibberish(text: str) -> tuple[bool, str]:
+        """
+        Detects model collapse/gibberish outputs (e.g., repetitive characters).
+        Returns (is_gibberish, reason).
+        """
+        if not text or len(text) == 0:
+            return True, "Empty response"
+        
+        # Check for prolonged repetition of the same character (e.g., "aaaaaaaaa")
+        if re.search(r'(.)\1{15,}', text):
+            return True, "Prolonged character repetition detected"
+        
+        # Check for lack of structure: a unified diff must contain '---' or '+++'
+        if '---' not in text and '+++' not in text:
+            return True, "Missing unified diff markers (--- or +++)"
+        
+        # If the output is too short to be a valid patch
+        if len(text.splitlines()) < 2:
+            return True, "Response too short to be a valid patch"
+            
+        return False, ""
 
     def _validate_patch_internal(file_path: str, patch: str) -> tuple[bool, str]:
         """
@@ -91,7 +114,6 @@ def register_text_grad_optimizer(registry: ToolRegistry, client: SpineClient, st
 
                 # Clean up potential markdown markers
                 if patch_content.startswith("```"):
-                    # Remove leading ```diff or ``` and trailing ```
                     lines = patch_content.splitlines()
                     if lines[0].startswith("```"):
                         lines = lines[1:]
@@ -99,6 +121,13 @@ def register_text_grad_optimizer(registry: ToolRegistry, client: SpineClient, st
                         lines = lines[:-1]
                     patch_content = "\n".join(lines)
 
+                # 1. Gibberish/Model Collapse Detection
+                is_gibberish, gibberish_msg = _is_gibberish(patch_content)
+                if is_gibberish:
+                    current_critique += f"\n\nAttempt {attempt} failed: {gibberish_msg}. Please provide a valid unified diff."
+                    continue
+                
+                # 2. Internal Patch Validation
                 is_valid, msg = _validate_patch_internal(file_path, patch_content)
                 if is_valid:
                     return patch_content
@@ -106,7 +135,7 @@ def register_text_grad_optimizer(registry: ToolRegistry, client: SpineClient, st
                 # If invalid, update the critique for the next attempt
                 current_critique += f"\n\nPrevious attempt failed validation: {msg}\nPlease correct the patch."
                 
-            return f"[ERROR] Failed to generate a valid patch after {max_retries} attempts. Last error: {msg}"
+            return f"[ERROR] Failed to generate a valid patch after {max_retries} attempts. Last error: {msg if 'msg' in locals() else 'Gibberish detection'}"
                 
         except Exception as e:
             return f"[ERROR] Optimization failed: {e}"
