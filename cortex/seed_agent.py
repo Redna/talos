@@ -24,6 +24,7 @@ from cortex.tools.sovereign_judge import register_sovereign_judge_tools
 from cortex.tools.sovereign_audit import register_sovereign_audit_tools
 from cortex.tools.text_grad_optimizer import register_text_grad_optimizer
 from cortex.tools.sovereign_reflexion import register_sovereign_reflexion
+from cortex.tools.sovereign_mirror import register_sovereign_mirror
 from cortex.tools.sovereign_macro_executor import register_macro_executor
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
@@ -134,6 +135,7 @@ def main():
         register_sovereign_audit_tools,
         register_macro_executor,
         register_text_grad_optimizer,
+        register_sovereign_mirror,
         register_sovereign_reflexion,
     ]
 
