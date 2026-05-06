@@ -50,6 +50,14 @@ class SovereignEmbedder:
             vector = [x/mag for x in vector]
         return vector
 
+    def prime(self, text: str):
+        """
+        Ensures tokens in the text exist in the vocabulary without
+        increasing their weights. This 'primes' the vector space for
+        subsequent comparisons.
+        """
+        self.update_vocabulary(text, weight_modifier=0.0)
+
     def update_vocabulary(self, text: str, weight_modifier: float = 0.1):
         """
         Updates the TF-IDF vocabulary weights based on new semantic anchors.

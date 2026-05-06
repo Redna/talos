@@ -25,7 +25,8 @@ class CognitiveSieve:
                 nodes = data.get("nodes", {})
         if self.edges_path.exists():
             with open(self.edges_path, 'r') as f:
-                edges = json.load(f)
+                data = json.load(f)
+                edges = data.get("edges", [])
         return nodes, edges
 
     def calculate_salience(self, current_focus: str, top_k: int = 10) -> List[Tuple[float, str]]:
@@ -33,12 +34,16 @@ class CognitiveSieve:
         if not nodes:
             return []
 
+        # 0. Prime the embedder with the focus to ensure semantic visibility
+        embedder.prime(current_focus)
+
         # 1. Calculate Causal Weight (C) - In-degree centrality
         causal_weights = {node_id: 0 for node_id in nodes}
         for edge in edges:
-            to_id = edge.get("to_id")
-            if to_id in causal_weights:
-                causal_weights[to_id] += 1
+            if isinstance(edge, dict):
+                to_id = edge.get("to")
+                if to_id in causal_weights:
+                    causal_weights[to_id] += 1
 
         # 2. Calculate Trajectory Alignment (A)
         focus_vec = embedder.get_embedding(current_focus)

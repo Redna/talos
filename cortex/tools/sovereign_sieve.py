@@ -22,6 +22,9 @@ class SovereignSieve:
         Extracts signals from HTML and weights them against the query.
         Signals exceeding learning_threshold are used to update the embedder.
         """
+        # 0. Prime the embedder with the query to ensure semantic visibility
+        embedder.prime(query)
+
         # 1. Extract raw signals
         raw_signals = sieve_html(html).split('\n')
         raw_signals = [s for s in raw_signals if s and s != "No signal extracted."]
