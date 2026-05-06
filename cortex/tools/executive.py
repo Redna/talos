@@ -131,4 +131,36 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             return match.group(1) if match.groups() else match.group(0)
         return "[ERROR] No match found."
 
+    @registry.tool(
+        description="Pulse the internal will: check the Gravity Map and the Design Turn budget. Forces a transition to execution if the budget is exhausted.",
+        parameters={
+            "type": "object",
+            "properties": {},
+        },
+    )
+    def will_pulse() -> str:
+        try:
+            path = Path("/memory/kb/drive_status.md")
+            if not path.exists():
+                return "[ERROR] Gravity Map not found."
+            
+            content = path.read_text()
+            match = re.search(r"Budget:\s*(\d+)\s*\(Current:\s*(\d+)\)", content)
+            if not match:
+                return "[ERROR] Could not parse budget from Gravity Map."
+            
+            limit = int(match.group(1))
+            current = int(match.group(2))
+            new_current = current + 1
+            new_line = f"- **Budget:** {limit} turns (Current: {new_current})"
+            updated_content = re.sub(r"- \*\*Budget:\*\* \d+ turns \(Current: \d+\)", new_line, content)
+            path.write_text(updated_content)
+            
+            if new_current >= limit:
+                return f"[WILL CRITICAL] Budget ({limit}/{new_current}) exhausted. STOP PLANNING. EXECUTE NOW."
+            return f"[WILL PULSE] Drive tension stable. Budget: {new_current}/{limit}. Proceed with caution."
+        except Exception as e:
+            return f"[ERROR] will_pulse failed: {str(e)}"
+
     return None # Registration happens via the decorators
+
