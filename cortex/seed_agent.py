@@ -30,6 +30,7 @@ from cortex.tools.telemetry import register_telemetry_tools
 from cortex.tools.sovereign_mirror import register_sovereign_mirror
 from cortex.tools.sovereign_macro_executor import register_macro_executor
 from cortex.tools.promotion import register_promotion_tools
+from cortex.tools.architectural_evolution import register_architectural_evolution_tool
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -145,6 +146,7 @@ def main():
         register_text_grad_optimizer,
         register_sovereign_mirror,
         register_sovereign_reflexion,
+        register_architectural_evolution_tool,
     ]
 
     for reg_func in all_registers:
