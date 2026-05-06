@@ -4,6 +4,7 @@ from tool_registry import ToolRegistry
 from spine_client import SpineClient
 from observers.research_observer import ResearchObserver
 from observers.external_observer import ExternalObserver
+from observers.stagnation_observer import StagnationObserver
 
 class SovereignAudit:
     """
@@ -14,6 +15,7 @@ class SovereignAudit:
         self.observers = [
             ResearchObserver(),
             ExternalObserver(),
+            StagnationObserver(),
         ]
 
     def run_audit(self) -> str:
