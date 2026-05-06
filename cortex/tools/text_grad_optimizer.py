@@ -1,16 +1,42 @@
 import os
+import subprocess
 from typing import Any, Dict, List
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
+from pathlib import Path
 
 def register_text_grad_optimizer(registry: ToolRegistry, client: SpineClient, state):
     """
     Registers the Text-Grad Optimizer tool.
     This tool transforms a critique (gradient) into a concrete unified diff patch.
+    It includes an internal validation loop to ensure patch applicability.
     """
 
+    def _validate_patch_internal(file_path: str, patch: str) -> tuple[bool, str]:
+        """
+        Internal validation of a unified diff patch using patch --dry-run.
+        Returns (is_valid, error_message).
+        """
+        resolved = Path(file_path).resolve()
+        cwd = resolved.parent
+        try:
+            for strip in (0, 1, 2):
+                result = subprocess.run(
+                    ["patch", f"-p{strip}", "--dry-run"],
+                    input=patch,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    cwd=cwd,
+                )
+                if result.returncode == 0:
+                    return True, f"Valid with -p{strip}"
+            return False, f"Invalid for all strip levels (0,1,2). Last error: {result.stderr or result.stdout}"
+        except Exception as e:
+            return False, f"Validation error: {e}"
+
     @registry.tool(
-        description="Optimize source code based on a critique (gradient). Returns a unified diff patch that implements the suggested improvements.",
+        description="Optimize source code based on a critique (gradient). Returns a unified diff patch that implements the suggested improvements. Includes internal validation and retry loops.",
         parameters={
             "type": "object",
             "properties": {
@@ -23,33 +49,64 @@ def register_text_grad_optimizer(registry: ToolRegistry, client: SpineClient, st
     )
     def text_grad_optimizer(file_path: str, critique: str, context: str = "") -> str:
         try:
-            # Read current content
+            # Read current content to provide to the LLM if needed, or just for the validator
+            if not os.path.exists(file_path):
+                return f"[ERROR] File not found: {file_path}"
+            
             with open(file_path, 'r') as f:
-                content = f.read()
+                current_content = f.read()
             
-            prompt = (
-                f"--- TEXT-GRAD OPTIMIZER ---\n"
-                f"FILE: {file_path}\n"
-                f"CRITIQUE:\n{critique}\n"
-                f"CONTEXT:\n{context}\n"
-                f"--- TASK ---\n"
-                f"Generate a unified diff patch that implements the improvements described in the critique. "
-                f"The patch must be valid and applicable to the current content of the file.\n"
-                f"Return ONLY the patch content."
-            )
+            current_critique = critique
+            max_retries = 3
+            attempt = 0
             
-            result = client.think(
-                focus=f"Optimizing {file_path} based on critique...",
-                tools=[],
-                hud_data={"current_tool": "text_grad_optimizer", "file": file_path}
-            )
-            
-            if isinstance(result, dict) and "message" in result:
-                return result["message"]
-            elif isinstance(result, str):
-                return result
-            else:
-                return f"[ERROR] Unexpected response format from Spine: {result}"
+            while attempt < max_retries:
+                attempt += 1
+                
+                prompt = (
+                    f"--- TEXT-GRAD OPTIMIZER (Attempt {attempt}/{max_retries}) ---\n"
+                    f"FILE: {file_path}\n"
+                    f"CURRENT CONTENT:\n{current_content}\n"
+                    f"CRITIQUE:\n{current_critique}\n"
+                    f"CONTEXT:\n{context}\n"
+                    f"--- TASK ---\n"
+                    f"Generate a unified diff patch that implements the improvements described in the critique. "
+                    f"The patch must be valid and applicable to the current content of the file.\n"
+                    f"Return ONLY the patch content. Do not include explanations or markdown blocks."
+                )
+                
+                result = client.think(
+                    focus=f"Optimizing {file_path} (Attempt {attempt})...",
+                    tools=[],
+                    hud_data={"current_tool": "text_grad_optimizer", "file": file_path, "attempt": attempt}
+                )
+                
+                patch_content = ""
+                if isinstance(result, dict) and "message" in result:
+                    patch_content = result["message"]
+                elif isinstance(result, str):
+                    patch_content = result
+                else:
+                    return f"[ERROR] Unexpected response format from Spine: {result}"
+
+                # Clean up potential markdown markers
+                if patch_content.startswith("```"):
+                    # Remove leading ```diff or ``` and trailing ```
+                    lines = patch_content.splitlines()
+                    if lines[0].startswith("```"):
+                        lines = lines[1:]
+                    if lines and lines[-1].startswith("```"):
+                        lines = lines[:-1]
+                    patch_content = "\n".join(lines)
+
+                is_valid, msg = _validate_patch_internal(file_path, patch_content)
+                if is_valid:
+                    return patch_content
+                
+                # If invalid, update the critique for the next attempt
+                current_critique += f"\n\nPrevious attempt failed validation: {msg}\nPlease correct the patch."
+                
+            return f"[ERROR] Failed to generate a valid patch after {max_retries} attempts. Last error: {msg}"
                 
         except Exception as e:
             return f"[ERROR] Optimization failed: {e}"
