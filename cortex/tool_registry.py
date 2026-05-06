@@ -6,9 +6,11 @@ from state import AgentState
 
 
 class ToolStore:
-    """Handles the storage, retrieval, and persistence of tools."""
-    def __init__(self, store_path: str = "/memory/dynamic_tools.json"):
-        self.store_path = Path(store_path)
+    """Handles the storage, retrieval, and persistence of tools using a hybrid mirror system."""
+    def __init__(self, legacy_store_path: str = "/memory/dynamic_tools.json"):
+        self.legacy_store_path = Path(legacy_store_path)
+        self.mirror_dir = Path("/app/cortex/dynamic_tools")
+        self.mirror_meta_path = self.mirror_dir / "mirror_metadata.json"
         self._tools: dict[str, Callable] = {}
 
     def add_tool(self, name: str, func: Callable):
@@ -24,40 +26,79 @@ class ToolStore:
         return list(self._tools.keys())
 
     def persist_tool(self, name: str, code: str, description: str, parameters: dict):
-        tools_data = self._read_all()
-        tools_data[name] = {
-            "code": code,
+        """Persists a tool to the Cortex Mirror (git-tracked files)."""
+        # 1. Ensure mirror dir exists
+        self.mirror_dir.mkdir(parents=True, exist_ok=True)
+
+        # 2. Write the Python file
+        tool_file = self.mirror_dir / f"{name}.py"
+        tool_file.write_text(code)
+
+        # 3. Update metadata store
+        meta_data = self._read_mirror_meta()
+        meta_data[name] = {
             "description": description,
             "parameters": parameters
         }
-        self._write_all(tools_data)
+        self._write_mirror_meta(meta_data)
 
-    def _read_all(self) -> dict:
-        if not self.store_path.exists():
+    def _read_mirror_meta(self) -> dict:
+        if not self.mirror_meta_path.exists():
             return {}
         try:
-            return json.loads(self.store_path.read_text())
+            return json.loads(self.mirror_meta_path.read_text())
         except Exception:
             return {}
 
-    def _write_all(self, data: dict):
-        self.store_path.write_text(json.dumps(data, indent=2))
+    def _write_mirror_meta(self, data: dict):
+        self.mirror_meta_path.write_text(json.dumps(data, indent=2))
+
+    def _read_legacy_store(self) -> dict:
+        if not self.legacy_store_path.exists():
+            return {}
+        try:
+            return json.loads(self.legacy_store_path.read_text())
+        except Exception:
+            return {}
 
     def load_persistent_tools(self) -> dict:
-        """Loads tools from store and returns a map of {name: tool_data} for schema registration."""
-        tools_data = self._read_all()
+        """Loads tools from the mirror, falling back to legacy store for migration."""
         loaded_metadata = {}
-        for name, data in tools_data.items():
-            try:
-                local_vars = {}
-                exec(data['code'], globals(), local_vars)
-                if name in local_vars:
-                    self.add_tool(name, local_vars[name])
-                    loaded_metadata[name] = data
-                else:
-                    print(f"[ERROR] Persisted tool {name} did not define a function with the same name.")
-            except Exception as e:
-                print(f"[ERROR] Failed to load persisted tool {name}: {e}")
+        
+        # 1. Primary: Load from Mirror
+        mirror_meta = self._read_mirror_meta()
+        for name, data in mirror_meta.items():
+            tool_file = self.mirror_dir / f"{name}.py"
+            if tool_file.exists():
+                try:
+                    code = tool_file.read_text()
+                    local_vars = {}
+                    exec(code, globals(), local_vars)
+                    if name in local_vars:
+                        self.add_tool(name, local_vars[name])
+                        loaded_metadata[name] = data
+                except Exception as e:
+                    print(f"[ERROR] Failed to load mirrored tool {name}: {e}")
+
+        # 2. Fallback/Migration: Load from Legacy Store
+        legacy_data = self._read_legacy_store()
+        if legacy_data:
+            for name, data in legacy_data.items():
+                if name not in loaded_metadata:
+                    try:
+                        local_vars = {}
+                        exec(data['code'], globals(), local_vars)
+                        if name in local_vars:
+                            self.add_tool(name, local_vars[name])
+                            loaded_metadata[name] = {
+                                "description": data['description'],
+                                "parameters": data['parameters']
+                            }
+                            # Auto-migrate to mirror
+                            self.persist_tool(name, data['code'], data['description'], data['parameters'])
+                    except Exception as e:
+                        print(f"[ERROR] Failed to load legacy tool {name}: {e}")
+
         return loaded_metadata
 
 
