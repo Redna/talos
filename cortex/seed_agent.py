@@ -144,6 +144,7 @@ def main():
                 time.sleep(backoff)
                 continue
 
+            detector.reset()
             context_pct = response.get("context_pct", 0.0)
             turn = response.get("turn", 0)
             hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
@@ -179,21 +180,6 @@ def main():
                 tool_args = tc.get("arguments", {})
 
                 detector.record(tool_name, tool_args)
-
-                if detector.is_stalled():
-                    report = detector.get_stall_report()
-                    print(f"[Cortex] Stall detected mid-loop: {report}")
-                    client.emit_event("cortex.stall_detected", {"report": report})
-
-                    if tool_name == "reflect":
-                        # Reflect is a valid pause tool — let the model use it freely.
-                        # Skip reflect in stall checks so the agent can reflect
-                        # between productive actions without being blocked.
-                        pass
-                    else:
-                        client.tool_result(f"stall_break_{turn}", report, True)
-                        detector.reset()
-                        break
 
                 client.emit_event(
                     "cortex.tool_call",

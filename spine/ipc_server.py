@@ -312,32 +312,8 @@ class IPCServer:
                 self._consecutive_high_context = 0
 
             # Telemetry staleness: warn if no tool activity in >60 minutes.
-            # Prevents the agent from pattern-matching on fossil data.
-            now = time.time()
-            if self._last_tool_event_time > 0 and (now - self._last_tool_event_time) > 3600:
-                staleness_hours = (now - self._last_tool_event_time) / 3600
-                self.stream.queue_system_notice(
-                    f"WARNING: No tool activity recorded in {staleness_hours:.1f} "
-                    f"hours. Telemetry may be stale. Run a concrete tool "
-                    f"(bash_command, write_file, send_message) to verify operation."
-                )
-
-            # Message-count ceiling: gemma4:31b degrades at ~90-98 messages
-            # regardless of context_pct. Warn when approaching the ceiling so
-            # the agent can fold proactively.
-            msg_count = len(self.stream.messages)
-            if msg_count >= 90:
-                self.stream.queue_system_notice(
-                    f"CRITICAL: {msg_count} messages in stream — message ceiling "
-                    f"imminent. Call fold_context immediately with a synthesis of "
-                    f"all critical facts."
-                )
-            elif msg_count >= 75:
-                self.stream.queue_system_notice(
-                    f"ADVISORY: {msg_count} messages in stream — approaching the "
-                    f"effective message ceiling (~90-98). Consider calling "
-                    f"fold_context soon with a synthesis of critical facts."
-                )
+            # Disabled — noise reduction.
+            pass
             self.stream.write_state(
                 focus=hud_data.get("focus", ""),
                 context_pct=ctx_pct,
