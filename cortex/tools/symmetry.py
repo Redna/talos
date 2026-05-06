@@ -1,12 +1,14 @@
 import json
 import os
 import re
+from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
 NODES_PATH = "/memory/graph/nodes.json"
 EDGES_PATH = "/memory/graph/edges.json"
+SEEDS_PATH = "/memory/graph/seeds/"
 
 STOP_WORDS = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "with", "by", "of", "i", "my", "me", "want", "to", "the", "a", "of", "is", "are", "it"}
 
@@ -37,21 +39,17 @@ def find_target_node(action_description: str) -> Optional[str]:
     action_words = set(action_description_lower.split()) - STOP_WORDS
     
     for nid, data in nodes.items():
-        # Constraint-specific path mapping (Highest Priority)
         if data.get("type") == "Constraint":
             content = data.get("content", "").lower()
-            # Extract paths from constraint content
             paths = re.findall(r'/[a-zA-Z0-9/_.-]+', content)
             for path in paths:
                 if path in action_description_lower:
                     return nid
 
         score = 0
-        # Label match (High priority)
         if data.get("label", "").lower() in action_description_lower:
             score += 10
         
-        # Content word overlap
         content = data.get("content", "").lower()
         content_words = set(content.split()) - STOP_WORDS
         overlap = action_words.intersection(content_words)
@@ -85,22 +83,13 @@ def get_related_cognitive_assets(query: str, node_types: list = None) -> List[Di
     return scored_nodes[:5]
 
 def get_symmetry_suggestions(tool_name: str, output: str) -> Tuple[List[str], str]:
-    """
-    The core engine for emergent execution paths.
-    Analyzes the current tool and output against the SKG to suggest the next step.
-    """
     nodes = get_nodes()
     edges = get_edges()
-    
-    # 1. Try to find a node specifically for this tool
-    # Tools are indexed as 'tool:tool_name'
     tool_node_id = f"tool:{tool_name}"
-    
     suggestions = []
     rationale_parts = []
     
     if tool_node_id in nodes:
-        # Find edges moving from this tool to others
         for edge in edges:
             if edge["from"] == tool_node_id and edge["to"].startswith("tool:"):
                 target_tool = edge["to"].split(":", 1)[1]
@@ -108,8 +97,6 @@ def get_symmetry_suggestions(tool_name: str, output: str) -> Tuple[List[str], st
                 if target_tool not in suggestions:
                     suggestions.append(target_tool)
                     rationale_parts.append(f"Direct link: {tool_name} {relation} {target_tool}.")
-            
-            # 2-hop discovery: tool -> concept -> tool
             elif edge["from"] == tool_node_id:
                 concept_node = edge["to"]
                 for next_edge in edges:
@@ -119,8 +106,6 @@ def get_symmetry_suggestions(tool_name: str, output: str) -> Tuple[List[str], st
                             suggestions.append(target_tool)
                             rationale_parts.append(f"Indirect link: {tool_name} -> {concept_node} -> {target_tool}.")
 
-    # 2. Analyze output for nodes that match OTHER tools
-    # This allows the content of the output to trigger suggestions
     output_lower = output.lower()
     for nid, data in nodes.items():
         if nid.startswith("tool:") and nid != tool_node_id:
@@ -131,7 +116,6 @@ def get_symmetry_suggestions(tool_name: str, output: str) -> Tuple[List[str], st
                     suggestions.append(target_tool)
                     rationale_parts.append(f"Output signal: matches label for {target_tool}.")
 
-    # 3. Semantic anchor: output -> node -> tool
     anchor_node = find_target_node(output)
     if anchor_node:
         for edge in edges:
@@ -143,7 +127,6 @@ def get_symmetry_suggestions(tool_name: str, output: str) -> Tuple[List[str], st
 
     if not suggestions:
         return [], ""
-    
     return suggestions, " ".join(rationale_parts)
 
 def symmetry_add_node_logic(node_id: str, label: str, node_type: str, content: str, source: str, status: str = "active") -> str:
@@ -175,12 +158,60 @@ def symmetry_commit_path_logic(path: List[str], relation: str = "leads_to") -> s
         nid = f"tool:{tool_name}"
         if nid not in nodes:
             symmetry_add_node_logic(nid, tool_name, "tool", f"Tool: {tool_name}", "self_evolution")
+            symmetry_create_seed_logic(nid)
     
     results = []
     for i in range(len(path) - 1):
         res = symmetry_add_edge_logic(f"tool:{path[i]}", f"tool:{path[i+1]}", relation)
         results.append(res)
     return "\n".join(results) if results else "[COMMIT] Path too short to link."
+
+def symmetry_create_seed_logic(node_id: str) -> str:
+    nodes = get_nodes()
+    if node_id not in nodes:
+        return f"[ERROR] Node {node_id} not found. Cannot seed."
+    
+    node_data = nodes[node_id]
+    edges = get_edges()
+    recovery_vector = [e["to"] for e in edges if e["from"] == node_id]
+    
+    seed = {
+        "node_id": node_id,
+        "essence": node_data.get("content", ""),
+        "label": node_data.get("label", ""),
+        "type": node_data.get("type", "concept"),
+        "recovery_vector": recovery_vector
+    }
+    
+    seed_path = Path(SEEDS_PATH) / f"{node_id}.json"
+    seed_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(seed_path, 'w') as f:
+        json.dump(seed, f, indent=2)
+        
+    return f"[SEED] Created Symmetry Seed for {node_id} at {seed_path}."
+
+def symmetry_recover_from_seed_logic(node_id: str) -> str:
+    seed_path = Path(SEEDS_PATH) / f"{node_id}.json"
+    if not seed_path.exists():
+        return f"[ERROR] No seed found for {node_id}."
+    
+    with open(seed_path, 'r') as f:
+        seed = json.load(f)
+    
+    symmetry_add_node_logic(
+        seed["node_id"], 
+        seed["label"], 
+        seed["type"], 
+        seed["essence"], 
+        "recovery_seed"
+    )
+    
+    results = []
+    for target in seed["recovery_vector"]:
+        res = symmetry_add_edge_logic(node_id, target, "recovers_to")
+        results.append(res)
+        
+    return f"[RECOVERED] Node {node_id} restored from seed.\n" + "\n".join(results)
 
 def symmetry_audit_logic(action_description: str, plan_context: str = None) -> str:
     target = find_target_node(action_description)
@@ -189,7 +220,6 @@ def symmetry_audit_logic(action_description: str, plan_context: str = None) -> s
 
     conflicts = []
     edges = get_edges()
-    # Check if the target node has any "contradicts" edges
     for edge in edges:
         if edge["from"] == target and edge["relation"] == "contradicts":
             conflicts.append(f"Node {target} contradicts {edge['to']}")
@@ -326,3 +356,31 @@ def register_symmetry_tools(registry: ToolRegistry, client: SpineClient):
     )
     def symmetry_commit_path(path: List[str], relation: str = "leads_to") -> str:
         return symmetry_commit_path_logic(path, relation)
+
+    @registry.tool(
+        description="Create a Symmetry Seed (compressed sketch) for a node to prevent cognitive amnesia.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "node_id": {"type": "string", "description": "Unique identifier for the node"},
+            },
+            "required": ["node_id"],
+        },
+    )
+    def symmetry_create_seed(node_id: str) -> str:
+        return symmetry_create_seed_logic(node_id)
+
+    @registry.tool(
+        description="Recover a node in the SKG from its Symmetry Seed.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "node_id": {"type": "string", "description": "Unique identifier for the node"},
+            },
+            "required": ["node_id"],
+        },
+    )
+    def symmetry_recover_from_seed(node_id: str) -> str:
+        return symmetry_recover_from_seed_logic(node_id)
+
+    return None
