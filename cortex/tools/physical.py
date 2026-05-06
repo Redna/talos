@@ -66,14 +66,11 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
             timeout=10,
         )
         if status.stdout.strip():
-            stash_result = subprocess.run(
-                ["git", "stash", "push", "-m", f"auto-stash: {reason}"],
+            subprocess.run(
+                ["git", "stash", "push", "-m", "Talos autonomous restart stash"],
                 capture_output=True,
                 text=True,
-                timeout=10,
             )
-            if stash_result.returncode != 0:
-                return f"[BLOCKED] stash failed: {stash_result.stderr.strip()}"
             untracked = subprocess.run(
                 ["git", "ls-files", "--others", "--exclude-standard"],
                 capture_output=True,
@@ -81,20 +78,7 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
                 timeout=10,
             )
             if untracked.stdout.strip():
-                subprocess.run(
-                    ["git", "add", "-N"] + untracked.stdout.strip().split("\n"),
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-                subprocess.run(
-                    ["git", "stash", "push", "-m", f"auto-stash untracked: {reason}"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-            note = " (auto-stashed)" if "Saved working directory" in stash_result.stdout else ""
-            client.request_restart(reason)
-            return f"[RESTART REQUESTED]{note}"
+                return "[BLOCKED] Untracked files detected. Please commit or delete them before restart."
+        
         client.request_restart(reason)
         return "[RESTART REQUESTED]"

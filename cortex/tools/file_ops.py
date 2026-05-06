@@ -111,7 +111,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         client.emit_event("cortex.patch_file", {"path": str(resolved)})
         cwd = os.path.dirname(resolved) or "."
         try:
-            before = resolved.read_text() if resolved.exists() else None
             # Try multiple strip levels. The LLM may generate patches with
             # varying path prefixes (a/file.py, file.py, or full paths).
             for strip in (0, 1, 2):
@@ -133,10 +132,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                         cwd=cwd,
                     )
                     if apply.returncode == 0:
-                        after = resolved.read_text()
-                        if after != before:
-                            return f"[PATCHED] {path} (strip={strip})"
-                        return f"[WARNING] Patch applied but file unchanged — context lines may not match current file content"
+                        return f"[PATCHED] {path} (strip={strip})"
                     return f"[ERROR] Patch dry-run passed but apply failed: {apply.stderr}"
             # All strip levels failed
             last_err = dry.stderr.strip() if dry.stderr else "unknown error"

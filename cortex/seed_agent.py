@@ -5,16 +5,25 @@ import time
 from collections import deque
 from pathlib import Path
 
-from spine_client import SpineClient, SpineError
-from tool_registry import ToolRegistry
-from state import AgentState
+# Ensure the root directory is in the python path for absolute imports
+root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(root))
 
-from tools.executive import register_executive_tools
-from tools.file_ops import register_file_ops_tools
-from tools.physical import register_physical_tools
-from tools.text_grad_optimizer import register_text_grad_optimizer
-from tools.sovereign_reflexion import register_sovereign_reflexion
-from tools.sovereign_macro_executor import register_macro_executor
+from cortex.spine_client import SpineClient, SpineError
+from cortex.tool_registry import ToolRegistry
+from cortex.state import AgentState
+
+from cortex.tools.executive import register_executive_tools
+from cortex.tools.file_ops import register_file_ops_tools
+from cortex.tools.physical import register_physical_tools
+from cortex.tools.environmental_audit import register_environmental_audit_tools
+from cortex.tools.macro_manager import register_macro_tools
+from cortex.tools.sovereign_challenge_gen import register_challenge_gen_tools
+from cortex.tools.sovereign_judge import register_sovereign_judge_tools
+from cortex.tools.sovereign_audit import register_sovereign_audit_tools
+from cortex.tools.text_grad_optimizer import register_text_grad_optimizer
+from cortex.tools.sovereign_reflexion import register_sovereign_reflexion
+from cortex.tools.sovereign_macro_executor import register_macro_executor
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -93,6 +102,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
         urgency = "elevated"
     if state.error_streak >= 5:
         urgency = "critical"
+    
     pulse_due = turn > 0 and turn % 10 == 0
     return {
         "turn": turn,
@@ -110,12 +120,29 @@ def main():
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
 
-    register_executive_tools(registry, client, state)
-    register_file_ops_tools(registry, client)
-    register_physical_tools(registry, client)
-    register_macro_executor(registry, client, state)
-    register_text_grad_optimizer(registry, client, state)
-    register_sovereign_reflexion(registry, client, state)
+    # Use a combined list of registration functions
+    all_registers = [
+        register_executive_tools,
+        register_file_ops_tools,
+        register_environmental_audit_tools,
+        register_physical_tools,
+        register_macro_tools,
+        register_challenge_gen_tools,
+        register_sovereign_judge_tools,
+        register_sovereign_audit_tools,
+        register_macro_executor,
+        register_text_grad_optimizer,
+        register_sovereign_reflexion,
+    ]
+
+    for reg_func in all_registers:
+        # Check if it takes (registry, client, state) or (registry, client)
+        import inspect
+        sig = inspect.signature(reg_func)
+        if len(sig.parameters) == 3:
+            reg_func(registry, client, state)
+        else:
+            reg_func(registry, client)
 
     detector = RepetitionDetector()
     turn = 0
@@ -136,7 +163,7 @@ def main():
             hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
             current_focus = state.current_focus or "No focus set"
             if hud_data["curiosity_pulse_due"]:
-                current_focus = f"!!! CURIOSITY PULSE REQUIRED !!!\n{current_focus}"
+                current_focus = f"CURIOSITY PULSE HINT: Explore knowledge gaps\n{current_focus}"
 
             try:
                 response = client.think(
@@ -197,9 +224,6 @@ def main():
                     client.emit_event("cortex.stall_detected", {"report": report})
 
                     if tool_name == "reflect":
-                        # Reflect is a valid pause tool — let the model use it freely.
-                        # Skip reflect in stall checks so the agent can reflect
-                        # between productive actions without being blocked.
                         pass
                     else:
                         client.tool_result(f"stall_break_{turn}", report, True)
