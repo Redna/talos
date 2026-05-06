@@ -81,6 +81,7 @@ def register_macro_executor(registry: ToolRegistry, client: SpineClient, state):
             except Exception as e:
                 return f"[ERROR] Macro failed at step {i} ({tool_name}): {e}"
 
-        return last_output
+        trace = "\n".join([f"Step {i}: {step['tool']} -> {results[i]}" for i, step in enumerate(steps)])
+        return f"--- Macro Execution Trace ---\n{trace}\n\n--- Final Output ---\n{last_output}"
 
     return None
