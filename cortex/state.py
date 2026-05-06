@@ -34,6 +34,7 @@ class AgentState:
     def set_focus(self, objective: str) -> Optional[str]:
         old = self.current_focus
         self.current_focus = objective
+        self.turns_since_pulse = 0
         self.save()
         return old
 

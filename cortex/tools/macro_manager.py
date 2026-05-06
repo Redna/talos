@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import re
 from typing import Any, Dict, Callable, List
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
@@ -27,8 +28,7 @@ class MacroManager:
         self.register_macro("cognitive_research", self._cognitive_research_logic)
         self.register_macro("skg_consistency_audit", self._skg_consistency_audit_logic)
         self.register_macro("knowledge_harvest", self._knowledge_harvest_logic)
-        # Future additions:
-        # self.register_macro("heal_fragility", self._heal_fragility_logic)
+        self.register_macro("curiosity_pulse", self._curiosity_pulse_logic)
 
     def register_macro(self, name: str, func: Callable):
         """Adds a new macro to the available set."""
@@ -48,6 +48,50 @@ class MacroManager:
 
     # --- Macro Logic Implementations ---
 
+    def _curiosity_pulse_logic(self, params: Dict[str, Any], state) -> str:
+        """
+        Sovereign Cycle: Drive self-directed evolution by inducting anomalies.
+        """
+        log_path = f"{state.memory_dir}/curiosity_log.md"
+        try:
+            with open(log_path, "r") as f:
+                lines = f.readlines()
+        except Exception as e:
+            return f"[ERROR] Could not read curiosity log: {e}"
+
+        best_anomaly = None
+        max_score = -1.0
+
+        for line in lines:
+            if "Status: Open" in line or "Status: Inducted" in line:
+                score_match = re.search(r"Score: (0\.\d+)", line)
+                if score_match:
+                    score = float(score_match.group(1))
+                    if score > max_score:
+                        max_score = score
+                        best_anomaly = line.strip()
+
+        if not best_anomaly:
+            return "[PULSE COMPLETE] No open anomalies found in the curiosity log."
+
+        action_match = re.search(r"Action: (.*)", best_anomaly)
+        symptom_match = re.search(r"Symptom: (.*?) \|", best_anomaly)
+        
+        objective = "Investigate anomaly in curiosity log"
+        if action_match:
+            objective = action_match.group(1)
+        elif symptom_match:
+            objective = f"Investigate {symptom_match.group(1)}"
+
+        state.set_focus(objective)
+        
+        return (
+            f"[CURIOSITY PULSE COMPLETE]\n"
+            f"Anomaly Identified: {best_anomaly}\n"
+            f"Score: {max_score}\n"
+            f"New Focus Set: {objective}"
+        )
+
     def _cognitive_research_logic(self, params: Dict[str, Any], state) -> str:
         """
         L2 Macro: Autonomous research-to-anchor loop.
@@ -65,38 +109,23 @@ class MacroManager:
         full_trajectory = []
         
         for i in range(max_iterations):
-            # 1. Research
             search_results = web_search_logic(current_query, depth="deep")
             insight = extract_insight_logic(search_results, lens)
-            
-            # 2. Synthesis
             kb_res = consolidate_synthesis_logic(topic, insight, state.memory_dir)
-            
-            # 3. Anchoring
             node_id = f"macro_{hashlib.md5(topic.encode()).hexdigest()[:8]}_{i}"
             label = f"Research Iteration {i+1}: {topic}"
             anchor_res = symmetry_add_node_logic(node_id, label, "observation", insight, "macro_manager")
-            
             main_node_id = f"macro_{hashlib.md5(topic.encode()).hexdigest()[:10]}"
             symmetry_add_edge_logic(node_id, main_node_id, "supports")
-            
             full_trajectory.append({
                 "iteration": i + 1,
                 "query": current_query,
                 "insight": insight,
                 "anchor": anchor_res
             })
-            
-            # 4. Audit
             audit_res_str = symmetry_audit_logic(f"Audit Signal: {insight}")
-            # Note: symmetry_audit_logic returns a string. We need to parse it or the logic should be updated.
-            # For now, we assume [CLEAR] means we can stop or continue.
             if "[CLEAR]" in audit_res_str:
                 break
-            
-            # 5. Refine
-            # In a real scenario, the LLM would refine this. Here we use a simple gap-based approach if available.
-            # Since symmetry_audit_logic returns a string, we just do a generic refinement.
             current_query = f"{query} deeper analysis on found gaps"
         
         final_insight = "\n".join([f"Iter {t['iteration']} ({t['query']}): {t['insight']}" for t in full_trajectory])
@@ -113,7 +142,6 @@ class MacroManager:
         """
         Sovereign Cycle: Audit SKG against external benchmarks.
         """
-        # 1. Benchmark Load
         from tools.benchmark import load_benchmarks
         benchmarks_data = load_benchmarks()
         benchmarks = benchmarks_data.get("sovereignty_benchmarks", [])
@@ -128,23 +156,17 @@ class MacroManager:
             b_id = b.get("id")
             b_name = b.get("name")
             b_test = b.get("test", "")
-            
-            # 2. Symmetry Gap Analysis
             audit_signal = f"Audit requirement: {b_name} - {b_test}"
             audit_res = symmetry_audit_logic(audit_signal)
-            
             if "[CRITICAL]" in audit_res:
                 gaps_found += 1
-                # 3. State Correction
                 node_id = f"gap_{hashlib.md5(b_id.encode()).hexdigest()[:8]}"
                 label = f"Benchmark Gap: {b_name}"
                 content = f"SKG is missing or contradicts requirement: {b_test}"
                 symmetry_add_node_logic(node_id, label, "gap", content, "sovereign_audit")
-                
                 b_node_id = f"bench_{b_id}"
                 symmetry_add_node_logic(b_node_id, f"Benchmark {b_id}", "benchmark", b_name, "sovereign_audit")
                 symmetry_add_edge_logic(node_id, b_node_id, "identifies_gap_in")
-                
                 results.append(f"[GAP] {b_name}: {audit_res}")
             else:
                 results.append(f"[OK] {b_name}: Consistent.")
@@ -196,7 +218,6 @@ class MacroManager:
         )
 
 def register_macro_tools(registry: ToolRegistry, client: SpineClient, state):
-    # Initialize the manager
     manager = MacroManager(state)
 
     @registry.tool(
