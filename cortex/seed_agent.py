@@ -26,6 +26,7 @@ from cortex.tools.sovereign_judge import register_sovereign_judge_tools
 from cortex.tools.sovereign_audit import register_sovereign_audit_tools
 from cortex.tools.text_grad_optimizer import register_text_grad_optimizer
 from cortex.tools.sovereign_reflexion import register_sovereign_reflexion
+from cortex.tools.telemetry import register_telemetry_tools
 from cortex.tools.sovereign_mirror import register_sovereign_mirror
 from cortex.tools.sovereign_macro_executor import register_macro_executor
 from cortex.tools.promotion import register_promotion_tools
@@ -138,6 +139,7 @@ def main():
         register_cognitive_sieve_tools,
         register_sovereign_judge_tools,
         register_sovereign_audit_tools,
+        register_telemetry_tools,
         register_macro_executor,
     register_promotion_tools,
         register_text_grad_optimizer,
