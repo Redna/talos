@@ -16,6 +16,7 @@ from cortex.state import AgentState
 from cortex.tools.executive import register_executive_tools
 from cortex.tools.file_ops import register_file_ops_tools
 from cortex.tools.physical import register_physical_tools
+from cortex.tools.environmental_audit import register_environmental_audit_tools
 from cortex.tools.macro_manager import register_macro_tools
 from cortex.tools.sovereign_challenge_gen import register_challenge_gen_tools
 from cortex.tools.sovereign_judge import register_sovereign_judge_tools
@@ -123,6 +124,7 @@ def main():
     all_registers = [
         register_executive_tools,
         register_file_ops_tools,
+        register_environmental_audit_tools,
         register_physical_tools,
         register_macro_tools,
         register_challenge_gen_tools,
