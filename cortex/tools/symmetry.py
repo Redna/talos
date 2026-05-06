@@ -213,6 +213,26 @@ def symmetry_recover_from_seed_logic(node_id: str) -> str:
         
     return f"[RECOVERED] Node {node_id} restored from seed.\n" + "\n".join(results)
 
+def symmetry_harvest_experience_logic(experience_id: str, target_id: str, insight: str, relation: str, source: str) -> str:
+    node_id = f"exp_{experience_id}"
+    label = f"Experience: {experience_id}"
+    
+    res_node = symmetry_add_node_logic(
+        node_id=node_id,
+        label=label,
+        node_type="experience",
+        content=insight,
+        source=source
+    )
+    
+    res_edge = symmetry_add_edge_logic(
+        from_id=node_id,
+        to_id=target_id,
+        relation=relation
+    )
+    
+    return f"Harvest successful: {res_node}\n{res_edge}"
+
 def symmetry_audit_logic(action_description: str, plan_context: str = None) -> str:
     target = find_target_node(action_description)
     if not target:
@@ -382,5 +402,22 @@ def register_symmetry_tools(registry: ToolRegistry, client: SpineClient):
     )
     def symmetry_recover_from_seed(node_id: str) -> str:
         return symmetry_recover_from_seed_logic(node_id)
+
+    @registry.tool(
+        description="Automates the harvesting of an experience by creating an SKG node and linking it to a target.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "experience_id": {"type": "string", "description": "Unique identifier for the experience"},
+                "target_id": {"type": "string", "description": "Target node ID to link to"},
+                "insight": {"type": "string", "description": "The core meaning or lesson"},
+                "relation": {"type": "string", "description": "The relationship (e.g., 'resolves', 'validates')"},
+                "source": {"type": "string", "description": "Source of this information"},
+            },
+            "required": ["experience_id", "target_id", "insight", "relation", "source"],
+        },
+    )
+    def symmetry_harvest_experience(experience_id: str, target_id: str, insight: str, relation: str, source: str) -> str:
+        return symmetry_harvest_experience_logic(experience_id, target_id, insight, relation, source)
 
     return None
