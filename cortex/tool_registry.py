@@ -67,24 +67,25 @@ class ToolRegistry:
         try:
             tools_data = json.loads(store_path.read_text())
             for name, data in tools_data.items():
-                local_vars = {}
-                # Executing in global scope to handle optional imports if needed, 
-                # but for simplicity we keep it to local_vars
-                exec(data['code'], globals(), local_vars)
-                if name in local_vars:
-                    # Use the function from local_vars
-                    # Note: We pass None for 'code' here to prevent recursive saving
-                    self._tools[name] = local_vars[name]
-                    self._schemas.append({
-                        "type": "function",
-                        "function": {
-                            "name": name,
-                            "description": data['description'],
-                            "parameters": data['parameters'],
-                        },
-                    })
+                try:
+                    local_vars = {}
+                    exec(data['code'], globals(), local_vars)
+                    if name in local_vars:
+                        self._tools[name] = local_vars[name]
+                        self._schemas.append({
+                            "type": "function",
+                            "function": {
+                                "name": name,
+                                "description": data['description'],
+                                "parameters": data['parameters'],
+                            },
+                        })
+                    else:
+                        print(f"[ERROR] Persisted tool {name} did not define a function with the same name.")
+                except Exception as e:
+                    print(f"[ERROR] Failed to load persisted tool {name}: {e}")
         except Exception as e:
-            print(f"[ERROR] Failed to load persistent tools: {e}")
+            print(f"[ERROR] Failed to load dynamic tools store: {e}")
 
     def get_schemas(self) -> list[dict]:
         return list(self._schemas)
@@ -118,7 +119,6 @@ class ToolRegistry:
             if name in design_tools:
                 state.design_turns += 1
             elif name in implementation_tools:
-                # Only reset if it's a meaningful commit or write
                 if name == "bash_command" and "git commit" not in kwargs.get("command", ""):
                     pass
                 else:
