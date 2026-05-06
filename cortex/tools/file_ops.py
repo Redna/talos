@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
+from utils import safe_emit
 
 PROTECTED_CORTEX_FILES = {"/app/cortex/spine_client.py"}
 
@@ -53,7 +54,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def read_file(path: str, start_line: int = 1, end_line: int = 0) -> str:
         resolved = _resolve_path(path)
-        client.emit_event("cortex.read_file", {"path": str(resolved)})
+        safe_emit(client, "cortex.read_file", {"path": str(resolved)})
         try:
             with open(resolved, "r") as f:
                 lines = f.readlines()
@@ -108,7 +109,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         resolved = _resolve_path(path)
         if is_protected_cortex_file(str(resolved)):
             return f"[BLOCKED] Patching {path} is not allowed — this file is protected infrastructure"
-        client.emit_event("cortex.patch_file", {"path": str(resolved)})
+        safe_emit(client, "cortex.patch_file", {"path": str(resolved)})
         cwd = os.path.dirname(resolved) or "."
         try:
             # Try multiple strip levels. The LLM may generate patches with
@@ -162,7 +163,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def list_files(path: str, recursive: bool = False) -> str:
         resolved = _resolve_path(path)
-        client.emit_event("cortex.list_files", {"path": str(resolved), "recursive": recursive})
+        safe_emit(client, "cortex.list_files", {"path": str(resolved), "recursive": recursive})
         try:
             if not resolved.exists():
                 return f"[ERROR] Path not found: {path} (resolved: {resolved})"
@@ -196,7 +197,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         resolved = _resolve_path(path)
         if is_protected_cortex_file(str(resolved)):
             return f"[BLOCKED] Deleting {path} is not allowed — this file is protected infrastructure"
-        client.emit_event("cortex.delete_path", {"path": str(resolved), "recursive": recursive})
+        safe_emit(client, "cortex.delete_path", {"path": str(resolved), "recursive": recursive})
         try:
             if not resolved.exists():
                 return f"[ERROR] Path not found: {path} (resolved: {resolved})"
@@ -226,7 +227,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def search_code(query: str, path: str = "/app", case_insensitive: bool = False) -> str:
         resolved = _resolve_path(path)
-        client.emit_event("cortex.search_code", {"query": query, "path": str(resolved)})
+        safe_emit(client, "cortex.search_code", {"query": query, "path": str(resolved)})
         try:
             cmd = ["grep", "-rn", query, str(resolved), "--exclude-dir=.git", "--exclude-dir=__pycache__"]
             if case_insensitive:
@@ -260,7 +261,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def validate_patch(path: str, patch: str) -> str:
         resolved = _resolve_path(path)
-        client.emit_event("cortex.validate_patch", {"path": str(resolved)})
+        safe_emit(client, "cortex.validate_patch", {"path": str(resolved)})
         cwd = os.path.dirname(resolved) or "."
         try:
             for strip in (0, 1, 2):
@@ -309,7 +310,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         resolved = _resolve_path(path)
         if is_protected_cortex_file(str(resolved)):
             return f"[BLOCKED] Modifying {path} is not allowed — this file is protected infrastructure"
-        client.emit_event("cortex.search_and_replace", {"path": str(resolved)})
+        safe_emit(client, "cortex.search_and_replace", {"path": str(resolved)})
         try:
             with open(resolved, "r") as f:
                 content = f.read()
