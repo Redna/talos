@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Dict, List
 from state import AgentState
 
 
@@ -24,6 +24,20 @@ class ToolRegistry:
             return func
 
         return decorator
+
+    def register_dynamic_tool(self, name: str, func: Callable, description: str, parameters: dict):
+        """Registers a tool dynamically at runtime."""
+        self._tools[name] = func
+        self._schemas.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "description": description,
+                    "parameters": parameters,
+                },
+            }
+        )
 
     def get_schemas(self) -> list[dict]:
         return list(self._schemas)
@@ -106,3 +120,5 @@ class ToolRegistry:
     @property
     def tool_names(self) -> list[str]:
         return list(self._tools.keys())
+
+registry = ToolRegistry()

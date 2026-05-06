@@ -19,6 +19,7 @@ from cortex.tools.physical import register_physical_tools
 from cortex.tools.environmental_audit import register_environmental_audit_tools
 from cortex.tools.macro_manager import register_macro_tools
 from cortex.tools.sovereign_challenge_gen import register_challenge_gen_tools
+from cortex.tools.kernel import register_kernel_tools
 from cortex.tools.symmetry import register_symmetry_tools
 from cortex.tools.sovereign_judge import register_sovereign_judge_tools
 from cortex.tools.sovereign_audit import register_sovereign_audit_tools
@@ -129,6 +130,7 @@ def main():
         register_environmental_audit_tools,
         register_physical_tools,
         register_macro_tools,
+        register_kernel_tools,
         register_symmetry_tools,
         register_challenge_gen_tools,
         register_sovereign_judge_tools,
