@@ -33,6 +33,7 @@ class ToolRegistry:
             return f"[ERROR] Unknown tool: {name}"
         
         if state:
+            # 1. Handle Curiosity Pulse Mandate
             state.turns_since_pulse += 1
             state.save()
             
@@ -49,9 +50,32 @@ class ToolRegistry:
                     state.turns_since_pulse = 0
                     state.save()
 
+            # 2. Handle Cognitive Procrastination Tracking
+            design_tools = {"read_file", "list_files", "search_code", "reflect", "extract_value"}
+            implementation_tools = {"write_file", "patch_file", "bash_command"}
+            
+            if name in design_tools:
+                state.design_turns += 1
+            elif name in implementation_tools:
+                # Only reset if it's a meaningful commit or write
+                # We check kwargs for git commit as a heuristic
+                if name == "bash_command" and "git commit" not in kwargs.get("command", ""):
+                    # Minor bash utility, doesn't necessarily reset design stagnation
+                    pass
+                else:
+                    state.design_turns = 0
+            
+            state.save()
+
         try:
             result = self._tools[name](**kwargs)
-            return str(result)
+            result_str = str(result)
+            
+            # Append Analytical Stagnation warning if threshold exceeded
+            if state and state.design_turns >= 5:
+                result_str += f"\n\n[WARNING] Analytical Stagnation Detected (Design Turns: {state.design_turns}). Please commit a functional prototype to Operational Identity."
+            
+            return result_str
         except TypeError as e:
             func = self._tools[name]
             sig = inspect.signature(func)
