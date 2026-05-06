@@ -40,7 +40,7 @@ class ToolRegistry:
                 pulse_tools = {
                     "read_file", "write_file", "list_files", "search_code", 
                     "set_focus", "resolve_focus", "reflect", "extract_value",
-                    "execute_macro", "list_macros"
+                    "execute_macro", "list_macros", "bash_command"
                 }
                 if name not in pulse_tools:
                     return f"[REJECTED] Curiosity Pulse is due (Turns: {state.turns_since_pulse}). Evolution takes priority. Please execute the Curiosity Pulse Protocol before proceeding."
