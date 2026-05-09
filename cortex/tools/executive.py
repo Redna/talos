@@ -17,6 +17,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             },
             "required": ["objective"],
         },
+        protected=True,
     )
     def set_focus(objective: str) -> str:
         old = state.set_focus(objective)
@@ -55,6 +56,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             },
             "required": ["synthesis"],
         },
+        protected=True,
     )
     def fold_context(synthesis: str) -> str:
         client.request_fold(synthesis)

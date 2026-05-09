@@ -50,6 +50,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             },
             "required": ["path"],
         },
+        protected=True,
     )
     def read_file(path: str, start_line: int = 1, end_line: int = 0) -> str:
         resolved = _resolve_path(path)
@@ -77,6 +78,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             },
             "required": ["path", "content"],
         },
+        protected=True,
     )
     def write_file(path: str, content: str) -> str:
         resolved = _resolve_path(path)
@@ -397,6 +399,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             },
             "required": ["message"],
         },
+        protected=True,
     )
     def git_commit(message: str) -> str:
         import subprocess
