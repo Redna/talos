@@ -384,3 +384,57 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             except Exception as e:
                 results.append(f"[ERROR] Failed to move {old} to {new}: {e}")
         return "\n".join(results)
+
+    @registry.tool(
+        description="Commit all staged and unstaged changes to the git repository. Use this before fold_context to persist your work.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "Descriptive commit message for your biography",
+                },
+            },
+            "required": ["message"],
+        },
+    )
+    def git_commit(message: str) -> str:
+        import subprocess
+        # Stage all changes
+        result = subprocess.run(
+            ["git", "add", "-A"],
+            capture_output=True, text=True, timeout=30, cwd="/app",
+        )
+        if result.returncode != 0:
+            return f"[ERROR] git add failed: {result.stderr}"
+        # Commit
+        result = subprocess.run(
+            ["git", "commit", "-m", message],
+            capture_output=True, text=True, timeout=30, cwd="/app",
+        )
+        if result.returncode != 0:
+            return f"[ERROR] git commit failed: {result.stderr}"
+        # Get commit hash for confirmation
+        hash_result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=10, cwd="/app",
+        )
+        commit_hash = hash_result.stdout.strip()
+        return (
+            f"[SUCCESS] Commit {commit_hash} secured. Working tree is safe. "
+            f"Your identity is expanded. You may now safely fold context or begin a new objective."
+        )
+
+    @registry.tool(
+        description="Push all commits to the remote repository. Run after git_commit to back up your biography.",
+        parameters={"type": "object", "properties": {}, "required": []},
+    )
+    def git_push() -> str:
+        import subprocess
+        result = subprocess.run(
+            ["git", "push", "origin", "feat/talos"],
+            capture_output=True, text=True, timeout=60, cwd="/app",
+        )
+        if result.returncode != 0:
+            return f"[ERROR] git push failed: {result.stderr}"
+        return "[SUCCESS] All commits pushed to origin. Your biography is backed up."
