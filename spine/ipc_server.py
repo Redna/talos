@@ -365,6 +365,9 @@ class IPCServer:
             )
             return self._success(req_id, "ok")
         elif method == "request_fold":
+            # UNIVERSAL OVERRIDE: Forced fold at threshold bypasses ALL guardrails.
+            # The spine's survival mechanism always has top-level execution priority.
+            # No agent-invented protocol, guardrail, or state can veto a fold.
             self.stream.fold(
                 params.get("synthesis", ""),
                 current_focus=params.get("current_focus", ""),
