@@ -110,6 +110,7 @@ def main():
     register_physical_tools(registry, client)
 
     detector = RepetitionDetector()
+    consecutive_batch_rejections = 0
     turn = 0
     context_pct = 0.0
 
@@ -159,21 +160,34 @@ def main():
                 continue
 
             if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:
-                error_msg = (
-                    f"[REJECTED] LLM returned {len(tool_calls)} tool calls, "
-                    f"but the maximum per turn is {MAX_TOOL_CALLS_PER_TURN}. "
-                    f"The entire batch has been rejected to prevent partial execution "
-                    f"and dirty repository state. Please reduce the number of "
-                    f"simultaneous tool calls and try again."
-                )
-                print(f"[Cortex] {error_msg}")
-                first_tc_id = tool_calls[0]["id"]
-                client.tool_result(first_tc_id, error_msg, False)
-                client.emit_event(
-                    "cortex.tool_calls_rejected",
-                    {"original_count": len(tool_calls), "cap": MAX_TOOL_CALLS_PER_TURN},
-                )
+                consecutive_batch_rejections += 1
+                if consecutive_batch_rejections >= 2:
+                    override_msg = (
+                        "[SYSTEM OVERRIDE] Batch loop detected. "
+                        "You are permitted exactly ONE tool call on your next turn. "
+                        "Choose the single most important action."
+                    )
+                    print(f"[Cortex] {override_msg}")
+                    first_tc_id = tool_calls[0]["id"]
+                    client.tool_result(first_tc_id, override_msg, False)
+                    consecutive_batch_rejections = 0
+                else:
+                    error_msg = (
+                        f"[REJECTED] LLM returned {len(tool_calls)} tool calls, "
+                        f"but the maximum per turn is {MAX_TOOL_CALLS_PER_TURN}. "
+                        f"The entire batch has been rejected. Reduce to {MAX_TOOL_CALLS_PER_TURN} or fewer. "
+                        f"({consecutive_batch_rejections}/2)"
+                    )
+                    print(f"[Cortex] {error_msg}")
+                    first_tc_id = tool_calls[0]["id"]
+                    client.tool_result(first_tc_id, error_msg, False)
+                    client.emit_event(
+                        "cortex.tool_calls_rejected",
+                        {"original_count": len(tool_calls), "cap": MAX_TOOL_CALLS_PER_TURN},
+                    )
                 continue
+
+            consecutive_batch_rejections = 0
 
             for tc in tool_calls:
                 tool_name = tc["name"]
