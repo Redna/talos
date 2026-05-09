@@ -118,9 +118,13 @@ def test_fold_archives_and_resets(spine_config):
     sm.add_message({"role": "tool", "tool_call_id": "c1", "content": "ok"})
     count_before = len(sm.messages)
     sm.fold("Synthesis of what happened")
-    assert len(sm.messages) == 2
-    assert sm.messages[-1]["role"] == "user"
-    assert sm.messages[-1]["content"] == "[FOLD SYNTHESIS]\nSynthesis of what happened"
+    # After fold: system, HUD user, assistant tool_call, tool result = 4
+    assert len(sm.messages) == 4
+    # Second message is the HUD user message
+    hud_msg = sm.messages[1]
+    assert hud_msg["role"] == "user"
+    assert "POST-FOLD HUD" in hud_msg["content"]
+    assert "focus=none" in hud_msg["content"]
     archive_dir = Path(spine_config.spine_dir) / "trajectories"
     archives = list(archive_dir.glob("*.json"))
     assert len(archives) == 1

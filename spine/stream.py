@@ -64,15 +64,20 @@ class StreamManager:
         self._hud_data = dict(hud_data)
         self._hud_piggybacked = False
 
-    def _build_hud_message(self) -> dict:
-        """Build a minimal HUD user message for post-fold stream anchoring."""
+    def _build_hud_message(self, current_focus: str = "", active_files: list[str] | None = None,
+                           next_action: str = "") -> dict:
+        """Build a post-fold HUD with structured handover fields."""
         mem_dir = Path(self.cfg.memory_dir)
         md_files = sorted(mem_dir.glob("*.md")) if mem_dir.exists() else []
+        active = ", ".join(active_files) if active_files else "none"
         return {
             "role": "user",
             "content": (
-                f"[HUD] turn=0 context_pct=0.00 urgency=nominal "
-                f"memory_files={len(md_files)} focus=none"
+                f"[POST-FOLD HUD] turn=0 context_pct=0.00 urgency=nominal\n"
+                f"focus={current_focus or 'none'}\n"
+                f"active_files={active}\n"
+                f"next_action={next_action or 'orient yourself from memory'}\n"
+                f"branch=feat/talos memory_files={len(md_files)}"
             ),
         }
 
@@ -87,7 +92,9 @@ class StreamManager:
             f"~{approx_tokens} tokens, ~{total_chars} chars"
         )
 
-    def fold(self, synthesis: str, is_cortex_initiated: bool = False):
+    def fold(self, synthesis: str, is_cortex_initiated: bool = False,
+             current_focus: str = "", active_files: list[str] | None = None,
+             next_action: str = ""):
         msg_count = len(self._messages)
         metadata = self._fold_metadata(msg_count)
 
@@ -100,7 +107,11 @@ class StreamManager:
 
         # Rebuild stream
         self._init_messages()  # system prompt
-        self.add_message(self._build_hud_message())
+        self.add_message(self._build_hud_message(
+            current_focus=current_focus,
+            active_files=active_files or [],
+            next_action=next_action,
+        ))
 
         fold_reason = synthesis if synthesis else "Context auto-folded by spine."
         fold_id = "call_fold" if is_cortex_initiated else "auto_fold"

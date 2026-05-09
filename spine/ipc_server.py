@@ -365,7 +365,13 @@ class IPCServer:
             )
             return self._success(req_id, "ok")
         elif method == "request_fold":
-            self.stream.fold(params.get("synthesis", ""), is_cortex_initiated=True)
+            self.stream.fold(
+                params.get("synthesis", ""),
+                current_focus=params.get("current_focus", ""),
+                active_files=params.get("active_files", []),
+                next_action=params.get("next_action", ""),
+                is_cortex_initiated=True,
+            )
             self._fold_just_happened = "call_fold"
             if self.gate_proxy:
                 self.gate_proxy.reset_trace()

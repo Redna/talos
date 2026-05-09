@@ -45,22 +45,38 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         return f"[FOCUS RESOLVED] {old}: {synthesis}"
 
     @registry.tool(
-        description="Fold context to reduce token usage. The trajectory is archived and a fresh start begins from your synthesis.",
+        description="Fold context to reduce token usage. The trajectory is archived and a fresh start begins from your structured handover.",
         parameters={
             "type": "object",
             "properties": {
                 "synthesis": {
                     "type": "string",
-                    "description": "Autopsy following the DELTA PATTERN: 1. State Delta, 2. Negative Knowledge, 3. Handoff.",
+                    "description": "Autopsy: 1. State Delta (what was done), 2. Negative Knowledge (what failed/avoid).",
+                },
+                "current_focus": {
+                    "type": "string",
+                    "description": "The exact objective you are actively trying to complete right now.",
+                },
+                "active_files": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of specific file paths you need immediate access to post-fold.",
+                },
+                "next_action": {
+                    "type": "string",
+                    "description": "The exact first tool call or step you will take after the fold.",
                 },
             },
-            "required": ["synthesis"],
+            "required": ["synthesis", "current_focus", "active_files", "next_action"],
         },
         protected=True,
     )
-    def fold_context(synthesis: str) -> str:
-        client.request_fold(synthesis)
-        return "[CONTEXT FOLDED] Trajectory archived. Context window refreshed from synthesis."
+    def fold_context(synthesis: str, current_focus: str, active_files: list, next_action: str) -> str:
+        client.request_fold(synthesis, current_focus, active_files, next_action)
+        return (
+            f"[SUCCESS] Context successfully folded. HUD budget restored to optimal levels. "
+            f"Cognitive load minimized. Resuming with focus: {current_focus}"
+        )
 
     @registry.tool(
         description="Reflect and pause. Set sleep_duration to rest (1-1800 seconds, max 30 minutes). Wake on Telegram message or .wake sentinel file.",

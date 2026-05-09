@@ -95,9 +95,14 @@ class SpineClient:
             },
         )
 
-    def request_fold(self, synthesis: str) -> dict:
-        """Request a context fold with a synthesis."""
-        return self._send_request("request_fold", {"synthesis": synthesis})
+    def request_fold(self, synthesis: str, current_focus: str = "", active_files: list[str] | None = None, next_action: str = "") -> dict:
+        """Request a context fold with structured handover fields."""
+        return self._send_request("request_fold", {
+            "synthesis": synthesis,
+            "current_focus": current_focus,
+            "active_files": active_files or [],
+            "next_action": next_action,
+        })
 
     def request_restart(self, reason: str) -> dict:
         """Request a clean restart of the Cortex process."""

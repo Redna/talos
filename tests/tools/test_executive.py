@@ -47,8 +47,13 @@ def test_fold_context_execution(tmp_path):
     from tools.executive import register_executive_tools
 
     register_executive_tools(registry, client, state)
-    result = registry.execute("fold_context", {"synthesis": "summarized"})
-    assert "CONTEXT FOLDED" in result
+    result = registry.execute("fold_context", {
+        "synthesis": "summarized",
+        "current_focus": "testing fold",
+        "active_files": ["file1.py"],
+        "next_action": "read file1.py",
+    })
+    assert "SUCCESS" in result
     client.request_fold.assert_called_once()
 
 
@@ -59,8 +64,15 @@ def test_fold_context_calls_request_fold(tmp_path):
     from tools.executive import register_executive_tools
 
     register_executive_tools(registry, client, state)
-    registry.execute("fold_context", {"synthesis": "my summary"})
-    client.request_fold.assert_called_once_with("my summary")
+    registry.execute("fold_context", {
+        "synthesis": "my summary",
+        "current_focus": "testing fold",
+        "active_files": ["file1.py"],
+        "next_action": "read file1.py",
+    })
+    client.request_fold.assert_called_once_with(
+        "my summary", "testing fold", ["file1.py"], "read file1.py"
+    )
 
 
 def test_reflect_execution(tmp_path):
