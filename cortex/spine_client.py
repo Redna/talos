@@ -4,6 +4,7 @@ Spine IPC Client — Unix domain socket JSON-RPC client for Cortex ↔ Spine com
 
 import json
 import socket
+import time
 from typing import Any, Optional
 
 
@@ -14,8 +15,24 @@ class SpineClient:
         self.socket_path = socket_path
         self._request_id = 0
 
-    def _send_request(self, method: str, params: dict) -> dict:
-        """Send a JSON-RPC request and return the response."""
+    def _send_request(self, method: str, params: dict, retries: int = 5) -> dict:
+        """Send a JSON-RPC request with exponential backoff on transport errors."""
+        last_error = None
+        for attempt in range(retries):
+            try:
+                return self._send_request_once(method, params)
+            except SpineError as e:
+                # Only retry on transport errors, not application errors
+                if "Communication error" in e.message or "Connection closed" in e.message:
+                    last_error = e
+                    delay = min(1.0 * (2 ** attempt), 60.0)
+                    time.sleep(delay)
+                    continue
+                raise
+        raise last_error or SpineError(-32000, "Max retries exceeded")
+
+    def _send_request_once(self, method: str, params: dict) -> dict:
+        """Send a single JSON-RPC request (original logic)."""
         self._request_id += 1
         request = {
             "jsonrpc": "2.0",
@@ -30,7 +47,7 @@ class SpineClient:
         try:
             sock.sendall((json.dumps(request) + "\n").encode("utf-8"))
             response_data = b""
-            max_buffer = 10 * 1024 * 1024  # 10 MB
+            max_buffer = 10 * 1024 * 1024
             while True:
                 chunk = sock.recv(65536)
                 if not chunk:
