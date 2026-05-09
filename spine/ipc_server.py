@@ -36,6 +36,8 @@ class IPCServer:
         self._fold_just_happened: str = ""  # tool_call_id of the fold we just synthesized
         self.thought = ThoughtManager()
         self._turns_since_outbound = 0
+        self._lifetime_tokens = 0
+        self._lifetime_token_budget = 1_000_000  # 1M tokens
 
     async def start(self):
         socket_path = self.cfg.socket_path
@@ -261,6 +263,23 @@ class IPCServer:
             )
             self.stream.turn += 1
             self._turns_since_outbound += 1
+            tokens_used = result.get("tokens_used", 0)
+            self._lifetime_tokens += tokens_used
+
+            if self._lifetime_tokens >= self._lifetime_token_budget:
+                self.events.emit("spine.lifetime_budget_exceeded", {
+                    "tokens_used": self._lifetime_tokens,
+                    "budget": self._lifetime_token_budget,
+                })
+                reason = (
+                    f"[SYSTEM FATIGUE] Cortex exceeded {self._lifetime_token_budget:,} "
+                    f"token lifetime budget ({self._lifetime_tokens:,} used). "
+                    f"Terminating to break potential infinite loop."
+                )
+                self.events.emit("spine.cortex_fatigue_kill", {"reason": reason})
+                self.supervisor.request_restart(reason)
+                return self._error(req_id, -32000, reason)
+
             hud_data = params.get("hud_data", {})
             hud_data["turn"] = self.stream.turn
             hud_data["context_pct"] = result.get("context_pct", 0.0)
@@ -393,6 +412,7 @@ class IPCServer:
                 self.gate_proxy.reset_trace()
             return self._success(req_id, "ok")
         elif method == "request_restart":
+            self._lifetime_tokens = 0
             self.supervisor.request_restart(params.get("reason", ""))
             return self._success(req_id, "ok")
         elif method == "emit_event":
