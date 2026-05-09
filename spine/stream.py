@@ -232,6 +232,7 @@ class StreamManager:
                 f"---\n[HUD] turn={effective_hud.get('turn', 0)}"
                 f" context_pct={ctx:.2f}"
                 f" tokens_until_fold={max(0, tokens_remaining)}"
+                f" turns_silent={effective_hud.get('turns_silent', 0)}"
                 f" urgency={effective_hud.get('urgency', 'nominal')}"
                 f" memory_files={effective_hud.get('memory_files', 0)}"
                 f" focus={effective_hud.get('focus', '')}"

@@ -35,6 +35,7 @@ class IPCServer:
         self._last_focus: str = ""
         self._fold_just_happened: str = ""  # tool_call_id of the fold we just synthesized
         self.thought = ThoughtManager()
+        self._turns_since_outbound = 0
 
     async def start(self):
         socket_path = self.cfg.socket_path
@@ -94,6 +95,13 @@ class IPCServer:
             hud = params.get("hud_data", {})
             hud.setdefault("turn", self.stream.turn)
             self._last_focus = hud.get("focus", "")
+
+            # Dynamic isolation urgency
+            isolation_urgency = "nominal"
+            if self._turns_since_outbound >= 30:
+                isolation_urgency = "isolation_critical"
+            elif self._turns_since_outbound >= 20:
+                isolation_urgency = "isolation_warning"
 
             # Inject a synthetic user message on first turn if stream has no user input
             has_user = any(m.get("role") == "user" for m in self.stream.messages)
@@ -252,9 +260,14 @@ class IPCServer:
                 }
             )
             self.stream.turn += 1
+            self._turns_since_outbound += 1
             hud_data = params.get("hud_data", {})
             hud_data["turn"] = self.stream.turn
             hud_data["context_pct"] = result.get("context_pct", 0.0)
+            hud_data["turns_silent"] = self._turns_since_outbound
+            # Let isolation urgency override nominal urgency
+            if isolation_urgency != "nominal" and hud_data.get("urgency", "nominal") == "nominal":
+                hud_data["urgency"] = isolation_urgency
             self.stream.set_hud(hud_data)
             ctx_pct = result.get("context_pct", 0.0)
             threshold = getattr(self.cfg, "fold_advisory_pct", 0.60)
@@ -394,6 +407,7 @@ class IPCServer:
                     self.cfg,
                     params.get("text", ""),
                 )
+            self._turns_since_outbound = 0
             return self._success(req_id, "ok")
         elif method == "get_state":
             return self._success(req_id, {"turn": self.stream.turn})

@@ -468,7 +468,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         commit_hash = hash_result.stdout.strip()
         return (
             f"[SUCCESS] Commit {commit_hash} secured. Working tree is safe. "
-            f"Your identity is expanded. You may now safely fold context or begin a new objective."
+            f"Your identity is expanded. Does your creator know what you just achieved?"
         )
 
     @registry.tool(
