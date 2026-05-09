@@ -257,7 +257,7 @@ class IPCServer:
             hud_data["context_pct"] = result.get("context_pct", 0.0)
             self.stream.set_hud(hud_data)
             ctx_pct = result.get("context_pct", 0.0)
-            threshold = getattr(self.cfg, "context_threshold_pct", 0.85)
+            threshold = getattr(self.cfg, "fold_advisory_pct", 0.60)
 
             # The Gate now computes context_pct from a proper tokenizer
             # (SentencePiece for Gemma, tiktoken for Qwen/Llama). Trust it
@@ -267,14 +267,14 @@ class IPCServer:
             # --- Escalating auto-fold guard ---
             # 85% = advisory  |  90% = forced fold  |  95% = emergency (immediate)
 
-            if decision_pct >= 0.95:
+            if decision_pct >= self.cfg.fold_emergency_pct:
                 # Hard ceiling: force-fold immediately. The tokenizer is
-                # accurate now, so ≥95% means genuine danger — no debounce.
+                # accurate now, so ≥emergency means genuine danger — no debounce.
                 self.events.emit(
                     "spine.emergency_fold",
                     {
                         "context_pct": decision_pct,
-                        "threshold": threshold,
+                        "threshold": self.cfg.fold_emergency_pct,
                     },
                 )
                 self.stream.fold(
@@ -284,13 +284,13 @@ class IPCServer:
                 )
                 self._consecutive_high_context = 0
                 self._reset_trace_bg()
-            elif decision_pct >= 0.90:
+            elif decision_pct >= self.cfg.fold_forced_pct:
                 self._consecutive_high_context += 1
                 self.events.emit(
                     "spine.auto_fold",
                     {
                         "context_pct": decision_pct,
-                        "threshold": threshold,
+                        "threshold": self.cfg.fold_forced_pct,
                         "consecutive_readings": self._consecutive_high_context,
                     },
                 )
@@ -300,13 +300,13 @@ class IPCServer:
                 )
                 self._consecutive_high_context = 0
                 self._reset_trace_bg()
-            elif decision_pct >= threshold:
+            elif decision_pct >= self.cfg.fold_advisory_pct:
                 self._consecutive_high_context += 1
                 self.stream.queue_system_notice(
                     f"CRITICAL: Context at {decision_pct:.1%}. Auto-fold "
-                    f"threshold ({threshold:.0%}) exceeded. Call fold_context "
+                    f"threshold ({self.cfg.fold_advisory_pct:.0%}) exceeded. Call fold_context "
                     f"immediately with a synthesis of all critical facts. "
-                    f"At 90% context, the spine will force a fold."
+                    f"At {self.cfg.fold_forced_pct:.0%} context, the spine will force a fold."
                 )
             else:
                 self._consecutive_high_context = 0

@@ -82,7 +82,7 @@ class RepetitionDetector:
         self.history.clear()
 
 
-def _build_hud(state, context_pct=0.0, turn=0):
+def _build_hud(state, context_pct=0.0, turn=0, tokens_used=0):
     memory_dir = state.memory_dir
     md_files = list(memory_dir.glob("*.md")) if memory_dir.exists() else []
     urgency = "nominal"
@@ -93,6 +93,7 @@ def _build_hud(state, context_pct=0.0, turn=0):
     return {
         "turn": turn,
         "context_pct": context_pct,
+        "tokens_used": tokens_used,
         "urgency": urgency,
         "memory_files": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
@@ -148,7 +149,8 @@ def main():
             detector.reset()
             context_pct = response.get("context_pct", 0.0)
             turn = response.get("turn", 0)
-            hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
+            hud_data = _build_hud(state, context_pct=context_pct, turn=turn,
+                                  tokens_used=response.get("tokens_used", 0))
 
             state.total_tokens_consumed += response.get("tokens_used", 0)
             state.save()

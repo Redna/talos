@@ -13,6 +13,9 @@ class SpineConfig:
     constitution_path: str = "/app/CONSTITUTION.md"
     identity_path: str = "/app/identity.md"
     context_threshold_pct: float = 0.85
+    fold_advisory_pct: float = 0.60
+    fold_forced_pct: float = 0.75
+    fold_emergency_pct: float = 0.85
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
     stall_timeout: float = 300.0
