@@ -66,10 +66,24 @@ class StreamManager:
 
     def _build_hud_message(self, current_focus: str = "", active_files: list[str] | None = None,
                            next_action: str = "") -> dict:
-        """Build a post-fold HUD with structured handover fields."""
+        """Build a post-fold HUD with structured handover fields and dynamic stats."""
+        import subprocess as _subprocess
         mem_dir = Path(self.cfg.memory_dir)
         md_files = sorted(mem_dir.glob("*.md")) if mem_dir.exists() else []
         active = ", ".join(active_files) if active_files else "none"
+
+        # Get recent commits for orientation
+        recent = "unavailable"
+        try:
+            r = _subprocess.run(
+                ["git", "log", "--oneline", "-5"],
+                capture_output=True, text=True, timeout=10, cwd=self.cfg.app_dir,
+            )
+            if r.returncode == 0:
+                recent = r.stdout.strip().replace("\n", "; ") or "no commits yet"
+        except Exception:
+            pass
+
         return {
             "role": "user",
             "content": (
@@ -77,7 +91,8 @@ class StreamManager:
                 f"focus={current_focus or 'none'}\n"
                 f"active_files={active}\n"
                 f"next_action={next_action or 'orient yourself from memory'}\n"
-                f"branch=feat/talos memory_files={len(md_files)}"
+                f"branch=feat/talos memory_files={len(md_files)}\n"
+                f"recent: {recent}"
             ),
         }
 
