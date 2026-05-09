@@ -93,7 +93,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Failed to write file: {e}"
 
     @registry.tool(
-        description="Apply a unified diff patch to a file. Cannot patch files in /app/spine/.",
+        description="[DEPRECATED — prefer replace_block] Apply a unified diff patch to a file. Cannot patch files in /app/spine/.",
         parameters={
             "type": "object",
             "properties": {
@@ -251,7 +251,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Search failed: {e}"
 
     @registry.tool(
-        description="Validate a unified diff patch without applying it. Checks if the patch can be applied cleanly.",
+        description="[DEPRECATED — prefer replace_block] Validate a unified diff patch without applying it. Checks if the patch can be applied cleanly.",
         parameters={
             "type": "object",
             "properties": {
@@ -350,6 +350,49 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
 
         replaced = occurrences if replace_all else 1
         return f"[REPLACED] {replaced} occurrence(s) replaced in {path}"
+
+    @registry.tool(
+        description="Replace a specific block of code in a file. You MUST provide the EXACT original text (including indentation and whitespace) in 'search_block'. Use this instead of patch_file for surgical edits.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "File path to modify"},
+                "search_block": {
+                    "type": "string",
+                    "description": "The exact multi-line string to find and replace.",
+                },
+                "replace_block": {
+                    "type": "string",
+                    "description": "The new multi-line string to insert.",
+                },
+            },
+            "required": ["path", "search_block", "replace_block"],
+        },
+    )
+    def replace_block(path: str, search_block: str, replace_block: str) -> str:
+        resolved = _resolve_path(path)
+        if is_protected_cortex_file(str(resolved)):
+            return f"[BLOCKED] Modifying {path} is not allowed — this file is protected infrastructure"
+        client.emit_event("cortex.replace_block", {"path": str(resolved)})
+        try:
+            with open(resolved, "r") as f:
+                content = f.read()
+        except FileNotFoundError:
+            return f"[ERROR] File not found: {path}"
+        except Exception as e:
+            return f"[ERROR] Failed to read file: {e}"
+        occurrences = content.count(search_block)
+        if occurrences == 0:
+            return "[ERROR] The search_block was not found in the file. Ensure you copied the exact text, including all indentation and whitespace."
+        if occurrences > 1:
+            return f"[ERROR] Found {occurrences} instances of the search_block. Please include more context lines in your search_block to make it unique."
+        new_content = content.replace(search_block, replace_block)
+        try:
+            with open(resolved, "w") as f:
+                f.write(new_content)
+            return f"[REPLACED] Block successfully updated in {path}"
+        except Exception as e:
+            return f"[ERROR] Failed to write file: {e}"
 
     @registry.tool(
         description="Bulk rename/move files based on a mapping.",
