@@ -277,6 +277,7 @@ class IPCServer:
                     f"Terminating to break potential infinite loop."
                 )
                 self.events.emit("spine.cortex_fatigue_kill", {"reason": reason})
+                self._lifetime_tokens = 0
                 self.supervisor.request_restart(reason)
                 return self._error(req_id, -32000, reason)
 
