@@ -33,9 +33,12 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             if py_file.name == "diagnostic.py":
                 continue
             content = py_file.read_text()
+            # We search for definitions, but we skip __init__ because it's expected in every class
             defs = re.findall(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(", content)
             seen = set()
             for d in defs:
+                if d == "__init__":
+                    continue
                 if d in seen:
                     findings.append(f"FOUND: Duplicate function definition '{d}' in {py_file}")
                 seen.add(d)
