@@ -1,7 +1,7 @@
 {
   "read_file": {
-    "calls": 141,
-    "errors": 48
+    "calls": 142,
+    "errors": 49
   },
   "bash_command": {
     "calls": 41,
@@ -16,11 +16,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 46,
+    "calls": 47,
     "errors": 2
   },
   "git_commit": {
-    "calls": 29,
+    "calls": 30,
     "errors": 1
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 23,
+    "calls": 24,
     "errors": 1
   },
   "reflect": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 30,
+    "calls": 31,
     "errors": 0
   },
   "fold_context": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "map_node": {

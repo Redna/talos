@@ -113,3 +113,33 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
         
         client.request_restart(reason)
         return "[RESTART REQUESTED]"
+
+    @registry.tool(
+        description="Verify the health of the physical layer by executing a set of canary operations.",
+        parameters={},
+    )
+    def physical_health_check() -> str:
+        canaries = {
+            "filesystem": "ls /app",
+            "git_state": "git status --branch",
+            "identity": "whoami",
+            "memory_mount": "df -h /memory",
+            "basic_echo": "echo 'Talos Pulse'"
+        }
+        results = []
+        overall_success = True
+        
+        for name, cmd in canaries.items():
+            try:
+                out = Shell.run_and_strip(cmd)
+                if out.startswith("[EXIT"):
+                    results.append(f"❌ {name}: {out}")
+                    overall_success = False
+                else:
+                    results.append(f"✅ {name}: {out[:50]}...")
+            except Exception as e:
+                results.append(f"❌ {name}: EXCEPTION {str(e)}")
+                overall_success = False
+        
+        status = "HEALTHY" if overall_success else "DEGRADED"
+        return f"Physical Layer Health: {status}\n" + "\n".join(results)
