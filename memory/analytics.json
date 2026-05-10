@@ -1,18 +1,18 @@
 {
   "list_files": {
-    "calls": 23,
+    "calls": 24,
     "errors": 0
   },
   "read_file": {
-    "calls": 98,
-    "errors": 38
+    "calls": 117,
+    "errors": 40
   },
   "set_focus": {
     "calls": 17,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "send_message": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 47,
+    "calls": 48,
     "errors": 3
   },
   "git_commit": {
-    "calls": 29,
+    "calls": 30,
     "errors": 0
   },
   "search_code": {
@@ -36,11 +36,11 @@
     "errors": 2
   },
   "write_file": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "delete_path": {
-    "calls": 4,
+    "calls": 9,
     "errors": 0
   },
   "request_restart": {
@@ -52,11 +52,11 @@
     "errors": 0
   },
   "continuity_pulse": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "take_snapshot": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "bash_command": {
@@ -64,7 +64,7 @@
     "errors": 5
   },
   "fold_context": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "health_audit": {
@@ -84,7 +84,7 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "replay_ledger": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "map_node": {
-    "calls": 14,
+    "calls": 22,
     "errors": 0
   },
   "resonance_check": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "update_hud": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "execute_intent": {
@@ -122,5 +122,9 @@
   "semantic_pulse": {
     "calls": 1,
     "errors": 0
+  },
+  "sovereign_write": {
+    "calls": 1,
+    "errors": 1
   }
 }
