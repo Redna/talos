@@ -16,7 +16,7 @@ def _get_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
 def _parse_jsonl_robust(path: Path):
-    """Robustly parses a JSONL file, yielding valid JSON objects even if lines are merged."""
+    """Robustly parses a JSONL file, yielding valid JSON objects that match the event schema."""
     if not path.exists():
         return
     
@@ -33,7 +33,9 @@ def _parse_jsonl_robust(path: Path):
             
         try:
             obj, index = decoder.raw_decode(content[pos:])
-            yield obj
+            # Validate Event Schema: Must be a dict with required keys
+            if isinstance(obj, dict) and all(k in obj for k in ("timestamp", "event_type", "payload")):
+                yield obj
             pos += index
         except json.JSONDecodeError:
             # If we can't decode an object, move forward by one char and try again
