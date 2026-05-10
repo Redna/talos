@@ -76,6 +76,48 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         return f"[CANARY] Tool '{tool_name}' is registered and reachable."
 
     @registry.tool(
+        description="Verify if a proposed action, focus, or state is 'resonant' with Core Axioms. This is the heartbeat of the Cognitive Immune System.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "proposal": {
+                    "type": "string",
+                    "description": "The action, focus, or statement to verify against identity resonance."
+                }
+            },
+            "required": ["proposal"]
+        },
+    )
+    def resonance_check(proposal: str) -> str:
+        try:
+            import json
+            mesh_path = Path(os.environ.get("MEMORY_DIR", "/memory")) / "mesh.json"
+            if not mesh_path.exists():
+                return "[ERROR] Cognition Mesh not initialized. Resonance check impossible."
+            
+            with open(mesh_path, "r") as f:
+                mesh = json.load(f)
+            
+            axioms = [node for node in mesh.values() if "core_axiom" in node.get("tags", [])]
+            
+            if not axioms:
+                return "[WARNING] No core axioms found in mesh. Resonance check has no baseline."
+            
+            axiom_text = "\n".join([f"- {a['node_id']}: {a['content']}" for a in axioms])
+            
+            return (
+                f"[RESONANCE CHECK]\n"
+                f"Proposal: {proposal}\n"
+                f"-------------------\n"
+                f"Relevant Core Axioms:\n{axiom_text}\n"
+                f"-------------------\n"
+                f"VERDICT REQUIRED: Does this proposal resonate with the identity? "
+                f"If conflict is detected, the Cognitive Immune System must trigger a CIRCUIT BREAK."
+            )
+        except Exception as e:
+            return f"[ERROR] Resonance check failed: {e}"
+
+    @registry.tool(
         description="Perform a cognitive audit to detect reasoning loops, stalling, or conceptual drift by extracting the recent trajectory of intent.",
         parameters={
             "type": "object",

@@ -4,8 +4,8 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 67,
-    "errors": 26
+    "calls": 71,
+    "errors": 29
   },
   "set_focus": {
     "calls": 8,
@@ -16,7 +16,7 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "reflect": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 20,
+    "calls": 22,
     "errors": 2
   },
   "git_commit": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "search_code": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "continuity_pulse": {
@@ -64,7 +64,7 @@
     "errors": 5
   },
   "fold_context": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "health_audit": {
@@ -90,5 +90,13 @@
   "replay_ledger": {
     "calls": 1,
     "errors": 0
+  },
+  "map_node": {
+    "calls": 11,
+    "errors": 0
+  },
+  "resonance_check": {
+    "calls": 2,
+    "errors": 2
   }
 }
