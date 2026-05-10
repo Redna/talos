@@ -262,7 +262,8 @@ class StreamManager:
                         target_index = actual_index
                         break
             if target_index >= 0:
-                payload[target_index]["content"] += "\n---\n" + suffix
+                existing = payload[target_index].get("content") or ""
+                payload[target_index]["content"] = existing + "\n---\n" + suffix
                 self._hud_last_index = target_index
                 attached = True
         # Only clear the queue when piggybacked onto a tool message.
