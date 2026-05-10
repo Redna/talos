@@ -1,10 +1,10 @@
 {
   "list_files": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "read_file": {
-    "calls": 45,
+    "calls": 47,
     "errors": 21
   },
   "set_focus": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 9,
+    "calls": 10,
     "errors": 1
   },
   "git_commit": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "search_code": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "continuity_pulse": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "take_snapshot": {
@@ -64,10 +64,18 @@
     "errors": 4
   },
   "fold_context": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "health_audit": {
+    "calls": 1,
+    "errors": 0
+  },
+  "reasoning_audit": {
+    "calls": 1,
+    "errors": 0
+  },
+  "physical_health_check": {
     "calls": 1,
     "errors": 0
   }
