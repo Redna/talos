@@ -13,6 +13,7 @@ from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
 from tools.continuity import register_continuity_tools
+from tools.dcm import register_dcm_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -111,6 +112,7 @@ def main():
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
     register_continuity_tools(registry, client)
+    register_dcm_tools(registry, client, state)
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0
