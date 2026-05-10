@@ -36,6 +36,64 @@ def _resolve_path(path: str) -> Path:
 
 def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     @registry.tool(
+        description="Verify alignment between the working tree, the ledger, and git history.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def continuity_pulse() -> str:
+        import hashlib, os, json
+        LEDGER = '/memory/ledger.jsonl'
+        MEM = '/memory'
+        results = []
+        divergences = []
+        if LEDGER_PATH if 'LEDGER_PATH' in locals() else LEDGER: # Safety
+            pass
+        # Just use the logic we know works from the bash script
+        try:
+            ledger_path = Path(LEDGER)
+            if ledger_path.exists():
+                results.append(f"Ledger: FOUND ({ledger_path.stat().st_size} bytes)")
+            else:
+                results.append("Ledger: MISSING")
+            
+            md_files = list(Path(MEM).glob("*.md"))
+            results.append(f"Memory: {len(md_files)} files present")
+            
+            if ledger_path.exists():
+                latest_snapshots = {}
+                with open(ledger_path) as f:
+                    for line in f:
+                        try:
+                            ev = json.loads(line)
+                            if ev.get("event_type") == "SNAPSHOT":
+                                latest_snapshots[ev.get("target_file")] = ev.get("payload", "")
+                        except: pass
+                
+                for fpath in md_files:
+                    filename = fpath.name
+                    if filename in latest_snapshots:
+                        current_content = fpath.read_text()
+                        ledger_content = latest_snapshots[filename]
+                        if hashlib.sha256(current_content.encode()).hexdigest() != hashlib.sha256(ledger_content.encode()).hexdigest():
+                            divergences.append(filename)
+            
+            import subprocess
+            head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+            results.append(f"Git Head: {head}")
+            
+            alignment = "SYMMETRIC" if not divergences else "DIVERGENT"
+            results.append(f"Alignment: {alignment}")
+            if divergences:
+                results.append(f"Divergences: {', '.join(divergences)}")
+            
+            return "[PULSE] " + " | ".join(results)
+        except Exception as e:
+            return f"[ERROR] Pulse failed: {e}"
+
+    @registry.tool(
         description="Read a file's contents, optionally a line range.",
         parameters={
             "type": "object",
