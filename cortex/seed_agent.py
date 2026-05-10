@@ -116,7 +116,10 @@ def main():
     register_dcm_tools(registry)
     register_physical_tools(registry, client)
     register_diagnostic_tools(registry, client, state)
-    register_spine_tools(registry, client)
+    try:
+        register_spine_tools(registry, client)
+    except RuntimeError as e:
+        print(f"[Cortex] Tool registration blocked: {e}")
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0

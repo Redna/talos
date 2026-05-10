@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "read_file": {
-    "calls": 53,
+    "calls": 57,
     "errors": 24
   },
   "set_focus": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "resolve_focus": {
@@ -24,7 +24,7 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 13,
+    "calls": 14,
     "errors": 1
   },
   "git_commit": {
@@ -52,16 +52,16 @@
     "errors": 0
   },
   "continuity_pulse": {
-    "calls": 3,
+    "calls": 5,
     "errors": 0
   },
   "take_snapshot": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "bash_command": {
-    "calls": 6,
-    "errors": 4
+    "calls": 8,
+    "errors": 5
   },
   "fold_context": {
     "calls": 2,
@@ -77,6 +77,10 @@
   },
   "physical_health_check": {
     "calls": 1,
+    "errors": 0
+  },
+  "get_ledger_version": {
+    "calls": 2,
     "errors": 0
   }
 }
