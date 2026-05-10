@@ -5,8 +5,9 @@ from tool_registry import ToolRegistry
 from spine_client import SpineClient
 from .physical import Shell
 import json
+from cortex.state import AgentState
 
-def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
+def register_executive_tools(registry: ToolRegistry, client: SpineClient, state: AgentState):
     @registry.tool(
         description="Set the current focus objective.",
         parameters={
