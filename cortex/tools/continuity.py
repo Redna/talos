@@ -149,7 +149,7 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Replay failed: {e}"
 
     @registry.tool(
-        description="Perform a Sovereign Mutation: Snapshot, Mutation, and Ledger recording in one atomic step.",
+        description="Perform a Sovereign Mutation: Snapshot, Mutation, and Ledger recording in one atomic step. Use 'bash_command' within the process for complex changes.",
         parameters={
             "type": "object",
             "properties": {
