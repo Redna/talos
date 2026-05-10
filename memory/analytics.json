@@ -4,7 +4,7 @@
     "errors": 3
   },
   "bash_command": {
-    "calls": 4,
+    "calls": 6,
     "errors": 0
   },
   "list_files": {
@@ -20,7 +20,7 @@
     "errors": 1
   },
   "git_commit": {
-    "calls": 4,
+    "calls": 5,
     "errors": 1
   },
   "resolve_focus": {
