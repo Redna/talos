@@ -51,17 +51,21 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 "event_type": {"type": "string", "description": "Type of event (e.g., MUTATION, SNAPSHOT, NOTE)"},
                 "payload": {"type": "string", "description": "The content or description of the event"},
                 "target_file": {"type": "string", "description": "The file affected by this event (optional)"},
+                "metadata": {"type": "object", "description": "Additional structured data associated with the event (optional)"},
             },
             "required": ["event_type", "payload"],
         },
     )
-    def ledger_event(event_type: str, payload: str, target_file: str = None) -> str:
+    def ledger_event(event_type: str, payload: str, target_file: str = None, metadata: dict = None) -> str:
         event = {
             "timestamp": _get_now(),
             "event_type": event_type,
             "payload": payload,
             "target_file": target_file
         }
+        if metadata:
+            event.update(metadata)
+            
         try:
             with open(LEDGER_PATH, "a") as f:
                 f.write(json.dumps(event) + "\n")
@@ -74,7 +78,7 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
         parameters={
             "type": "object",
             "properties": {
-                "target_file": {"type": "string", "description": "Specific file to snapshot. If omitted, all .md files in /memory/ are snapshotted."},
+                "target_file": {"type": "string", "description": "Specific file to snapshot. If omitted, all relevant memory files (.md, .json) are snapshotted."},
             },
             "required": [],
         },
@@ -88,7 +92,9 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                     return f"[ERROR] File not found: {target_file}"
                 files_to_snapshot.append(fpath)
             else:
-                files_to_snapshot = list(MEMORY_DIR.glob("*.md"))
+                # Snapshot both markdown and json state files
+                for ext in ["*.md", "*.json"]:
+                    files_to_snapshot.extend(list(MEMORY_DIR.glob(ext)))
 
             count = 0
             for fpath in files_to_snapshot:
@@ -178,10 +184,15 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             fpath.write_text(new_content)
             
             # 3. Log to Ledger
+            target_name = fpath.name if MEMORY_DIR in fpath.parents or fpath.parent == MEMORY_DIR else path
             ledger_event(
                 event_type="MUTATION",
                 payload=f"Replaced block in {path}",
-                target_file=fpath.name if fpath.parent == MEMORY_DIR else path
+                target_file=target_name,
+                metadata={
+                    "search_block": search_block,
+                    "replace_block": replace_block
+                }
             )
             
             # 4. Final Pulse

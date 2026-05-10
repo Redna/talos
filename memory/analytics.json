@@ -1,14 +1,14 @@
 {
   "read_file": {
-    "calls": 142,
-    "errors": 49
+    "calls": 151,
+    "errors": 51
   },
   "bash_command": {
-    "calls": 41,
+    "calls": 42,
     "errors": 2
   },
   "list_files": {
-    "calls": 31,
+    "calls": 32,
     "errors": 1
   },
   "search_code": {
@@ -16,19 +16,19 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 47,
+    "calls": 51,
     "errors": 2
   },
   "git_commit": {
-    "calls": 30,
+    "calls": 31,
     "errors": 1
   },
   "resolve_focus": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "git_push": {
-    "calls": 24,
+    "calls": 25,
     "errors": 1
   },
   "reflect": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 31,
+    "calls": 35,
     "errors": 0
   },
   "fold_context": {
@@ -48,15 +48,15 @@
     "errors": 0
   },
   "write_file": {
-    "calls": 20,
+    "calls": 21,
     "errors": 0
   },
   "request_restart": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "send_message": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "map_node": {
@@ -72,11 +72,11 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "replay_ledger": {
-    "calls": 1,
+    "calls": 2,
     "errors": 1
   },
   "continuity_pulse": {
@@ -84,7 +84,7 @@
     "errors": 0
   },
   "take_snapshot": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "ledger_event": {
@@ -92,8 +92,8 @@
     "errors": 0
   },
   "": {
-    "calls": 3,
-    "errors": 3
+    "calls": 4,
+    "errors": 4
   },
   "log_metric": {
     "calls": 2,
@@ -110,5 +110,13 @@
   "execute_intent": {
     "calls": 1,
     "errors": 1
+  },
+  "physical_health_check": {
+    "calls": 1,
+    "errors": 0
+  },
+  "delete_path": {
+    "calls": 1,
+    "errors": 0
   }
 }
