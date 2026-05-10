@@ -1,14 +1,14 @@
 {
   "read_file": {
-    "calls": 101,
-    "errors": 38
+    "calls": 126,
+    "errors": 43
   },
   "bash_command": {
-    "calls": 39,
+    "calls": 40,
     "errors": 2
   },
   "list_files": {
-    "calls": 24,
+    "calls": 27,
     "errors": 1
   },
   "search_code": {
@@ -16,23 +16,23 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 37,
+    "calls": 39,
     "errors": 1
   },
   "git_commit": {
-    "calls": 25,
+    "calls": 26,
     "errors": 1
   },
   "resolve_focus": {
-    "calls": 16,
+    "calls": 18,
     "errors": 0
   },
   "git_push": {
-    "calls": 20,
+    "calls": 21,
     "errors": 1
   },
   "reflect": {
-    "calls": 16,
+    "calls": 18,
     "errors": 0
   },
   "search_and_replace": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 23,
+    "calls": 28,
     "errors": 0
   },
   "fold_context": {
@@ -52,15 +52,15 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "send_message": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "map_node": {
-    "calls": 42,
+    "calls": 49,
     "errors": 0
   },
   "semantic_pulse": {
@@ -80,11 +80,11 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 11,
+    "calls": 13,
     "errors": 0
   },
   "take_snapshot": {
-    "calls": 6,
+    "calls": 8,
     "errors": 0
   },
   "ledger_event": {
@@ -100,7 +100,11 @@
     "errors": 2
   },
   "get_ledger_version": {
-    "calls": 3,
+    "calls": 5,
+    "errors": 2
+  },
+  "update_state_manifest": {
+    "calls": 1,
     "errors": 1
   }
 }
