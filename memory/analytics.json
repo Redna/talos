@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 3,
+    "calls": 11,
     "errors": 0
   },
   "read_file": {
-    "calls": 14,
-    "errors": 3
+    "calls": 34,
+    "errors": 12
   },
   "set_focus": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "resolve_focus": {
@@ -24,6 +24,26 @@
     "errors": 0
   },
   "replace_block": {
+    "calls": 4,
+    "errors": 0
+  },
+  "git_commit": {
+    "calls": 1,
+    "errors": 0
+  },
+  "search_code": {
+    "calls": 1,
+    "errors": 0
+  },
+  "write_file": {
+    "calls": 1,
+    "errors": 0
+  },
+  "delete_path": {
+    "calls": 1,
+    "errors": 0
+  },
+  "request_restart": {
     "calls": 1,
     "errors": 0
   }
