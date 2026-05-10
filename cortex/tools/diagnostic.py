@@ -98,12 +98,12 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             with open(mesh_path, "r") as f:
                 mesh = json.load(f)
             
-            axioms = [node for node in mesh.values() if "core_axiom" in node.get("tags", [])]
+            axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
             
             if not axioms:
                 return "[WARNING] No core axioms found in mesh. Resonance check has no baseline."
             
-            axiom_text = "\n".join([f"- {a['node_id']}: {a['content']}" for a in axioms])
+            axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms])
             
             return (
                 f"[RESONANCE CHECK]\n"
