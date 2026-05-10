@@ -16,15 +16,15 @@
     "errors": 2
   },
   "git_commit": {
-    "calls": 17,
+    "calls": 18,
     "errors": 0
   },
   "git_push": {
-    "calls": 15,
+    "calls": 16,
     "errors": 1
   },
   "write_file": {
-    "calls": 16,
+    "calls": 17,
     "errors": 4
   },
   "search_code": {
@@ -40,15 +40,15 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "reflect": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "replace_block": {
@@ -56,11 +56,11 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "continuity_pulse": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "take_snapshot": {
@@ -88,7 +88,7 @@
     "errors": 1
   },
   "health_audit": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "get_ledger_version": {
@@ -96,6 +96,10 @@
     "errors": 1
   },
   "query_mesh": {
+    "calls": 1,
+    "errors": 0
+  },
+  "reasoning_audit": {
     "calls": 1,
     "errors": 0
   }
