@@ -16,15 +16,15 @@
     "errors": 2
   },
   "git_commit": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "git_push": {
-    "calls": 7,
+    "calls": 8,
     "errors": 1
   },
   "write_file": {
-    "calls": 11,
+    "calls": 12,
     "errors": 4
   },
   "search_code": {
@@ -44,11 +44,11 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "reflect": {
-    "calls": 3,
+    "calls": 5,
     "errors": 0
   },
   "replace_block": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "continuity_pulse": {
@@ -72,10 +72,14 @@
     "errors": 0
   },
   "log_metric": {
-    "calls": 8,
+    "calls": 9,
     "errors": 8
   },
   "search_and_replace": {
+    "calls": 1,
+    "errors": 0
+  },
+  "ledger_event": {
     "calls": 1,
     "errors": 0
   }
