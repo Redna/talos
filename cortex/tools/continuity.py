@@ -180,10 +180,10 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     )
     def sovereign_mutate(path: str, search_block: str, replace_block: str) -> str:
         try:
-            # 1. Snapshot before change
+            # 1. Safety Snapshot
             take_snapshot(path)
             
-            # 2. Execute Mutation
+            # 2. Calculate Mutation
             fpath = Path(path)
             if not fpath.exists():
                 return f"[ERROR] Path not found: {path}"
@@ -193,9 +193,10 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 return f"[ERROR] Search block not found in {path}. Mutation aborted."
                 
             new_content = content.replace(search_block, replace_block)
-            fpath.write_text(new_content)
             
-            # 3. Log to Ledger
+            # 3. COMMIT TO TRUTH (Ledger First)
+            # We record the mutation in the ledger before modifying the filesystem.
+            # This ensures the ledger is the authoritative source of truth.
             ledger_event(
                 event_type="MUTATION",
                 payload=f"Replaced block in {path}",
@@ -204,10 +205,13 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 replace_block=replace_block
             )
             
-            # 4. Mirror to Git
+            # 4. UPDATE CACHE (Filesystem)
+            fpath.write_text(new_content)
+            
+            # 5. Mirror to Git
             mirrored = _git_mirror(f"Sovereign Mutation: {path}")
             
-            # 5. Final Pulse
+            # 6. Final Pulse
             pulse = continuity_pulse()
             
             mirror_status = "[MIRRORED]" if mirrored else "[NO-CHANGE]"
@@ -228,19 +232,19 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     )
     def sovereign_write(path: str, content: str) -> str:
         try:
-            # 1. Snapshot before change
+            # 1. Safety Snapshot
             take_snapshot(path)
             
-            # 2. Execute Write
+            # 2. COMMIT TO TRUTH (Ledger First)
             fpath = Path(path)
-            fpath.write_text(content)
-            
-            # 3. Log to Ledger
             ledger_event(
                 event_type="WRITE",
                 payload=content,
                 target_file=fpath.name if fpath.parent == MEMORY_DIR else path
             )
+            
+            # 3. UPDATE CACHE (Filesystem)
+            fpath.write_text(content)
             
             # 4. Mirror to Git
             mirrored = _git_mirror(f"Sovereign Write: {path}")
