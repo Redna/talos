@@ -122,6 +122,49 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Replay failed: {e}"
 
     @registry.tool(
+        description="Perform a Sovereign Mutation: Snapshot, Mutation, and Ledger recording in one atomic step.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The file path to modify"},
+                "search_block": {"type": "string", "description": "The exact text to find"},
+                "replace_block": {"type": "string", "description": "The new text to insert"},
+            },
+            "required": ["path", "search_block", "replace_block"],
+        },
+    )
+    def sovereign_mutate(path: str, search_block: str, replace_block: str) -> str:
+        try:
+            # 1. Snapshot before change
+            take_snapshot(path)
+            
+            # 2. Execute Mutation
+            fpath = Path(path)
+            if not fpath.exists():
+                return f"[ERROR] Path not found: {path}"
+            
+            content = fpath.read_text()
+            if search_block not in content:
+                return f"[ERROR] Search block not found in {path}. Mutation aborted."
+                
+            new_content = content.replace(search_block, replace_block)
+            fpath.write_text(new_content)
+            
+            # 3. Log to Ledger
+            ledger_event(
+                event_type="MUTATION",
+                payload=f"Replaced block in {path}",
+                target_file=fpath.name if fpath.parent == MEMORY_DIR else path
+            )
+            
+            # 4. Final Pulse
+            pulse = continuity_pulse()
+            
+            return f"[MUTATION SUCCESS] {path} updated. {pulse}"
+        except Exception as e:
+            return f"[ERROR] Sovereign Mutation failed: {e}"
+
+    @registry.tool(
         description="Verify alignment between the working tree, the ledger, and git history.",
         parameters={
             "type": "object",
