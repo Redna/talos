@@ -91,7 +91,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
     def resonance_check(proposal: str) -> str:
         try:
             import json
-            mesh_path = Path(os.environ.get("MEMORY_DIR", "/memory")) / "mesh.json"
+            mesh_path = Path(os.environ.get("MEMORY_DIR", "/memory")) / "dcm_mesh.json"
             if not mesh_path.exists():
                 return "[ERROR] Cognition Mesh not initialized. Resonance check impossible."
             
