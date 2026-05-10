@@ -1,0 +1,26 @@
+{
+  "read_file": {
+    "calls": 7,
+    "errors": 3
+  },
+  "bash_command": {
+    "calls": 1,
+    "errors": 0
+  },
+  "list_files": {
+    "calls": 1,
+    "errors": 0
+  },
+  "search_code": {
+    "calls": 3,
+    "errors": 0
+  },
+  "replace_block": {
+    "calls": 15,
+    "errors": 1
+  },
+  "git_commit": {
+    "calls": 3,
+    "errors": 1
+  }
+}

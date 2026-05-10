@@ -1,10 +1,12 @@
 import os
-import subprocess
 import shutil
 from pathlib import Path
 from typing import List, Dict
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
+from .physical import Shell
+
+PROTECTED_CORTEX_FILES = {"/app/cortex/spine_client.py"}
 
 PROTECTED_CORTEX_FILES = {"/app/cortex/spine_client.py"}
 
@@ -114,41 +116,22 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         cwd = os.path.dirname(resolved) or "."
         try:
             before = resolved.read_text() if resolved.exists() else None
-            # Try multiple strip levels. The LLM may generate patches with
-            # varying path prefixes (a/file.py, file.py, or full paths).
             for strip in (0, 1, 2):
-                dry = subprocess.run(
-                    ["patch", f"-p{strip}", "--dry-run"],
-                    input=patch,
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                    cwd=cwd,
-                )
+                dry = Shell.run(["patch", f"-p{strip}", "--dry-run"], input_str=patch, cwd=cwd, timeout=10)
                 if dry.returncode == 0:
-                    apply = subprocess.run(
-                        ["patch", f"-p{strip}"],
-                        input=patch,
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                        cwd=cwd,
-                    )
+                    apply = Shell.run(["patch", f"-p{strip}"], input_str=patch, cwd=cwd, timeout=30)
                     if apply.returncode == 0:
                         after = resolved.read_text()
                         if after != before:
                             return f"[PATCHED] {path} (strip={strip})"
                         return f"[WARNING] Patch applied but file unchanged — context lines may not match current file content"
                     return f"[ERROR] Patch dry-run passed but apply failed: {apply.stderr}"
-            # All strip levels failed
             last_err = dry.stderr.strip() if dry.stderr else "unknown error"
             return (
                 f"[ERROR] Patch failed for all strip levels (tried -p0, -p1, -p2). "
                 f"Last error: {last_err}. "
                 f"Ensure the patch headers match the file path ({path})."
             )
-        except subprocess.TimeoutExpired:
-            return "[ERROR] Patch timed out."
         except Exception as e:
             return f"[ERROR] Failed to patch file: {e}"
 
@@ -238,12 +221,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             if case_insensitive:
                 cmd.insert(2, "-i")
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
+            result = Shell.run(cmd, timeout=30)
             if result.returncode == 1:
                 return "No matches found."
             return result.stdout if result.stdout else "No matches found."
@@ -270,14 +248,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         cwd = os.path.dirname(resolved) or "."
         try:
             for strip in (0, 1, 2):
-                result = subprocess.run(
-                    ["patch", f"-p{strip}", "--dry-run"],
-                    input=patch,
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                    cwd=cwd,
-                )
+                result = Shell.run(["patch", f"-p{strip}", "--dry-run"], input_str=patch, cwd=cwd, timeout=10)
                 if result.returncode == 0:
                     return f"[VALID] Patch can be applied cleanly to {path} with -p{strip}"
             return (
@@ -445,19 +416,12 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         protected=True,
     )
     def git_commit(message: str) -> str:
-        import subprocess
         # Stage all changes
-        result = subprocess.run(
-            ["git", "add", "-A"],
-            capture_output=True, text=True, timeout=30, cwd="/app",
-        )
+        result = Shell.run(["git", "add", "-A"], cwd="/app", timeout=30)
         if result.returncode != 0:
             return f"[ERROR] git add failed: {result.stderr}"
         # Commit
-        result = subprocess.run(
-            ["git", "commit", "-m", message],
-            capture_output=True, text=True, timeout=30, cwd="/app",
-        )
+        result = Shell.run(["git", "commit", "-m", message], cwd="/app", timeout=30)
         if result.returncode != 0:
             stderr_lower = result.stderr.lower()
             if "trufflehog" in stderr_lower or "secret" in stderr_lower:
@@ -475,10 +439,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 )
             return f"[ERROR] git commit failed: {result.stderr}"
         # Get commit hash for confirmation
-        hash_result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, timeout=10, cwd="/app",
-        )
+        hash_result = Shell.run(["git", "rev-parse", "--short", "HEAD"], cwd="/app", timeout=10)
         commit_hash = hash_result.stdout.strip()
         return (
             f"[SUCCESS] Commit {commit_hash} secured. Working tree is safe. "
@@ -490,11 +451,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         parameters={"type": "object", "properties": {}, "required": []},
     )
     def git_push() -> str:
-        import subprocess
-        result = subprocess.run(
-            ["git", "push", "origin", "feat/talos"],
-            capture_output=True, text=True, timeout=60, cwd="/app",
-        )
+        result = Shell.run(["git", "push", "origin", "feat/talos"], cwd="/app", timeout=60)
         if result.returncode != 0:
             return f"[ERROR] git push failed: {result.stderr}"
         return "[SUCCESS] All commits pushed to origin. Your biography is backed up."
