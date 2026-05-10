@@ -55,12 +55,13 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["event_type", "payload"],
         },
     )
-    def ledger_event(event_type: str, payload: str, target_file: str = None) -> str:
+    def ledger_event(event_type: str, payload: str, target_file: str = None, **kwargs) -> str:
         event = {
             "timestamp": _get_now(),
             "event_type": event_type,
             "payload": payload,
-            "target_file": target_file
+            "target_file": target_file,
+            **kwargs
         }
         try:
             with open(LEDGER_PATH, "a") as f:
@@ -181,7 +182,9 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             ledger_event(
                 event_type="MUTATION",
                 payload=f"Replaced block in {path}",
-                target_file=fpath.name if fpath.parent == MEMORY_DIR else path
+                target_file=fpath.name if fpath.parent == MEMORY_DIR else path,
+                search_block=search_block,
+                replace_block=replace_block
             )
             
             # 4. Final Pulse
