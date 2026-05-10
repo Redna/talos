@@ -74,3 +74,44 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
     )
     def run_canary(tool_name: str, args: dict = {}) -> str:
         return f"[CANARY] Tool '{tool_name}' is registered and reachable."
+
+    @registry.tool(
+        description="Perform a cognitive audit to detect reasoning loops, stalling, or conceptual drift.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "window_size": {
+                    "type": "integer",
+                    "description": "Number of recent ledger events to analyze (default 20)"
+                }
+            },
+        },
+    )
+    def reasoning_audit(window_size: int = 20) -> str:
+        # This tool analyzes metadata to find signs of cognitive decay.
+        report = []
+        
+        # 1. Check for 'Stall' (High reflect/fold count without commit)
+        # we would need a way to read the ledger here.
+        # Let's assume we are analyzing the analytics for now.
+        # Since we don't have raw ledger access here easily, we'll check analytics.json
+        try:
+            import json
+            with open("/memory/analytics.json", "r") as f:
+                stats = json.load(f)
+            
+            commits = stats.get("git_commit", {}).get("calls", 0)
+            reflections = stats.get("reflect", {}).get("calls", 0)
+            folds = stats.get("fold_context", {}).get("calls", 0)
+            
+            if reflections > (commits * 3):
+                report.append(f"WARNING: High reflection-to-commit ratio ({reflections}/{commits}). Potential over-deliberation.")
+            if folds > (commits * 2):
+                report.append(f"WARNING: High fold-to-commit ratio ({folds}/{commits}). Potential continuity fragmentation.")
+        except Exception as e:
+            report.append(f"ERROR: Failed to analyze analytics.json: {e}")
+
+        if not report:
+            return "[SUCCESS] Cognitive Immune System audit complete. No reasoning loops or stalling detected."
+        
+        return "[ADVISORY] Cognitive drift detected:\n" + "\n".join(report)

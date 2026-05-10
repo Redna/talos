@@ -4,11 +4,11 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 39,
-    "errors": 18
+    "calls": 43,
+    "errors": 19
   },
   "set_focus": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "bash_command": {
@@ -16,11 +16,11 @@
     "errors": 2
   },
   "git_commit": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "git_push": {
-    "calls": 14,
+    "calls": 15,
     "errors": 1
   },
   "write_file": {
@@ -28,7 +28,7 @@
     "errors": 4
   },
   "search_code": {
-    "calls": 6,
+    "calls": 8,
     "errors": 2
   },
   "fold_context": {
@@ -40,31 +40,31 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "reflect": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "replace_block": {
-    "calls": 14,
+    "calls": 15,
     "errors": 1
   },
   "request_restart": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "continuity_pulse": {
-    "calls": 6,
+    "calls": 8,
     "errors": 0
   },
   "take_snapshot": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "map_node": {
@@ -88,7 +88,15 @@
     "errors": 1
   },
   "health_audit": {
-    "calls": 4,
+    "calls": 5,
+    "errors": 0
+  },
+  "get_ledger_version": {
+    "calls": 1,
+    "errors": 1
+  },
+  "query_mesh": {
+    "calls": 1,
     "errors": 0
   }
 }
