@@ -1,10 +1,10 @@
 {
   "read_file": {
-    "calls": 99,
-    "errors": 37
+    "calls": 101,
+    "errors": 38
   },
   "bash_command": {
-    "calls": 37,
+    "calls": 39,
     "errors": 2
   },
   "list_files": {
@@ -16,23 +16,23 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 36,
+    "calls": 37,
     "errors": 1
   },
   "git_commit": {
-    "calls": 24,
+    "calls": 25,
     "errors": 1
   },
   "resolve_focus": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "git_push": {
-    "calls": 19,
+    "calls": 20,
     "errors": 1
   },
   "reflect": {
-    "calls": 13,
+    "calls": 16,
     "errors": 0
   },
   "search_and_replace": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 22,
+    "calls": 23,
     "errors": 0
   },
   "fold_context": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "write_file": {
-    "calls": 16,
+    "calls": 18,
     "errors": 0
   },
   "request_restart": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 6,
+    "calls": 9,
     "errors": 0
   },
   "map_node": {
@@ -92,8 +92,8 @@
     "errors": 0
   },
   "": {
-    "calls": 2,
-    "errors": 2
+    "calls": 3,
+    "errors": 3
   },
   "log_metric": {
     "calls": 2,
