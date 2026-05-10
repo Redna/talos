@@ -1,26 +1,26 @@
 {
   "read_file": {
-    "calls": 130,
-    "errors": 45
+    "calls": 141,
+    "errors": 48
   },
   "bash_command": {
-    "calls": 40,
+    "calls": 41,
     "errors": 2
   },
   "list_files": {
-    "calls": 28,
+    "calls": 31,
     "errors": 1
   },
   "search_code": {
-    "calls": 12,
+    "calls": 14,
     "errors": 0
   },
   "replace_block": {
-    "calls": 44,
+    "calls": 46,
     "errors": 2
   },
   "git_commit": {
-    "calls": 28,
+    "calls": 29,
     "errors": 1
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 22,
+    "calls": 23,
     "errors": 1
   },
   "reflect": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 29,
+    "calls": 30,
     "errors": 0
   },
   "fold_context": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "send_message": {
