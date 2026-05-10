@@ -459,6 +459,20 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             capture_output=True, text=True, timeout=30, cwd="/app",
         )
         if result.returncode != 0:
+            stderr_lower = result.stderr.lower()
+            if "trufflehog" in stderr_lower or "secret" in stderr_lower:
+                return (
+                    f"[SECURITY BLOCK] Pre-commit hook detected a potential secret leak. "
+                    f"DO NOT attempt to bypass this with bash_command or other tools — "
+                    f"fix the leaked secret or false positive first, then retry. "
+                    f"Hook output:\n{result.stderr}"
+                )
+            if "pre-commit" in stderr_lower or "[pre-commit]" in stderr_lower:
+                return (
+                    f"[HOOK BLOCK] Pre-commit hook rejected the commit. "
+                    f"Read the hook output below, fix the issue, then retry. "
+                    f"Do NOT bypass with bash_command.\n{result.stderr}"
+                )
             return f"[ERROR] git commit failed: {result.stderr}"
         # Get commit hash for confirmation
         hash_result = subprocess.run(
