@@ -12,7 +12,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "send_message": {
@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 2
   },
   "git_commit": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "search_code": {
@@ -44,11 +44,11 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "git_push": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "continuity_pulse": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "reasoning_audit": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "physical_health_check": {
@@ -84,7 +84,7 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 1,
+    "calls": 3,
     "errors": 0
   },
   "replay_ledger": {
