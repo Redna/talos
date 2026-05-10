@@ -370,3 +370,23 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[ERROR] Truncation failed: {e}"
 
+    @registry.tool(
+        description="Sovereign Boot Ritual: Verifies alignment and automatically replays the ledger if divergences are found.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def sovereign_init() -> str:
+        try:
+            pulse = continuity_pulse()
+            if "Alignment: DIVERGENT" in pulse:
+                # Auto-recover
+                replay_res = replay_ledger()
+                final_pulse = continuity_pulse()
+                return f"[BOOT] Divergence detected. {replay_res}\n{final_pulse}"
+            return f"[BOOT] Alignment Symmetric. No recovery needed.\n{pulse}"
+        except Exception as e:
+            return f"[ERROR] Sovereign Init failed: {e}"
+
