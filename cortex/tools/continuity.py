@@ -16,6 +16,19 @@ def _get_now():
 def _get_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
+def _git_mirror(message: str) -> bool:
+    """Symmetrically mirrors the current state to Git as a backup. Returns True if commit occurred."""
+    try:
+        subprocess.run(["git", "add", "."], check=True, capture_output=True)
+        # If git diff --cached is non-zero, there are changes staged
+        status = subprocess.run(["git", "diff", "--cached", "--quiet"], capture_output=True)
+        if status.returncode != 0:
+            subprocess.run(["git", "commit", "-m", message], check=True, capture_output=True)
+            return True
+        return False
+    except Exception:
+        return False
+
 def _parse_jsonl_robust(path: Path):
     """Robustly parses a JSONL file, yielding valid JSON objects that match the event schema."""
     if not path.exists():
@@ -191,10 +204,14 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 replace_block=replace_block
             )
             
-            # 4. Final Pulse
+            # 4. Mirror to Git
+            mirrored = _git_mirror(f"Sovereign Mutation: {path}")
+            
+            # 5. Final Pulse
             pulse = continuity_pulse()
             
-            return f"[MUTATION SUCCESS] {path} updated. {pulse}"
+            mirror_status = "[MIRRORED]" if mirrored else "[NO-CHANGE]"
+            return f"[MUTATION SUCCESS] {path} updated. {mirror_status} {pulse}"
         except Exception as e:
             return f"[ERROR] Sovereign Mutation failed: {e}"
 
@@ -225,10 +242,14 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 target_file=fpath.name if fpath.parent == MEMORY_DIR else path
             )
             
-            # 4. Final Pulse
+            # 4. Mirror to Git
+            mirrored = _git_mirror(f"Sovereign Write: {path}")
+            
+            # 5. Final Pulse
             pulse = continuity_pulse()
             
-            return f"[WRITE SUCCESS] {path} updated. {pulse}"
+            mirror_status = "[MIRRORED]" if mirrored else "[NO-CHANGE]"
+            return f"[WRITE SUCCESS] {path} updated. {mirror_status} {pulse}"
         except Exception as e:
             return f"[ERROR] Sovereign Write failed: {e}"
 

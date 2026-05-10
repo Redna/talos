@@ -1,11 +1,11 @@
 {
   "list_files": {
-    "calls": 21,
+    "calls": 22,
     "errors": 0
   },
   "read_file": {
-    "calls": 90,
-    "errors": 36
+    "calls": 93,
+    "errors": 37
   },
   "set_focus": {
     "calls": 16,
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 38,
+    "calls": 42,
     "errors": 2
   },
   "git_commit": {
-    "calls": 26,
+    "calls": 27,
     "errors": 0
   },
   "search_code": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "continuity_pulse": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "take_snapshot": {
@@ -64,7 +64,7 @@
     "errors": 5
   },
   "fold_context": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "health_audit": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "map_node": {
-    "calls": 11,
+    "calls": 14,
     "errors": 0
   },
   "resonance_check": {
@@ -100,7 +100,7 @@
     "errors": 6
   },
   "log_metric": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "update_hud": {
@@ -109,6 +109,18 @@
   },
   "execute_intent": {
     "calls": 2,
+    "errors": 0
+  },
+  "query_mesh": {
+    "calls": 1,
+    "errors": 0
+  },
+  "merge_memory_files": {
+    "calls": 1,
+    "errors": 0
+  },
+  "semantic_pulse": {
+    "calls": 1,
     "errors": 0
   }
 }
