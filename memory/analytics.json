@@ -1,0 +1,30 @@
+{
+  "list_files": {
+    "calls": 3,
+    "errors": 0
+  },
+  "read_file": {
+    "calls": 14,
+    "errors": 3
+  },
+  "set_focus": {
+    "calls": 3,
+    "errors": 0
+  },
+  "resolve_focus": {
+    "calls": 2,
+    "errors": 0
+  },
+  "send_message": {
+    "calls": 1,
+    "errors": 0
+  },
+  "reflect": {
+    "calls": 1,
+    "errors": 0
+  },
+  "replace_block": {
+    "calls": 1,
+    "errors": 0
+  }
+}
