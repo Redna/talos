@@ -152,7 +152,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             "metric": metric,
             "value": value,
             "context": context,
-            "focus": state.focus,
+            "focus": state.current_focus,
         }
         with open(metric_path, "a") as f:
             f.write(json.dumps(entry) + "\n")
