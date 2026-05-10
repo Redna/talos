@@ -4,23 +4,23 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 47,
-    "errors": 21
+    "calls": 49,
+    "errors": 22
   },
   "set_focus": {
     "calls": 5,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "send_message": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "reflect": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 1
   },
   "git_commit": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "write_file": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "delete_path": {
