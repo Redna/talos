@@ -4,15 +4,15 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 60,
-    "errors": 25
+    "calls": 67,
+    "errors": 26
   },
   "set_focus": {
-    "calls": 6,
+    "calls": 8,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "send_message": {
@@ -20,35 +20,35 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 4,
-    "errors": 0
-  },
-  "replace_block": {
-    "calls": 17,
-    "errors": 2
-  },
-  "git_commit": {
-    "calls": 7,
-    "errors": 0
-  },
-  "search_code": {
-    "calls": 6,
-    "errors": 2
-  },
-  "write_file": {
     "calls": 5,
     "errors": 0
   },
+  "replace_block": {
+    "calls": 20,
+    "errors": 2
+  },
+  "git_commit": {
+    "calls": 8,
+    "errors": 0
+  },
+  "search_code": {
+    "calls": 7,
+    "errors": 2
+  },
+  "write_file": {
+    "calls": 7,
+    "errors": 0
+  },
   "delete_path": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "request_restart": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "git_push": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "continuity_pulse": {
@@ -81,6 +81,14 @@
   },
   "get_ledger_version": {
     "calls": 2,
+    "errors": 0
+  },
+  "sovereign_mutate": {
+    "calls": 1,
+    "errors": 0
+  },
+  "replay_ledger": {
+    "calls": 1,
     "errors": 0
   }
 }

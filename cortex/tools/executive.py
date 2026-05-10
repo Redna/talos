@@ -25,6 +25,22 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state:
     def set_focus(objective: str) -> str:
         old = state.set_focus(objective)
         client.emit_event("cortex.set_focus", {"from": old, "to": objective})
+        
+        # P1 Continuity: Persist intent to ledger
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+        ledger_path = mem_dir / "ledger.jsonl"
+        event = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event_type": "SET_FOCUS",
+            "payload": objective,
+            "from_focus": old
+        }
+        with open(ledger_path, "a") as f:
+            f.write(json.dumps(event) + "\n")
+            
         return f"[FOCUS SET] Now focusing on: {objective}"
 
     @registry.tool(
@@ -45,6 +61,22 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state:
         client.emit_event(
             "cortex.resolve_focus", {"focus": old, "synthesis": synthesis}
         )
+        
+        # P1 Continuity: Persist resolution to ledger
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+        ledger_path = mem_dir / "ledger.jsonl"
+        event = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event_type": "RESOLVE_FOCUS",
+            "payload": synthesis,
+            "focus": old
+        }
+        with open(ledger_path, "a") as f:
+            f.write(json.dumps(event) + "\n")
+            
         return f"[FOCUS RESOLVED] {old}: {synthesis}"
 
     @registry.tool(

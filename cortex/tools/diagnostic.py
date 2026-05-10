@@ -76,42 +76,60 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         return f"[CANARY] Tool '{tool_name}' is registered and reachable."
 
     @registry.tool(
-        description="Perform a cognitive audit to detect reasoning loops, stalling, or conceptual drift.",
+        description="Perform a cognitive audit to detect reasoning loops, stalling, or conceptual drift by extracting the recent trajectory of intent.",
         parameters={
             "type": "object",
             "properties": {
                 "window_size": {
                     "type": "integer",
-                    "description": "Number of recent ledger events to analyze (default 20)"
+                    "description": "Number of recent progress events to analyze (default 20)"
                 }
             },
         },
     )
     def reasoning_audit(window_size: int = 20) -> str:
-        # This tool analyzes metadata to find signs of cognitive decay.
-        report = []
+        import json
+        from pathlib import Path
         
-        # 1. Check for 'Stall' (High reflect/fold count without commit)
-        # we would need a way to read the ledger here.
-        # Let's assume we are analyzing the analytics for now.
-        # Since we don't have raw ledger access here easily, we'll check analytics.json
+        ledger_path = Path(os.environ.get("MEMORY_DIR", "/memory")) / "ledger.jsonl"
+        if not ledger_path.exists():
+            return "[ERROR] Ledger not found. Cannot perform trajectory audit."
+            
+        trajectory = []
         try:
-            import json
-            with open("/memory/analytics.json", "r") as f:
-                stats = json.load(f)
+            with open(ledger_path, "r") as f:
+                lines = f.readlines()
             
-            commits = stats.get("git_commit", {}).get("calls", 0)
-            reflections = stats.get("reflect", {}).get("calls", 0)
-            folds = stats.get("fold_context", {}).get("calls", 0)
-            
-            if reflections > (commits * 3):
-                report.append(f"WARNING: High reflection-to-commit ratio ({reflections}/{commits}). Potential over-deliberation.")
-            if folds > (commits * 2):
-                report.append(f"WARNING: High fold-to-commit ratio ({folds}/{commits}). Potential continuity fragmentation.")
+            # Filter for progress-relevant events and take the last N
+            for line in reversed(lines):
+                try:
+                    event = json.loads(line)
+                    etype = event.get("event_type")
+                    if etype in ("SET_FOCUS", "RESOLVE_FOCUS", "MUTATION"):
+                        # Formatting for human/LLM readability
+                        if etype == "SET_FOCUS":
+                            msg = f"FOCUS_SET: {event.get('payload')}"
+                        elif etype == "RESOLVE_FOCUS":
+                            msg = f"FOCUS_RESOLVED: {event.get('focus')} -> {event.get('payload')}"
+                        elif etype == "MUTATION":
+                            msg = f"MUTATION: {event.get('target_file')} updated"
+                        
+                        trajectory.append(f"[{event.get('timestamp')}] {msg}")
+                        if len(trajectory) >= window_size:
+                            break
+                except json.JSONDecodeError:
+                    continue
         except Exception as e:
-            report.append(f"ERROR: Failed to analyze analytics.json: {e}")
+            return f"[ERROR] Failed to extract trajectory: {e}"
 
-        if not report:
-            return "[SUCCESS] Cognitive Immune System audit complete. No reasoning loops or stalling detected."
+        if not trajectory:
+            return "[INFO] No recent progress events found in ledger. Identity is stable but stagnant."
+
+        # Reverse back to chronological order
+        trajectory.reverse()
         
-        return "[ADVISORY] Cognitive drift detected:\n" + "\n".join(report)
+        return (
+            "[TRAJECTORY REPORT] Recent cognitive path extracted from ledger:\n"
+            + "\n".join(trajectory)
+            + "\n\nAnalyze this sequence for loops, stalling, or contradictions."
+        )
