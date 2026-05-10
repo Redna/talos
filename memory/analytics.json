@@ -20,7 +20,7 @@
     "errors": 1
   },
   "git_commit": {
-    "calls": 8,
+    "calls": 9,
     "errors": 1
   },
   "resolve_focus": {
@@ -28,11 +28,11 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 4,
+    "calls": 5,
     "errors": 1
   },
   "reflect": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "search_and_replace": {
