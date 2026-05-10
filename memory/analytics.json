@@ -4,8 +4,8 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 50,
-    "errors": 22
+    "calls": 53,
+    "errors": 24
   },
   "set_focus": {
     "calls": 5,
@@ -16,27 +16,27 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "reflect": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "replace_block": {
-    "calls": 11,
+    "calls": 13,
     "errors": 1
   },
   "git_commit": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "search_code": {
-    "calls": 3,
-    "errors": 0
+    "calls": 5,
+    "errors": 1
   },
   "write_file": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 5,
+    "calls": 6,
     "errors": 4
   },
   "fold_context": {
