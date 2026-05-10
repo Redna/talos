@@ -15,6 +15,31 @@ def _get_now():
 def _get_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
+def _parse_jsonl_robust(path: Path):
+    """Robustly parses a JSONL file, yielding valid JSON objects even if lines are merged."""
+    if not path.exists():
+        return
+    
+    content = path.read_text()
+    decoder = json.JSONDecoder()
+    pos = 0
+    while pos < len(content):
+        # Skip whitespace and noise
+        while pos < len(content) and content[pos].isspace():
+            pos += 1
+        
+        if pos >= len(content):
+            break
+            
+        try:
+            obj, index = decoder.raw_decode(content[pos:])
+            yield obj
+            pos += index
+        except json.JSONDecodeError:
+            # If we can't decode an object, move forward by one char and try again
+            pos += 1
+
+
 def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     @registry.tool(
         description="Append a raw event to the immutable event ledger.",
@@ -92,11 +117,7 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             return "[ERROR] Ledger not found. Nothing to replay."
         
         try:
-            events = []
-            with open(LEDGER_PATH, "r") as f:
-                for line in f:
-                    if line.strip():
-                        events.append(json.loads(line))
+            events = list(_parse_jsonl_robust(LEDGER_PATH))
             
             applied_count = 0
             for event in events:
@@ -194,14 +215,11 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             try:
                 # Build latest snapshot map from ledger
                 latest_snapshots = {}
-                with open(LEDGER_PATH, "r") as f:
-                    for line in f:
-                        if not line.strip(): continue
-                        event = json.loads(line)
-                        if event.get("event_type") == "SNAPSHOT":
-                            target = event.get("target_file")
-                            if target:
-                                latest_snapshots[target] = event.get("payload", "")
+                for event in _parse_jsonl_robust(LEDGER_PATH):
+                    if event.get("event_type") == "SNAPSHOT":
+                        target = event.get("target_file")
+                        if target:
+                            latest_snapshots[target] = event.get("payload", "")
                 
                 for fpath in md_files:
                     filename = fpath.name

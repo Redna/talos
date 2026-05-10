@@ -1,7 +1,7 @@
 {
   "read_file": {
-    "calls": 53,
-    "errors": 16
+    "calls": 56,
+    "errors": 18
   },
   "bash_command": {
     "calls": 28,
@@ -16,23 +16,23 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 24,
+    "calls": 27,
     "errors": 1
   },
   "git_commit": {
-    "calls": 11,
+    "calls": 12,
     "errors": 1
   },
   "resolve_focus": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "git_push": {
-    "calls": 7,
+    "calls": 8,
     "errors": 1
   },
   "reflect": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "search_and_replace": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "write_file": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "request_restart": {
@@ -56,11 +56,11 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "map_node": {
-    "calls": 40,
+    "calls": 41,
     "errors": 0
   },
   "semantic_pulse": {
