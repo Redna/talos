@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 18,
+    "calls": 21,
     "errors": 0
   },
   "read_file": {
-    "calls": 78,
-    "errors": 30
+    "calls": 80,
+    "errors": 31
   },
   "set_focus": {
-    "calls": 10,
+    "calls": 12,
     "errors": 0
   },
   "resolve_focus": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 26,
+    "calls": 27,
     "errors": 2
   },
   "git_commit": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "search_code": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "continuity_pulse": {
@@ -64,7 +64,7 @@
     "errors": 5
   },
   "fold_context": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "health_audit": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "reasoning_audit": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "physical_health_check": {
@@ -96,11 +96,11 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 9,
+    "calls": 10,
     "errors": 6
   },
   "log_metric": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "update_hud": {

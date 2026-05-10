@@ -50,6 +50,7 @@ class TelegramPoller:
         self.on_message = on_message
         self._running = False
         self._offset = 0
+        self._consecutive_failures = 0
 
     async def start(self):
         if not self.cfg.telegram_bot_token:
@@ -66,11 +67,10 @@ class TelegramPoller:
                 req = urllib.request.Request(url)
                 resp_data = await asyncio.to_thread(self._fetch_updates, req)
                 data = json.loads(resp_data.decode("utf-8"))
+                self._consecutive_failures = 0
                 for update in data.get("result", []):
                     self._offset = update.get("update_id", self._offset) + 1
                     msg = update.get("message", {})
-                    # Auto-discover chat_id from incoming messages so the
-                    # admin does not have to manually set TELEGRAM_CHAT_ID.
                     if not _is_valid_chat_id(self.cfg.telegram_chat_id):
                         discovered = str(msg.get("chat", {}).get("id", ""))
                         if discovered and discovered != "0":
@@ -80,12 +80,26 @@ class TelegramPoller:
                             )
                     self.on_message(msg)
             except Exception:
-                logging.exception("[TELEGRAM] Poller exception")
-            await asyncio.sleep(1)
+                self._consecutive_failures += 1
+                if self._consecutive_failures <= 3:
+                    logging.exception("[TELEGRAM] Poller exception")
+                else:
+                    logging.error(
+                        f"[TELEGRAM] Poller failed {self._consecutive_failures} times — "
+                        f"will keep retrying with backoff"
+                    )
+            # Exponential backoff: 1s → 2s → 4s → ... → max 60s
+            delay = min(1.0 * (2 ** min(self._consecutive_failures, 6)), 60.0)
+            await asyncio.sleep(delay)
 
     def _fetch_updates(self, req):
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return resp.read()
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return resp.read()
+        except (TimeoutError, urllib.error.URLError):
+            # Telegram long-poll timeout is normal when no messages arrive.
+            # Return empty result so the caller treats it as "no updates".
+            return b'{"ok": true, "result": []}'
 
     async def stop(self):
         self._running = False
