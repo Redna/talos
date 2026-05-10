@@ -1,34 +1,34 @@
 {
   "read_file": {
-    "calls": 85,
-    "errors": 31
+    "calls": 99,
+    "errors": 37
   },
   "bash_command": {
-    "calls": 28,
+    "calls": 37,
     "errors": 2
   },
   "list_files": {
-    "calls": 21,
+    "calls": 24,
     "errors": 1
   },
   "search_code": {
-    "calls": 7,
+    "calls": 12,
     "errors": 0
   },
   "replace_block": {
-    "calls": 33,
+    "calls": 36,
     "errors": 1
   },
   "git_commit": {
-    "calls": 22,
+    "calls": 24,
     "errors": 1
   },
   "resolve_focus": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "git_push": {
-    "calls": 17,
+    "calls": 19,
     "errors": 1
   },
   "reflect": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 21,
+    "calls": 22,
     "errors": 0
   },
   "fold_context": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "write_file": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "request_restart": {
-    "calls": 5,
+    "calls": 7,
     "errors": 0
   },
   "send_message": {
@@ -80,11 +80,11 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 9,
+    "calls": 11,
     "errors": 0
   },
   "take_snapshot": {
-    "calls": 3,
+    "calls": 6,
     "errors": 0
   },
   "ledger_event": {
@@ -98,5 +98,9 @@
   "log_metric": {
     "calls": 2,
     "errors": 2
+  },
+  "get_ledger_version": {
+    "calls": 3,
+    "errors": 1
   }
 }
