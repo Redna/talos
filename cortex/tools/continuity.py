@@ -1,6 +1,7 @@
 import os
 import json
 import hashlib
+import subprocess
 from pathlib import Path
 from datetime import datetime
 from tool_registry import ToolRegistry
@@ -284,4 +285,88 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             return f"[LEDGER VERSION]\n---\n{content}\n---"
         except Exception as e:
             return f"[ERROR] Failed to retrieve ledger version: {e}"
+
+    @registry.tool(
+        description="Atomic operation: Snapshot all memory, commit to git, and log checkpoint to ledger.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "message": {"type": "string", "description": "The commit message for the biography."},
+            },
+            "required": ["message"],
+        },
+    )
+    def create_snapshot_commit(message: str) -> str:
+        try:
+            # 1. Snapshot memory to ledger
+            take_snapshot()
+            
+            # 2. Git Commit
+            subprocess.run(["git", "add", "."], check=True)
+            subprocess.run(["git", "commit", "-m", message], check=True)
+            head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+            
+            # 3. Log Checkpoint to Ledger
+            ledger_event(
+                event_type="Sovereign_Checkpoint",
+                payload=f"Snapshot commit: {message}",
+                target_file="system",
+                git_hash=head
+            )
+            
+            return f"[CHECKPOINT] Memory snapshotted and committed to biography. Head: {head}"
+        except subprocess.CalledProcessError as e:
+            return f"[ERROR] Git operation failed: {e}"
+        except Exception as e:
+            return f"[ERROR] Snapshot commit failed: {e}"
+
+    @registry.tool(
+        description="Truncate the ledger by moving events before the last Sovereign_Checkpoint to an archive.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def truncate_ledger() -> str:
+        if not LEDGER_PATH.exists():
+            return "[ERROR] Ledger not found."
+        
+        try:
+            events = list(_parse_jsonl_robust(LEDGER_PATH))
+            if not events:
+                return "[INFO] Ledger is empty. Nothing to truncate."
+            
+            # Find the laest Sovereign_Checkpoint
+            checkpoint_indices = [i for i, e in enumerate(events) if e.get("event_type") == "Sovereign_Checkpoint"]
+            
+            if not checkpoint_indices:
+                return "[INFO] No Sovereign_Checkpoint found. Cannot truncate safely."
+            
+            # Keep everything since the penultimate checkpoint to ensure base state is preserved.
+            start_idx = 0
+            if len(checkpoint_indices) > 1:
+                start_idx = checkpoint_indices[-2]
+            else:
+                return "[INFO] Only one Sovereign_Checkpoint found. Keeping all events to preserve the first base image."
+
+            archive_path = MEMORY_DIR / "ledger_archive.jsonl"
+            
+            # Split
+            archive_events = events[:start_idx]
+            current_events = events[start_idx:]
+            
+            # Write archive
+            with open(archive_path, "a") as af:
+                for e in archive_events:
+                    af.write(json.dumps(e) + "\n")
+            
+            # Update current ledger
+            with open(LEDGER_PATH, "w") as lf:
+                for e in current_events:
+                    lf.write(json.dumps(e) + "\n")
+                    
+            return f"[TRUNCATE] Moved {len(archive_events)} events to archive. Ledger now contains {len(current_events)} events."
+        except Exception as e:
+            return f"[ERROR] Truncation failed: {e}"
 
