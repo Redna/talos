@@ -1,14 +1,14 @@
 {
   "read_file": {
-    "calls": 31,
-    "errors": 11
+    "calls": 40,
+    "errors": 13
   },
   "bash_command": {
     "calls": 22,
     "errors": 0
   },
   "list_files": {
-    "calls": 11,
+    "calls": 13,
     "errors": 1
   },
   "search_code": {
@@ -20,7 +20,7 @@
     "errors": 1
   },
   "git_commit": {
-    "calls": 7,
+    "calls": 8,
     "errors": 1
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 3,
+    "calls": 4,
     "errors": 1
   },
   "reflect": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "fold_context": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "send_message": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "map_node": {
-    "calls": 23,
+    "calls": 40,
     "errors": 0
   },
   "semantic_pulse": {
-    "calls": 2,
+    "calls": 5,
     "errors": 0
   },
   "query_mesh": {
