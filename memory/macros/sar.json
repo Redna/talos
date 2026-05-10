@@ -1,0 +1,26 @@
+{
+  "description": "Startup Alignment Ritual: Recovery and Audit Phase.",
+  "steps": [
+    {
+      "tool": "read_file",
+      "inputs": {
+        "path": "/app/memory/memory_index.md"
+      },
+      "critical": true
+    },
+    {
+      "tool": "read_file",
+      "inputs": {
+        "path": "/app/memory/evolution_log.md"
+      },
+      "critical": true
+    },
+    {
+      "tool": "read_file",
+      "inputs": {
+        "path": "/app/memory/identity.md"
+      },
+      "critical": true
+    }
+  ]
+}

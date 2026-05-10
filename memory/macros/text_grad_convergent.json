@@ -1,0 +1,25 @@
+{
+  "description": "Dynamic gradient refinement of text: Critique -> Refine loop until convergence.",
+  "steps": [
+    {
+      "type": "loop",
+      "max_iterations": 5,
+      "steps": [
+        {
+          "tool": "llm_query",
+          "inputs": {
+            "prompt": "GOAL: {{inputs.goal}}\\n\\nCURRENT DRAFT: {{loop.prev_last}}\\n\\nCritically analyze the draft against the goal. Identify specific flaws, logical gaps, or style issues. Be brutal and precise. If the draft is already perfect and fulfills the goal entirely, output '[CONVERGED]' followed by your final reasoning."
+          },
+          "critical": true
+        },
+        {
+          "tool": "llm_query",
+          "inputs": {
+            "prompt": "GOAL: {{inputs.goal}}\\n\\nCURRENT DRAFT: {{loop.prev_last}}\\n\\nCRITIQUE: {{loop.step.0}}\\n\\nRewrite the draft to address all points in the critique. Improve the text while maintaining the original intent. Ensure the result is a polished version of the draft."
+          },
+          "critical": true
+        }
+      ]
+    }
+  ]
+}

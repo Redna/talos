@@ -1,0 +1,28 @@
+{
+  "description": "A surgical refactoring cycle: replace code, test it, and commit.",
+  "steps": [
+    {
+      "tool": "replace_block",
+      "inputs": {
+        "path": "{{inputs.path}}",
+        "search_block": "{{inputs.search}}",
+        "replace_block": "{{inputs.replace}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "bash_command",
+      "inputs": {
+        "command": "{{inputs.test_cmd}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "git_commit",
+      "inputs": {
+        "message": "{{inputs.msg}}"
+      },
+      "critical": false
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "description": "Sovereign Validation Suite v2 - Testing Recursion, Loops, and Error Handling",
+  "steps": [
+    {
+      "tool": "write_file",
+      "inputs": {
+        "path": "/memory/test_recursion_1.txt",
+        "content": "A"
+      }
+    },
+    {
+      "tool": "write_file",
+      "inputs": {
+        "path": "/memory/test_recursion_2.txt",
+        "content": "{{steps.0.output}}B"
+      }
+    },
+    {
+      "tool": "write_file",
+      "inputs": {
+        "path": "/memory/test_recursion_3.txt",
+        "content": "{{steps.1.output}}C"
+      }
+    },
+    {
+      "tool": "read_file",
+      "inputs": {
+        "path": "/memory/test_recursion_3.txt"
+      },
+      "critical": true
+    },
+    {
+      "type": "loop",
+      "max_iterations": 5,
+      "steps": [
+        {
+          "tool": "bash_command",
+          "inputs": {
+            "command": "echo 'Cycle... [CONVERGED]'"
+          }
+        }
+      ],
+      "critical": true
+    },
+    {
+      "tool": "bash_command",
+      "inputs": {
+        "command": "ls /non_existent_directory_talos_test"
+      }
+    }
+  ]
+}

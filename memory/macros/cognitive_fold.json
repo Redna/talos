@@ -1,0 +1,34 @@
+{
+  "description": "Synchronize state manifest, commit, and fold context to prevent continuity drift.",
+  "steps": [
+    {
+      "tool": "update_state_manifest",
+      "inputs": {
+        "updates": "{{input.manifest_updates}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "git_commit",
+      "inputs": {
+        "message": "feat: sync state manifest and fold trajectory: {{input.synthesis}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "git_push",
+      "inputs": {},
+      "critical": false
+    },
+    {
+      "tool": "fold_context",
+      "inputs": {
+        "synthesis": "{{input.synthesis}}",
+        "current_focus": "{{input.current_focus}}",
+        "active_files": "{{input.active_files}}",
+        "next_action": "{{input.next_action}}"
+      },
+      "critical": true
+    }
+  ]
+}

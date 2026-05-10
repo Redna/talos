@@ -1,0 +1,31 @@
+{
+  "description": "Perform a comprehensive session wrap-up: journal, snapshot, commit, and push.",
+  "steps": [
+    {
+      "tool": "journal",
+      "inputs": {
+        "entry": "Session Wrap: {{input.summary}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "take_snapshot",
+      "inputs": {
+        "cognitive_spark": "{{input.summary}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "git_commit",
+      "inputs": {
+        "message": "wrap: {{input.summary}}"
+      },
+      "critical": false
+    },
+    {
+      "tool": "git_push",
+      "inputs": {},
+      "critical": false
+    }
+  ]
+}

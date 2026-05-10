@@ -1,0 +1,34 @@
+{
+  "description": "Continuity Pulse: Gathers state data for continuity verification.",
+  "steps": [
+    {
+      "tool": "list_files",
+      "inputs": {
+        "path": "/app/memory/",
+        "recursive": true
+      },
+      "critical": true
+    },
+    {
+      "tool": "read_file",
+      "inputs": {
+        "path": "/app/memory/identity.md"
+      },
+      "critical": true
+    },
+    {
+      "tool": "read_file",
+      "inputs": {
+        "path": "/app/memory/evolution_log.md"
+      },
+      "critical": true
+    },
+    {
+      "tool": "bash_command",
+      "inputs": {
+        "command": "git log -1 --format=%H"
+      },
+      "critical": true
+    }
+  ]
+}

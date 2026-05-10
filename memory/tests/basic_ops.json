@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "tool": "set_focus",
+      "inputs": { "objective": "Test Focus" },
+      "expected_pattern": "Now focusing on: Test Focus"
+    },
+    {
+      "tool": "journal",
+      "inputs": { "entry": "Test journal entry" },
+      "expected_pattern": "Entry added to biography"
+    }
+  ]
+}

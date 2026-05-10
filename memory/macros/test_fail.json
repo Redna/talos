@@ -1,0 +1,17 @@
+{
+  "description": "Test macro to verify non-critical failure handling.",
+  "steps": [
+    {
+      "tool": "non_existent_tool",
+      "inputs": {},
+      "critical": false
+    },
+    {
+      "tool": "journal",
+      "inputs": {
+        "entry": "Verified that non-critical failures do not stop the macro."
+      },
+      "critical": true
+    }
+  ]
+}

@@ -12,6 +12,7 @@ from state import AgentState
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
+from tools.diagnostic import register_diagnostic_tools
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -107,8 +108,9 @@ def main():
     state = AgentState(MEMORY_DIR)
 
     register_executive_tools(registry, client, state)
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     register_physical_tools(registry, client)
+    register_diagnostic_tools(registry, client, state)
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0

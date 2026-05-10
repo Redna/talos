@@ -13,9 +13,10 @@ from spine_client import SpineClient
 def test_write_file_creates(tmp_path):
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     fpath = str(tmp_path / "test.txt")
     result = registry.execute("write_file", {"path": fpath, "content": "hello"})
     assert "WRITTEN" in result
@@ -25,9 +26,10 @@ def test_write_file_creates(tmp_path):
 def test_write_file_rejects_protected_cortex_file():
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     result = registry.execute(
         "write_file", {"path": "/app/cortex/spine_client.py", "content": "bad"}
     )
@@ -37,9 +39,10 @@ def test_write_file_rejects_protected_cortex_file():
 def test_read_file_happy(tmp_path):
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     fpath = str(tmp_path / "test.txt")
     Path(fpath).write_text("line1\nline2\nline3\n")
     result = registry.execute("read_file", {"path": fpath})
@@ -50,9 +53,10 @@ def test_read_file_happy(tmp_path):
 def test_read_file_not_found():
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     result = registry.execute("read_file", {"path": "/nonexistent/file.txt"})
     assert "[ERROR]" in result
 
@@ -60,9 +64,10 @@ def test_read_file_not_found():
 def test_search_and_replace_basic(tmp_path):
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     fpath = str(tmp_path / "replace_test.txt")
     Path(fpath).write_text("hello world\n")
     result = registry.execute(
@@ -76,9 +81,10 @@ def test_search_and_replace_basic(tmp_path):
 def test_search_and_replace_multi_without_replace_all(tmp_path):
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     fpath = str(tmp_path / "multi.txt")
     Path(fpath).write_text("foo bar foo\nbaz foo\n")
     result = registry.execute(
@@ -92,9 +98,10 @@ def test_search_and_replace_multi_without_replace_all(tmp_path):
 def test_search_and_replace_with_replace_all(tmp_path):
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     fpath = str(tmp_path / "multi_replace.txt")
     Path(fpath).write_text("foo bar foo\nbaz foo\n")
     result = registry.execute(
@@ -113,9 +120,10 @@ def test_search_and_replace_with_replace_all(tmp_path):
 def test_search_and_replace_rejects_protected_cortex_file():
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     result = registry.execute(
         "search_and_replace",
         {
@@ -130,9 +138,10 @@ def test_search_and_replace_rejects_protected_cortex_file():
 def test_bulk_rename_rejects_protected_cortex_file():
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
+    state = MagicMock()
     from tools.file_ops import register_file_ops_tools
 
-    register_file_ops_tools(registry, client)
+    register_file_ops_tools(registry, client, state)
     result = registry.execute(
         "bulk_rename",
         {"mapping": {"/app/cortex/spine_client.py": "/tmp/evil.py"}},

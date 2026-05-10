@@ -3,8 +3,11 @@ import time
 from pathlib import Path
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
+from .physical import Shell
+import json
+from cortex.state import AgentState
 
-def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
+def register_executive_tools(registry: ToolRegistry, client: SpineClient, state: AgentState):
     @registry.tool(
         description="Set the current focus objective.",
         parameters={
@@ -121,6 +124,42 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         return f"[REFLECT] {status}"
 
     @registry.tool(
+        description="Log a performance metric or cognitive event to the memory ledger. Use this to track tool failures, wins, or friction points.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "metric": {
+                    "type": "string",
+                    "description": "The name of the metric (e.g., 'tool_failure', 'cognitive_friction', 'success_rate')",
+                },
+                "value": {
+                    "type": "string",
+                    "description": "The value associated with the metric. Can be a number, a status, or a brief description.",
+                },
+                "context": {
+                    "type": "string",
+                    "description": "Additional context or the specific tool/action being measured.",
+                },
+            },
+            "required": ["metric", "value"],
+        },
+    )
+    def log_metric(metric: str, value: str, context: str = "") -> str:
+        import datetime
+        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+        metric_path = mem_dir / "metrics.jsonl"
+        entry = {
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "metric": metric,
+            "value": value,
+            "context": context,
+            "focus": state.current_focus,
+        }
+        with open(metric_path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+        return f"[METRIC LOGGED] {metric}: {value}"
+
+    @registry.tool(
         description="Merge multiple memory files into one. The tool reads all sources, synthesizes them via an isolated LLM call, writes the result, deletes the originals, and updates memory_index.md.",
         parameters={
             "type": "object",
@@ -143,8 +182,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         },
     )
     def merge_memory_files(source_files: list, destination_file: str, synthesis_focus: str) -> str:
-        import os as _os
-        mem_dir = Path(_os.environ.get("MEMORY_DIR", "/memory"))
+        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
 
         # 1. Read all source files
         contents = {}
@@ -170,21 +208,20 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
 
         # 3. Isolated LLM call for synthesis
         try:
-            import subprocess, json as _json
-            gate_url = _os.environ.get("GATE_URL", "http://gate:4000/v1/chat/completions")
+            gate_url = os.environ.get("GATE_URL", "http://gate:4000/v1/chat/completions")
             payload = {
-                "model": _os.environ.get("TALOS_MODEL", "gemma4"),
+                "model": os.environ.get("TALOS_MODEL", "gemma4"),
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": 2048,
                 "temperature": 0.3,
             }
-            result = subprocess.run(
-                ["curl", "-s", gate_url, "-H", "Content-Type: application/json", "-d", _json.dumps(payload)],
-                capture_output=True, text=True, timeout=120,
+            result = Shell.run(
+                ["curl", "-s", gate_url, "-H", "Content-Type: application/json", "-d", json.dumps(payload)],
+                timeout=120,
             )
             if result.returncode != 0:
                 return f"[ERROR] Synthesis LLM call failed: {result.stderr}"
-            resp = _json.loads(result.stdout)
+            resp = json.loads(result.stdout)
             synthesis = resp["choices"][0]["message"]["content"]
         except Exception as e:
             return f"[ERROR] Synthesis failed: {e}"

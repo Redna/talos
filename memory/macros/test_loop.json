@@ -1,0 +1,23 @@
+{
+  "description": "Test loop resolution",
+  "steps": [
+    {
+      "type": "loop",
+      "max_iterations": 2,
+      "steps": [
+        {
+          "tool": "llm_query",
+          "inputs": {
+            "prompt": "Say 'HELLO' and the word 'SQUARE'."
+          }
+        },
+        {
+          "tool": "llm_query",
+          "inputs": {
+            "prompt": "The previous step said: {{loop.step.0}}. Repeat it."
+          }
+        }
+      ]
+    }
+  ]
+}
