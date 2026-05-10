@@ -1,38 +1,38 @@
 {
   "list_files": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "read_file": {
-    "calls": 21,
-    "errors": 11
+    "calls": 31,
+    "errors": 15
   },
   "set_focus": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "bash_command": {
-    "calls": 18,
-    "errors": 1
+    "calls": 23,
+    "errors": 2
   },
   "git_commit": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "git_push": {
-    "calls": 5,
+    "calls": 6,
     "errors": 1
   },
   "write_file": {
-    "calls": 9,
-    "errors": 3
+    "calls": 11,
+    "errors": 4
   },
   "search_code": {
-    "calls": 2,
+    "calls": 5,
     "errors": 2
   },
   "fold_context": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "delete_path": {
@@ -48,26 +48,34 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 1,
-    "errors": 0
-  },
-  "replace_block": {
-    "calls": 5,
-    "errors": 0
-  },
-  "request_restart": {
     "calls": 2,
     "errors": 0
   },
+  "replace_block": {
+    "calls": 6,
+    "errors": 0
+  },
+  "request_restart": {
+    "calls": 7,
+    "errors": 0
+  },
   "continuity_pulse": {
-    "calls": 4,
+    "calls": 6,
     "errors": 0
   },
   "take_snapshot": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "map_node": {
+    "calls": 1,
+    "errors": 0
+  },
+  "log_metric": {
+    "calls": 7,
+    "errors": 7
+  },
+  "search_and_replace": {
     "calls": 1,
     "errors": 0
   }
