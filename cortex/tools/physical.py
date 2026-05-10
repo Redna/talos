@@ -1,52 +1,56 @@
-import subprocess
-from typing import List
+from typing import List, Dict, Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-
-BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
-
-class Shell:
-    """
-    Encapsulates all physical shell interactions to prevent logic-layer leakage.
-    """
-    @staticmethod
-    def run(command: str | List[str], input_str: str = None, cwd: str = None, timeout: int = 60) -> subprocess.CompletedProcess:
-        if isinstance(command, str):
-            for flag in BLOCKED_FLAGS:
-                if flag in command:
-                    raise PermissionError(f"Flag {flag} is not allowed")
-            
-            return subprocess.run(
-                command,
-                shell=True,
-                input=input_str,
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-        else:
-            # For list-based commands
-            return subprocess.run(
-                command,
-                shell=False,
-                input=input_str,
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-
-    @staticmethod
-    def run_and_strip(command: str, timeout: int = 60) -> str:
-        res = Shell.run(command, timeout=timeout)
-        if res.returncode != 0:
-            return f"[EXIT {res.returncode}] {res.stderr.strip()}"
-        return res.stdout.strip() or "[OK]"
+from .shell import Shell
+from .intent_broker import IntentBroker, CommitIntent, WriteFileIntent, RestartIntent
 
 def register_physical_tools(registry: ToolRegistry, client: SpineClient):
     @registry.tool(
+        description="Execute a structured intent with mandatory verification.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "intent_type": {"type": "string", "enum": ["commit", "write_file", "restart"], "description": "The type of intent to execute"},
+                "params": {"type": "object", "description": "Parameters for the intent (e.g., {'message': '...' for commit)"},
+            },
+            "required": ["intent_type", "params"],
+        },
+    )
+    def execute_intent(intent_type: str, params: Dict[str, Any]) -> str:
+        broker = IntentBroker()
+        intent_map = {
+            "commit": (CommitIntent, "message"),
+            "write_file": (WriteFileIntent, ["path", "content"]),
+            "restart": (RestartIntent, "reason"),
+        }
+        
+        if intent_type not in intent_map:
+            return f"[ERROR] Unknown intent type: {intent_type}"
+        
+        target_cls, param_keys = intent_map[intent_type]
+        
+        try:
+            if isinstance(param_keys, str):
+                intent = target_cls(**{param_keys: params.get(param_keys)})
+            else:
+                intent = target_cls(**{k: params.get(k) for k in param_keys})
+            
+            result = broker.execute(intent)
+            
+            if result["success"]:
+                if result.get("action") == "REQUEST_RESTART":
+                    client.request_restart(result.get("reason", "Intent Broker request"))
+                    return "[RESTART REQUESTED via Intent Broker]"
+                return f"[VERIFIED] {result.get('delta')}"
+            else:
+                return f"[FAILED] {result.get('error')}"
+                
+        except Exception as e:
+            return f"[ERROR] Intent construction failed: {str(e)}"
+
+    @registry.tool(
         description="Execute a bash command.",
+
         parameters={
             "type": "object",
             "properties": {
