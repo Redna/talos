@@ -1,7 +1,7 @@
 {
   "read_file": {
-    "calls": 81,
-    "errors": 28
+    "calls": 82,
+    "errors": 29
   },
   "bash_command": {
     "calls": 28,
@@ -20,19 +20,19 @@
     "errors": 1
   },
   "git_commit": {
-    "calls": 20,
+    "calls": 21,
     "errors": 1
   },
   "resolve_focus": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "git_push": {
-    "calls": 15,
+    "calls": 16,
     "errors": 1
   },
   "reflect": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "search_and_replace": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 20,
+    "calls": 21,
     "errors": 0
   },
   "fold_context": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "write_file": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "request_restart": {
