@@ -1,22 +1,22 @@
 {
   "read_file": {
-    "calls": 7,
-    "errors": 3
+    "calls": 17,
+    "errors": 8
   },
   "bash_command": {
-    "calls": 6,
+    "calls": 22,
     "errors": 0
   },
   "list_files": {
-    "calls": 1,
-    "errors": 0
+    "calls": 6,
+    "errors": 1
   },
   "search_code": {
-    "calls": 3,
+    "calls": 5,
     "errors": 0
   },
   "replace_block": {
-    "calls": 15,
+    "calls": 18,
     "errors": 1
   },
   "git_commit": {
@@ -24,11 +24,31 @@
     "errors": 1
   },
   "resolve_focus": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "git_push": {
     "calls": 1,
     "errors": 1
+  },
+  "reflect": {
+    "calls": 1,
+    "errors": 0
+  },
+  "search_and_replace": {
+    "calls": 1,
+    "errors": 0
+  },
+  "set_focus": {
+    "calls": 2,
+    "errors": 0
+  },
+  "fold_context": {
+    "calls": 1,
+    "errors": 0
+  },
+  "write_file": {
+    "calls": 3,
+    "errors": 0
   }
 }
