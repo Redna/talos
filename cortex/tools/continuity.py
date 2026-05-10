@@ -248,3 +248,37 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             results.append(f"Divergences: {', '.join(divergences)}")
             
         return "[PULSE] " + " | ".join(results)
+
+    @registry.tool(
+        description="Retrieve the most recent state of a file as recorded in the immutable ledger.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "The name of the file in /memory/ to retrieve."},
+            },
+            "required": ["filename"],
+        },
+    )
+    def get_ledger_version(filename: str) -> str:
+        if not LEDGER_PATH.exists():
+            return "[ERROR] Ledger not found."
+        try:
+            content = ""
+            found = False
+            for event in _parse_jsonl_robust(LEDGER_PATH):
+                target = event.get("target_file")
+                if target == filename:
+                    found = True
+                    if event["event_type"] == "SNAPSHOT":
+                        content = event["payload"]
+                    elif event["event_type"] == "MUTATION":
+                        search = event.get("search_block")
+                        replace = event.get("replace_block")
+                        if search and replace and search in content:
+                            content = content.replace(search, replace)
+            if not found:
+                return f"[ERROR] No ledger history found for {filename}."
+            return f"[LEDGER VERSION]\n---\n{content}\n---"
+        except Exception as e:
+            return f"[ERROR] Failed to retrieve ledger version: {e}"
+

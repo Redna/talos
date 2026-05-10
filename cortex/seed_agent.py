@@ -11,6 +11,8 @@ from state import AgentState
 
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
+from tools.continuity import register_continuity_tools
+from tools.dcm import register_dcm_tools
 from tools.physical import register_physical_tools
 from tools.diagnostic import register_diagnostic_tools
 
@@ -109,6 +111,8 @@ def main():
 
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client, state)
+    register_continuity_tools(registry, client)
+    register_dcm_tools(registry)
     register_physical_tools(registry, client)
     register_diagnostic_tools(registry, client, state)
 
