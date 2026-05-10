@@ -1,14 +1,14 @@
 {
   "read_file": {
-    "calls": 47,
-    "errors": 15
+    "calls": 53,
+    "errors": 16
   },
   "bash_command": {
-    "calls": 23,
-    "errors": 1
+    "calls": 28,
+    "errors": 2
   },
   "list_files": {
-    "calls": 16,
+    "calls": 18,
     "errors": 1
   },
   "search_code": {
@@ -20,15 +20,15 @@
     "errors": 1
   },
   "git_commit": {
-    "calls": 10,
+    "calls": 11,
     "errors": 1
   },
   "resolve_focus": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "git_push": {
-    "calls": 6,
+    "calls": 7,
     "errors": 1
   },
   "reflect": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 10,
+    "calls": 12,
     "errors": 0
   },
   "fold_context": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "send_message": {
@@ -68,7 +68,7 @@
     "errors": 0
   },
   "query_mesh": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "sovereign_mutate": {
@@ -80,7 +80,15 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 2,
+    "calls": 5,
+    "errors": 0
+  },
+  "take_snapshot": {
+    "calls": 1,
+    "errors": 0
+  },
+  "ledger_event": {
+    "calls": 1,
     "errors": 0
   }
 }
