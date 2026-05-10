@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "read_file": {
-    "calls": 20,
-    "errors": 10
+    "calls": 21,
+    "errors": 11
   },
   "set_focus": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "bash_command": {
@@ -16,11 +16,11 @@
     "errors": 1
   },
   "git_commit": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "git_push": {
-    "calls": 4,
+    "calls": 5,
     "errors": 1
   },
   "write_file": {
@@ -32,7 +32,7 @@
     "errors": 2
   },
   "fold_context": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "delete_path": {
@@ -44,7 +44,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "reflect": {
@@ -52,18 +52,22 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "request_restart": {
-    "calls": 1,
-    "errors": 0
-  },
-  "continuity_pulse": {
     "calls": 2,
     "errors": 0
   },
+  "continuity_pulse": {
+    "calls": 4,
+    "errors": 0
+  },
   "take_snapshot": {
+    "calls": 1,
+    "errors": 0
+  },
+  "map_node": {
     "calls": 1,
     "errors": 0
   }
