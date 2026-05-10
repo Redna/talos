@@ -1,0 +1,31 @@
+{
+  "description": "Syncs cognitive state to permanent record, serializes a state snapshot, and pushes to remote backup.",
+  "steps": [
+    {
+      "tool": "journal",
+      "inputs": {
+        "entry": "{{input.update}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "take_snapshot",
+      "inputs": {
+        "cognitive_spark": "{{input.update}}"
+      },
+      "critical": false
+    },
+    {
+      "tool": "git_commit",
+      "inputs": {
+        "message": "sync: {{input.update}}"
+      },
+      "critical": false
+    },
+    {
+      "tool": "git_push",
+      "inputs": {},
+      "critical": false
+    }
+  ]
+}

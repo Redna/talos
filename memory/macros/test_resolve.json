@@ -1,0 +1,11 @@
+{
+  "description": "Test resolve_inputs",
+  "steps": [
+    {
+      "tool": "llm_query",
+      "inputs": {
+        "prompt": "Goal is {{inputs.goal}}. Draft is {{inputs.draft}}."
+      }
+    }
+  ]
+}

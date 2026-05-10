@@ -1,125 +1,25 @@
 {
-  "read_file": {
-    "calls": 172,
-    "errors": 56
-  },
-  "bash_command": {
-    "calls": 44,
-    "errors": 2
-  },
   "list_files": {
-    "calls": 36,
-    "errors": 1
-  },
-  "search_code": {
-    "calls": 17,
+    "calls": 2,
     "errors": 0
   },
-  "replace_block": {
-    "calls": 54,
-    "errors": 3
-  },
-  "git_commit": {
-    "calls": 33,
+  "read_file": {
+    "calls": 4,
     "errors": 1
   },
-  "resolve_focus": {
-    "calls": 22,
+  "set_focus": {
+    "calls": 1,
+    "errors": 0
+  },
+  "bash_command": {
+    "calls": 10,
+    "errors": 0
+  },
+  "git_commit": {
+    "calls": 1,
     "errors": 0
   },
   "git_push": {
-    "calls": 26,
-    "errors": 1
-  },
-  "reflect": {
-    "calls": 20,
-    "errors": 0
-  },
-  "search_and_replace": {
-    "calls": 1,
-    "errors": 0
-  },
-  "set_focus": {
-    "calls": 38,
-    "errors": 0
-  },
-  "fold_context": {
-    "calls": 4,
-    "errors": 0
-  },
-  "write_file": {
-    "calls": 22,
-    "errors": 0
-  },
-  "request_restart": {
-    "calls": 12,
-    "errors": 0
-  },
-  "send_message": {
-    "calls": 13,
-    "errors": 0
-  },
-  "map_node": {
-    "calls": 58,
-    "errors": 0
-  },
-  "semantic_pulse": {
-    "calls": 5,
-    "errors": 0
-  },
-  "query_mesh": {
-    "calls": 7,
-    "errors": 0
-  },
-  "sovereign_mutate": {
-    "calls": 6,
-    "errors": 0
-  },
-  "replay_ledger": {
-    "calls": 2,
-    "errors": 1
-  },
-  "continuity_pulse": {
-    "calls": 15,
-    "errors": 0
-  },
-  "take_snapshot": {
-    "calls": 9,
-    "errors": 0
-  },
-  "ledger_event": {
-    "calls": 2,
-    "errors": 0
-  },
-  "": {
-    "calls": 4,
-    "errors": 4
-  },
-  "log_metric": {
-    "calls": 2,
-    "errors": 2
-  },
-  "get_ledger_version": {
-    "calls": 5,
-    "errors": 2
-  },
-  "update_state_manifest": {
-    "calls": 1,
-    "errors": 1
-  },
-  "execute_intent": {
-    "calls": 2,
-    "errors": 1
-  },
-  "physical_health_check": {
-    "calls": 2,
-    "errors": 0
-  },
-  "delete_path": {
-    "calls": 1,
-    "errors": 0
-  },
-  "execute_macro": {
     "calls": 1,
     "errors": 1
   }

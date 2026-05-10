@@ -1,0 +1,19 @@
+{
+  "description": "Runs a test suite and commits if the tests pass.",
+  "steps": [
+    {
+      "tool": "bash_command",
+      "inputs": {
+        "command": "{{input.test_command}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "git_commit",
+      "inputs": {
+        "message": "{{input.commit_message}}"
+      },
+      "critical": true
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "description": "Macro to test error reporting",
+  "steps": [
+    {
+      "tool": "nonexistent",
+      "inputs": {
+        "key": "{{input.test_val}}"
+      },
+      "critical": true
+    }
+  ]
+}

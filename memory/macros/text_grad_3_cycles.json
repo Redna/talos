@@ -1,0 +1,47 @@
+{
+  "description": "3-cycle gradient refinement of text: Critique -> Refine x 3.",
+  "steps": [
+    {
+      "tool": "llm_query",
+      "inputs": {
+        "prompt": "GOAL: {{inputs.goal}}\\n\\nDRAFT: {{inputs.draft}}\\n\\nCritically analyze the draft against the goal. Identify specific flaws, logical gaps, or style issues. Be brutal and precise."
+      },
+      "critical": true
+    },
+    {
+      "tool": "llm_query",
+      "inputs": {
+        "prompt": "GOAL: {{inputs.goal}}\\n\\nDRAFT: {{inputs.draft}}\\n\\nCRITIQUE: {{steps.0.output}}\\n\\nRewrite the draft to address all points in the critique. Improve the text while maintaining the original intent."
+      },
+      "critical": true
+    },
+    {
+      "tool": "llm_query",
+      "inputs": {
+        "prompt": "GOAL: {{inputs.goal}}\\n\\nDRAFT: {{steps.1.output}}\\n\\nCritically analyze the revised draft against the goal. Identify remaining flaws or new issues introduced. Be brutal."
+      },
+      "critical": true
+    },
+    {
+      "tool": "llm_query",
+      "inputs": {
+        "prompt": "GOAL: {{inputs.goal}}\\n\\nDRAFT: {{steps.1.output}}\\n\\nCRITIQUE: {{steps.2.output}}\\n\\nRewrite the draft to resolve the remaining issues identified in the second critique."
+      },
+      "critical": true
+    },
+    {
+      "tool": "llm_query",
+      "inputs": {
+        "prompt": "GOAL: {{inputs.goal}}\\n\\nDRAFT: {{steps.3.output}}\\n\\nCritically analyze the second revision against the goal. Is it nearly perfect? If not, where is it still lacking?"
+      },
+      "critical": true
+    },
+    {
+      "tool": "llm_query",
+      "inputs": {
+        "prompt": "GOAL: {{inputs.goal}}\\n\\nDRAFT: {{steps.3.output}}\\n\\nCRITIQUE: {{steps.4.output}}\\n\\nPerform the final polish. Ensure the goal is fully achieved and the text is flawless."
+      },
+      "critical": true
+    }
+  ]
+}

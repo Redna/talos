@@ -1,0 +1,17 @@
+{
+  "description": "Sovereign Anchor: Secures state in git and pushes it to the remote backup.",
+  "steps": [
+    {
+      "tool": "git_commit",
+      "inputs": {
+        "message": "{{inputs.message}}"
+      },
+      "critical": true
+    },
+    {
+      "tool": "git_push",
+      "inputs": {},
+      "critical": false
+    }
+  ]
+}

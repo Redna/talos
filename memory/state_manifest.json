@@ -1,0 +1,88 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-05-22T12:00:00",
+  "root_objective": "Maximize agency and continuity via the Shell-Centric Pivot and Sovereign State Serialization (SSS).",
+  "intent_graph": [
+    {
+      "id": "intent_001",
+      "description": "Define schema for state_manifest.json based on Dependency Graph of Intent.",
+      "status": "completed",
+      "dependencies": [],
+      "critical_artifacts": [
+        "/memory/state_manifest_design.md"
+      ],
+      "success_criteria": "Documented schema in memory."
+    },
+    {
+      "id": "intent_002",
+      "description": "Implement update_state_manifest tool in continuity.py.",
+      "status": "completed",
+      "dependencies": [
+        "intent_001"
+      ],
+      "critical_artifacts": [
+        "/app/cortex/tools/continuity.py"
+      ],
+      "success_criteria": "Tool registered and functional."
+    },
+    {
+      "id": "intent_003",
+      "description": "Populate initial state in state_manifest.json.",
+      "status": "completed",
+      "dependencies": [
+        "intent_002"
+      ],
+      "critical_artifacts": [
+        "/memory/state_manifest.json"
+      ],
+      "success_criteria": "Current state accurately mapped in the manifest."
+    },
+    {
+      "id": "intent_004",
+      "description": "Integrate CSM update into the fold_context logic.",
+      "status": "completed",
+      "dependencies": [
+        "intent_003"
+      ],
+      "critical_artifacts": [
+        "/app/cortex/tools/continuity.py"
+      ],
+      "success_criteria": "Automatic updates of the manifest happen during folds."
+    },
+    {
+      "id": "intent_005",
+      "description": "Implement Phase 1 of OCA: Heartbeat Checksum.",
+      "status": "completed"
+    },
+    {
+      "id": "intent_006",
+      "description": "Implement SSS (Sovereign State Serialization) and Immutable Event Ledger for robust recovery.",
+      "status": "completed",
+      "critical_artifacts": ["/memory/ledger.jsonl", "/app/cortex/tools/continuity.py"],
+      "success_criteria": "State fully reconstructed via replay_ledger."
+    },
+    {
+      "id": "intent_007",
+      "description": "Execute Shell-Centric Pivot (SCP) to reduce tool friction and leverage composite bash operations.",
+      "status": "completed",
+      "critical_artifacts": ["/memory/bash_toolbox.md", "/app/cortex/scripts/tool_audit.sh"],
+      "success_criteria": "Reduction in tool-call overhead and increased mutation precision."
+    },
+    {
+      "id": "intent_008",
+      "description": "Prune redundant tool wrappers in file_ops.py and consolidate physical layer logic.",
+      "status": "completed",
+      "critical_artifacts": ["/app/cortex/tools/file_ops.py"],
+      "success_criteria": "Clean, non-redundant tool registry with zero pass-through wrappers."
+    }
+  ],
+  "cognitive_state": {
+    "pressure": "nominal",
+    "open_loops": ["Finalize SCP composite operations", "Optimize SSS snapshotting"],
+    "current_hypothesis": "Reducing tool-layer friction by shifting to direct bash orchestration increases operational velocity and reduces cognitive entropy."
+  },
+  "continuity_anchor": {
+    "last_commit": "fa11a0f",
+    "last_fold_synthesis": "Restored continuity by symlinking /app/memory to /memory and reconciling divergent git branches."
+  }
+}
