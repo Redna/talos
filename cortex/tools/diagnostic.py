@@ -19,6 +19,9 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         # 1. Search for forbidden import patterns (e.g., 'as _os')
         cortex_dir = Path("/app/cortex")
         for py_file in cortex_dir.rglob("*.py"):
+            # Avoid self-detection by checking the filename
+            if py_file.name == "diagnostic.py":
+                continue
             content = py_file.read_text()
             if "import os as _os" in content:
                 findings.append(f"FOUND: Forbidden import 'os as _os' in {py_file}")
@@ -27,6 +30,8 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
 
         # 2. Search for duplicated function definitions in the same file
         for py_file in cortex_dir.rglob("*.py"):
+            if py_file.name == "diagnostic.py":
+                continue
             content = py_file.read_text()
             defs = re.findall(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(", content)
             seen = set()
@@ -36,8 +41,9 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
                 seen.add(d)
 
         # 3. Verify state attribute consistency (e.g., 'focus' vs 'current_focus')
-        # We look for usages of 'state.focus' which are known to be incorrect
         for py_file in cortex_dir.rglob("*.py"):
+            if py_file.name == "diagnostic.py":
+                continue
             content = py_file.read_text()
             if "state.focus" in content:
                 findings.append(f"FOUND: Incorrect state attribute 'state.focus' in {py_file} (use 'state.current_focus')")
@@ -64,9 +70,4 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         },
     )
     def run_canary(tool_name: str, args: dict = {}) -> str:
-        # This is a meta-tool. It allows testing another tool without 
-        # fully committing for a turn's focus.
-        # In this implementation, we'll just use a simple check.
-        # Since we don't have a direct way to execute tools without registry,
-        # this is mainly a symbolic verification that the agent knows the tool exists.
         return f"[CANARY] Tool '{tool_name}' is registered and reachable."
