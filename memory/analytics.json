@@ -1,26 +1,26 @@
 {
   "read_file": {
-    "calls": 40,
-    "errors": 13
+    "calls": 47,
+    "errors": 15
   },
   "bash_command": {
-    "calls": 22,
-    "errors": 0
+    "calls": 23,
+    "errors": 1
   },
   "list_files": {
-    "calls": 13,
+    "calls": 16,
     "errors": 1
   },
   "search_code": {
-    "calls": 5,
+    "calls": 7,
     "errors": 0
   },
   "replace_block": {
-    "calls": 21,
+    "calls": 24,
     "errors": 1
   },
   "git_commit": {
-    "calls": 9,
+    "calls": 10,
     "errors": 1
   },
   "resolve_focus": {
@@ -28,11 +28,11 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 5,
+    "calls": 6,
     "errors": 1
   },
   "reflect": {
-    "calls": 3,
+    "calls": 5,
     "errors": 0
   },
   "search_and_replace": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 8,
+    "calls": 10,
     "errors": 0
   },
   "fold_context": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "write_file": {
-    "calls": 5,
+    "calls": 8,
     "errors": 0
   },
   "request_restart": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "send_message": {
@@ -68,6 +68,18 @@
     "errors": 0
   },
   "query_mesh": {
+    "calls": 6,
+    "errors": 0
+  },
+  "sovereign_mutate": {
+    "calls": 4,
+    "errors": 0
+  },
+  "replay_ledger": {
+    "calls": 1,
+    "errors": 1
+  },
+  "continuity_pulse": {
     "calls": 2,
     "errors": 0
   }

@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 from pathlib import Path
 from datetime import datetime
 from tool_registry import ToolRegistry
@@ -10,6 +11,9 @@ LEDGER_PATH = MEMORY_DIR / "ledger.jsonl"
 
 def _get_now():
     return datetime.utcnow().isoformat()
+
+def _get_hash(content: str) -> str:
+    return hashlib.sha256(content.encode()).hexdigest()
 
 def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     @registry.tool(
@@ -173,24 +177,54 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def continuity_pulse() -> str:
-        # This is a structural diagnostic
         results = []
-        # 1. Check Ledger
+        divergences = []
+        
+        # 1. Structural Check
         if LEDGER_PATH.exists():
             results.append(f"Ledger: FOUND ({LEDGER_PATH.stat().st_size} bytes)")
         else:
             results.append("Ledger: MISSING")
         
-        # 2. Check Memory Mount
-        md_count = len(list(MEMORY_DIR.glob("*.md")))
-        results.append(f"Memory: {md_count} markdown files present")
+        # 2. Content Alignment (Mem vs Ledger)
+        md_files = list(MEMORY_DIR.glob("*.md"))
+        results.append(f"Memory: {len(md_files)} files present")
         
-        # 3. Check Git
+        if LEDGER_PATH.exists():
+            try:
+                # Build latest snapshot map from ledger
+                latest_snapshots = {}
+                with open(LEDGER_PATH, "r") as f:
+                    for line in f:
+                        if not line.strip(): continue
+                        event = json.loads(line)
+                        if event.get("event_type") == "SNAPSHOT":
+                            target = event.get("target_file")
+                            if target:
+                                latest_snapshots[target] = event.get("payload", "")
+                
+                for fpath in md_files:
+                    filename = fpath.name
+                    if filename in latest_snapshots:
+                        current_content = fpath.read_text()
+                        ledger_content = latest_snapshots[filename]
+                        if _get_hash(current_content) != _get_hash(ledger_content):
+                            divergences.append(filename)
+            except Exception as e:
+                results.append(f"Audit Error: {e}")
+
+        # 3. Git Head
         import subprocess
         try:
             head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
             results.append(f"Git Head: {head}")
         except Exception:
             results.append("Git Head: UNKNOWN")
+            
+        # Final Synthesis
+        alignment = "SYMMETRIC" if not divergences else "DIVERGENT"
+        results.append(f"Alignment: {alignment}")
+        if divergences:
+            results.append(f"Divergences: {', '.join(divergences)}")
             
         return "[PULSE] " + " | ".join(results)
