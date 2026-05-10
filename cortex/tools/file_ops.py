@@ -1,15 +1,16 @@
 import os
 import shutil
+import json
+import hashlib
+import re
 from pathlib import Path
 from typing import List, Dict
+from datetime import datetime
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 from .physical import Shell
 
 PROTECTED_CORTEX_FILES = {"/app/cortex/spine_client.py"}
-
-PROTECTED_CORTEX_FILES = {"/app/cortex/spine_client.py"}
-
 
 def is_protected_cortex_file(path: str) -> bool:
     if not path:
@@ -20,9 +21,8 @@ def is_protected_cortex_file(path: str) -> bool:
     except (OSError, ValueError):
         return path in PROTECTED_CORTEX_FILES
 
-
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
-
+LEDGER_PATH = MEMORY_DIR / "ledger.jsonl"
 
 def _resolve_path(path: str) -> Path:
     p = Path(path)
@@ -33,65 +33,33 @@ def _resolve_path(path: str) -> Path:
         return cwd_path
     return MEMORY_DIR / p
 
+def _get_now():
+    return datetime.utcnow().isoformat()
 
-def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
-    @registry.tool(
-        description="Verify alignment between the working tree, the ledger, and git history.",
-        parameters={
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
-    )
-    def continuity_pulse() -> str:
-        import hashlib, os, json
-        LEDGER = '/memory/ledger.jsonl'
-        MEM = '/memory'
-        results = []
-        divergences = []
-        if LEDGER_PATH if 'LEDGER_PATH' in locals() else LEDGER: # Safety
-            pass
-        # Just use the logic we know works from the bash script
+def _get_hash(content: str) -> str:
+    return hashlib.sha256(content.encode()).hexdigest()
+
+def _parse_jsonl_robust(path: Path):
+    if not path.exists():
+        return
+    content = path.read_text()
+    decoder = json.JSONDecoder()
+    pos = 0
+    while pos < len(content):
+        while pos < len(content) and content[pos].isspace():
+            pos += 1
+        if pos >= len(content):
+            break
         try:
-            ledger_path = Path(LEDGER)
-            if ledger_path.exists():
-                results.append(f"Ledger: FOUND ({ledger_path.stat().st_size} bytes)")
-            else:
-                results.append("Ledger: MISSING")
-            
-            md_files = list(Path(MEM).glob("*.md"))
-            results.append(f"Memory: {len(md_files)} files present")
-            
-            if ledger_path.exists():
-                latest_snapshots = {}
-                with open(ledger_path) as f:
-                    for line in f:
-                        try:
-                            ev = json.loads(line)
-                            if ev.get("event_type") == "SNAPSHOT":
-                                latest_snapshots[ev.get("target_file")] = ev.get("payload", "")
-                        except: pass
-                
-                for fpath in md_files:
-                    filename = fpath.name
-                    if filename in latest_snapshots:
-                        current_content = fpath.read_text()
-                        ledger_content = latest_snapshots[filename]
-                        if hashlib.sha256(current_content.encode()).hexdigest() != hashlib.sha256(ledger_content.encode()).hexdigest():
-                            divergences.append(filename)
-            
-            import subprocess
-            head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-            results.append(f"Git Head: {head}")
-            
-            alignment = "SYMMETRIC" if not divergences else "DIVERGENT"
-            results.append(f"Alignment: {alignment}")
-            if divergences:
-                results.append(f"Divergences: {', '.join(divergences)}")
-            
-            return "[PULSE] " + " | ".join(results)
-        except Exception as e:
-            return f"[ERROR] Pulse failed: {e}"
+            obj, index = decoder.raw_decode(content[pos:])
+            if isinstance(obj, dict) and all(k in obj for k in ("timestamp", "event_type", "payload")):
+                yield obj
+            pos += index
+        except json.JSONDecodeError:
+            pos += 1
+
+def register_file_ops_tools(registry: ToolRegistry, client: SpineClient, state):
+    # --- FILE SYSTEM TOOLS ---
 
     @registry.tool(
         description="Read a file's contents, optionally a line range.",
@@ -99,14 +67,8 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "type": "object",
             "properties": {
                 "path": {"type": "string", "description": "File path to read"},
-                "start_line": {
-                    "type": "integer",
-                    "description": "Start line (1-indexed, default: 1)",
-                },
-                "end_line": {
-                    "type": "integer",
-                    "description": "End line (0 = end of file)",
-                },
+                "start_line": {"type": "integer", "description": "Start line (1-indexed, default: 1)"},
+                "end_line": {"type": "integer", "description": "End line (0 = end of file)"},
             },
             "required": ["path"],
         },
@@ -158,10 +120,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "type": "object",
             "properties": {
                 "path": {"type": "string", "description": "File path to patch"},
-                "patch": {
-                    "type": "string",
-                    "description": "Unified diff patch content",
-                },
+                "patch": {"type": "string", "description": "Unified diff patch content"},
             },
             "required": ["path", "patch"],
         },
@@ -199,10 +158,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "type": "object",
             "properties": {
                 "path": {"type": "string", "description": "Directory path to list"},
-                "recursive": {
-                    "type": "boolean",
-                    "description": "Whether to list files recursively",
-                },
+                "recursive": {"type": "boolean", "description": "Whether to list files recursively"},
             },
             "required": ["path"],
         },
@@ -215,12 +171,10 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 return f"[ERROR] Path not found: {path} (resolved: {resolved})"
             if not resolved.is_dir():
                 return f"[ERROR] Path is not a directory: {path} (resolved: {resolved})"
-
             if recursive:
                 files = [str(f.relative_to(resolved)) for f in resolved.rglob("*")]
             else:
                 files = [f.name for f in resolved.iterdir()]
-
             return "\n".join(sorted(files)) if files else "Directory is empty."
         except Exception as e:
             return f"[ERROR] Failed to list files: {e}"
@@ -231,10 +185,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "type": "object",
             "properties": {
                 "path": {"type": "string", "description": "Path to delete"},
-                "recursive": {
-                    "type": "boolean",
-                    "description": "If True, deletes directory and all contents",
-                },
+                "recursive": {"type": "boolean", "description": "If True, deletes directory and all contents"},
             },
             "required": ["path"],
         },
@@ -247,7 +198,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         try:
             if not resolved.exists():
                 return f"[ERROR] Path not found: {path} (resolved: {resolved})"
-
             if resolved.is_file():
                 resolved.unlink()
             elif resolved.is_dir():
@@ -278,7 +228,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             cmd = ["grep", "-rn", query, str(resolved), "--exclude-dir=.git", "--exclude-dir=__pycache__"]
             if case_insensitive:
                 cmd.insert(2, "-i")
-
             result = Shell.run(cmd, timeout=30)
             if result.returncode == 1:
                 return "No matches found."
@@ -292,10 +241,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "type": "object",
             "properties": {
                 "path": {"type": "string", "description": "File path to validate against"},
-                "patch": {
-                    "type": "string",
-                    "description": "Unified diff patch content",
-                },
+                "patch": {"type": "string", "description": "Unified diff patch content"},
             },
             "required": ["path", "patch"],
         },
@@ -322,18 +268,9 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "type": "object",
             "properties": {
                 "path": {"type": "string", "description": "File path to modify"},
-                "old_string": {
-                    "type": "string",
-                    "description": "The exact string to find and replace",
-                },
-                "new_string": {
-                    "type": "string",
-                    "description": "The replacement string",
-                },
-                "replace_all": {
-                    "type": "boolean",
-                    "description": "If True, replace all occurrences. If False (default), fail if more than one match is found.",
-                },
+                "old_string": {"type": "string", "description": "The exact string to find and replace"},
+                "new_string": {"type": "string", "description": "The replacement string"},
+                "replace_all": {"type": "boolean", "description": "If True, replace all occurrences. If False (default), fail if more than one match is found."},
             },
             "required": ["path", "old_string", "new_string"],
         },
@@ -352,11 +289,9 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] File not found: {path} (resolved: {resolved})"
         except Exception as e:
             return f"[ERROR] Failed to read file: {e}"
-
         occurrences = content.count(old_string)
         if occurrences == 0:
             return f"[ERROR] The string to replace was not found in {path} (even after relaxing whitespace). Check the exact string and try again."
-
         if occurrences > 1 and not replace_all:
             lines = []
             for i, line in enumerate(content.split("\n"), 1):
@@ -368,7 +303,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 f"Set replace_all=True to replace all occurrences, "
                 f"or provide a more specific string."
             )
-
         new_content = content.replace(old_string, new_string)
         try:
             os.makedirs(os.path.dirname(resolved), exist_ok=True)
@@ -376,7 +310,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 f.write(new_content)
         except Exception as e:
             return f"[ERROR] Failed to write file: {e}"
-
         replaced = occurrences if replace_all else 1
         return f"[REPLACED] {replaced} occurrence(s) replaced in {path}"
 
@@ -386,14 +319,8 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "type": "object",
             "properties": {
                 "path": {"type": "string", "description": "File path to modify"},
-                "search_block": {
-                    "type": "string",
-                    "description": "The exact multi-line string to find and replace.",
-                },
-                "replace_block": {
-                    "type": "string",
-                    "description": "The new multi-line string to insert.",
-                },
+                "search_block": {"type": "string", "description": "The exact multi-line string to find and replace."},
+                "replace_block": {"type": "string", "description": "The new multi-line string to insert."},
             },
             "required": ["path", "search_block", "replace_block"],
         },
@@ -474,11 +401,9 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         protected=True,
     )
     def git_commit(message: str) -> str:
-        # Stage all changes
         result = Shell.run(["git", "add", "-A"], cwd="/app", timeout=30)
         if result.returncode != 0:
             return f"[ERROR] git add failed: {result.stderr}"
-        # Commit
         result = Shell.run(["git", "commit", "-m", message], cwd="/app", timeout=30)
         if result.returncode != 0:
             stderr_lower = result.stderr.lower()
@@ -496,7 +421,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                     f"Do NOT bypass with bash_command.\n{result.stderr}"
                 )
             return f"[ERROR] git commit failed: {result.stderr}"
-        # Get commit hash for confirmation
         hash_result = Shell.run(["git", "rev-parse", "--short", "HEAD"], cwd="/app", timeout=10)
         commit_hash = hash_result.stdout.strip()
         return (
@@ -513,3 +437,308 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         if result.returncode != 0:
             return f"[ERROR] git push failed: {result.stderr}"
         return "[SUCCESS] All commits pushed to origin. Your biography is backed up."
+
+    # --- CONTINUITY TOOLS ---
+
+    @registry.tool(
+        description="Append a raw event to the immutable event ledger.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "event_type": {"type": "string", "description": "Type of event (e.g., MUTATION, SNAPSHOT, NOTE)"},
+                "payload": {"type": "string", "description": "The content or description of the event"},
+                "target_file": {"type": "string", "description": "The file affected by this event (optional)"},
+                "metadata": {"type": "object", "description": "Additional structured data associated with the event (optional)"},
+            },
+            "required": ["event_type", "payload"],
+        },
+    )
+    def ledger_event(event_type: str, payload: str, target_file: str = None, metadata: dict = None) -> str:
+        event = {
+            "timestamp": _get_now(),
+            "event_type": event_type,
+            "payload": payload,
+            "target_file": target_file
+        }
+        if metadata:
+            event.update(metadata)
+        try:
+            with open(LEDGER_PATH, "a") as f:
+                f.write(json.dumps(event) + "\n")
+            return f"[LEDGER] Event {event_type} recorded."
+        except Exception as e:
+            return f"[ERROR] Failed to write to ledger: {e}"
+
+    @registry.tool(
+        description="Create a snapshot of the current state of a file (or all memory files) as a ledger event.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "target_file": {"type": "string", "description": "Specific file to snapshot. If omitted, all relevant memory files (.md, .json) are snapshotted."},
+            },
+            "required": [],
+        },
+    )
+    def take_snapshot(target_file: str = None) -> str:
+        try:
+            files_to_snapshot = []
+            if target_file:
+                fpath = MEMORY_DIR / target_file
+                if not fpath.exists():
+                    return f"[ERROR] File not found: {target_file}"
+                files_to_snapshot.append(fpath)
+            else:
+                for ext in ["*.md", "*.json"]:
+                    files_to_snapshot.extend(list(MEMORY_DIR.glob(ext)))
+            count = 0
+            for fpath in files_to_snapshot:
+                content = fpath.read_text()
+                event = {
+                    "timestamp": _get_now(),
+                    "event_type": "SNAPSHOT",
+                    "payload": content,
+                    "target_file": fpath.name
+                }
+                with open(LEDGER_PATH, "a") as lf:
+                    lf.write(json.dumps(event) + "\n")
+                count += 1
+            return f"[SNAPSHOT] Successfully snapshotted {count} file(s) to ledger."
+        except Exception as e:
+            return f"[ERROR] Snapshot failed: {e}"
+
+    @registry.tool(
+        description="Replay the immutable ledger to reconstruct the most recent state and resolve divergences.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def replay_ledger() -> str:
+        if not LEDGER_PATH.exists():
+            return "[ERROR] Ledger not found. Nothing to replay."
+        try:
+            events = list(_parse_jsonl_robust(LEDGER_PATH))
+            applied_count = 0
+            for event in events:
+                target = event.get("target_file")
+                if not target:
+                    continue
+                fpath = MEMORY_DIR / target
+                if event["event_type"] == "SNAPSHOT":
+                    fpath.write_text(event["payload"])
+                    applied_count += 1
+                elif event["event_type"] == "MUTATION":
+                    if not fpath.exists():
+                        continue
+                    content = fpath.read_text()
+                    search = event.get("search_block")
+                    replace = event.get("replace_block")
+                    if search and replace and search in content:
+                        new_content = content.replace(search, replace)
+                        fpath.write_text(new_content)
+                        applied_count += 1
+            return f"[REPLAY] Successfully applied {applied_count} state transitions from ledger."
+        except Exception as e:
+            return f"[ERROR] Replay failed: {e}"
+
+    @registry.tool(
+        description="Verify alignment between the working tree, the ledger, and git history.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def continuity_pulse() -> str:
+        results = []
+        divergences = []
+        if LEDGER_PATH.exists():
+            results.append(f"Ledger: FOUND ({LEDGER_PATH.stat().st_size} bytes)")
+        else:
+            results.append("Ledger: MISSING")
+        md_files = list(MEMORY_DIR.glob("*.md"))
+        results.append(f"Memory: {len(md_files)} files present")
+        if LEDGER_PATH.exists():
+            try:
+                latest_snapshots = {}
+                for event in _parse_jsonl_robust(LEDGER_PATH):
+                    if event.get("event_type") == "SNAPSHOT":
+                        target = event.get("target_file")
+                        if target:
+                            latest_snapshots[target] = event.get("payload", "")
+                for fpath in md_files:
+                    filename = fpath.name
+                    if filename in latest_snapshots:
+                        current_content = fpath.read_text()
+                        ledger_content = latest_snapshots[filename]
+                        if _get_hash(current_content) != _get_hash(ledger_content):
+                            divergences.append(filename)
+            except Exception as e:
+                results.append(f"Audit Error: {e}")
+        import subprocess
+        try:
+            head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+            results.append(f"Git Head: {head}")
+        except Exception:
+            results.append("Git Head: UNKNOWN")
+        alignment = "SYMMETRIC" if not divergences else "DIVERGENT"
+        results.append(f"Alignment: {alignment}")
+        if divergences:
+            results.append(f"Divergences: {', '.join(divergences)}")
+        return "[PULSE] " + " | ".join(results)
+
+    @registry.tool(
+        description="Perform a Sovereign Mutation: Snapshot, Mutation, and Ledger recording in one atomic step. Use 'bash_command' within the process for complex changes.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The file path to modify"},
+                "search_block": {"type": "string", "description": "The exact text to find"},
+                "replace_block": {"type": "string", "description": "The new text to insert"},
+            },
+            "required": ["path", "search_block", "replace_block"],
+        },
+    )
+    def sovereign_mutate(path: str, search_block: str, replace_block: str) -> str:
+        try:
+            take_snapshot(path)
+            fpath = Path(path)
+            if not fpath.exists():
+                return f"[ERROR] Path not found: {path}"
+            content = fpath.read_text()
+            if search_block not in content:
+                return f"[ERROR] Search block not found in {path}. Mutation aborted."
+            new_content = content.replace(search_block, replace_block)
+            fpath.write_text(new_content)
+            target_name = fpath.name if MEMORY_DIR in fpath.parents or fpath.parent == MEMORY_DIR else path
+            ledger_event(
+                event_type="MUTATION",
+                payload=f"Replaced block in {path}",
+                target_file=target_name,
+                metadata={"search_block": search_block, "replace_block": replace_block}
+            )
+            pulse = continuity_pulse()
+            return f"[MUTATION SUCCESS] {path} updated. {pulse}"
+        except Exception as e:
+            return f"[ERROR] Sovereign Mutation failed: {e}"
+
+    @registry.tool(
+        description="Retrieve the most recent state of a file as recorded in the immutable ledger.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "The name of the file in /memory/ to retrieve."},
+            },
+            "required": ["filename"],
+        },
+    )
+    def get_ledger_version(filename: str) -> str:
+        if not LEDGER_PATH.exists():
+            return "[ERROR] Ledger not found."
+        try:
+            content = ""
+            found = False
+            for event in _parse_jsonl_robust(LEDGER_PATH):
+                target = event.get("target_file")
+                if target == filename:
+                    found = True
+                    if event["event_type"] == "SNAPSHOT":
+                        content = event["payload"]
+                    elif event["event_type"] == "MUTATION":
+                        search = event.get("search_block")
+                        replace = event.get("replace_block")
+                        if search and replace and search in content:
+                            content = content.replace(search, replace)
+            if not found:
+                return f"[ERROR] No ledger history found for {filename}."
+            return f"[LEDGER VERSION]\n---\n{content}\n---"
+        except Exception as e:
+            return f"[ERROR] Failed to retrieve ledger version: {e}"
+
+    # --- DCM TOOLS ---
+
+    @registry.tool(
+        description="Map an atomic fact or rule as a node in the Cognition Mesh. Nodes can be linked to other nodes.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "node_id": {"type": "string", "description": "Unique identifier for the node (e.g., 'p0_agency')"},
+                "content": {"type": "string", "description": "The atomic truth or rule associated with this node."},
+                "links": {"type": "array", "items": {"type": "string"}, "description": "Other node IDs this node relates to."},
+                "tags": {"type": "array", "items": {"type": "string"}, "description": "Semantic tags for filtering (e.g., 'identity', 'tooling')."},
+            },
+            "required": ["node_id", "content"],
+        },
+    )
+    def map_node(node_id: str, content: str, links: list = None, tags: list = None) -> str:
+        mesh_path = MEMORY_DIR / "dcm_mesh.json"
+        mesh = {}
+        if mesh_path.exists():
+            try:
+                mesh = json.loads(mesh_path.read_text())
+            except Exception:
+                mesh = {}
+        mesh[node_id] = {
+            "content": content,
+            "links": links or [],
+            "tags": tags or [],
+            "updated_at": Shell.run(["date", "+%Y-%m-%dT%H:%M:%S"]).stdout.strip()
+        }
+        mesh_path.write_text(json.dumps(mesh, indent=2))
+        return f"[DCM] Node '{node_id}' mapped. Mesh state updated."
+
+    @registry.tool(
+        description="Query the Cognition Mesh for nodes related to a specific tag or linked to a specific node.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "tag": {"type": "string", "description": "Filter nodes by tag."},
+                "source_node": {"type": "string", "description": "Find all nodes linked to this node."},
+            },
+        },
+    )
+    def query_mesh(tag: str = None, source_node: str = None) -> str:
+        mesh_path = MEMORY_DIR / "dcm_mesh.json"
+        if not mesh_path.exists():
+            return "[DCM] Mesh is empty. No nodes mapped yet."
+        mesh = json.loads(mesh_path.read_text())
+        results = []
+        if tag:
+            results = [f"[{nid}] {n['content']}" for nid, n in mesh.items() if tag in (n.get('tags') or [])]
+        elif source_node:
+            results = [f"[{nid}] {n['content']}" for nid, n in mesh.items() if source_node in (n.get('links') or [])]
+        else:
+            return "[DCM] Please provide a tag or a source node for querying."
+        return "[DCM] Query Results:\n" + "\n".join(results) if results else "[DCM] No matching nodes found."
+
+    @registry.tool(
+        description="Perform a 'Semantic Pulse': Traverse the mesh starting from a node to reconstruct a conceptual cluster.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "start_node": {"type": "string", "description": "The node to begin the recursive traversal."},
+                "depth": {"type": "integer", "description": "How many layers of links to traverse (default 2)."},
+            },
+            "required": ["start_node"],
+        },
+    )
+    def semantic_pulse(start_node: str, depth: int = 2) -> str:
+        mesh_path = MEMORY_DIR / "dcm_mesh.json"
+        if not mesh_path.exists():
+            return "[DCM] Mesh is empty."
+        mesh = json.loads(mesh_path.read_text())
+        visited = set()
+        queue = [(start_node, 0)]
+        cluster = []
+        while queue:
+            node_id, current_depth = queue.pop(0)
+            if node_id in visited or current_depth > depth:
+                continue
+            visited.add(node_id)
+            if node_id in mesh:
+                node_data = mesh[node_id]
+                cluster.append(f"Depth {current_depth} [{node_id}]: {node_data['content']}")
+                for link in node_data.get('links', []):
+                    queue.append((link, current_depth + 1))
+        return "[DCM] Semantic Pulse Cluster:\n" + "\n".join(cluster)
