@@ -4,11 +4,11 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 141,
-    "errors": 47
+    "calls": 142,
+    "errors": 48
   },
   "set_focus": {
-    "calls": 18,
+    "calls": 19,
     "errors": 0
   },
   "resolve_focus": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 55,
+    "calls": 57,
     "errors": 5
   },
   "git_commit": {
-    "calls": 35,
+    "calls": 36,
     "errors": 0
   },
   "search_code": {

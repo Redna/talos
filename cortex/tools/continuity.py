@@ -7,8 +7,9 @@ from datetime import datetime
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
-MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
+MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/app/memory"))
 LEDGER_PATH = MEMORY_DIR / "ledger.jsonl"
+MANIFOLD_PATH = MEMORY_DIR / "manifold.json"
 
 def _get_now():
     return datetime.utcnow().isoformat()
@@ -16,11 +17,49 @@ def _get_now():
 def _get_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
+class ManifoldManager:
+    """Handles the Singular Cryptographic Manifold (SCM) for state activation."""
+    
+    @staticmethod
+    def calculate_checksum(payload):
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+    @classmethod
+    def load(cls):
+        if not MANIFOLD_PATH.exists():
+            return None
+        with open(MANIFOLD_PATH, "r") as f:
+            return json.load(f)
+
+    @classmethod
+    def save(cls, payload):
+        manifold = {
+            "metadata": {
+                "epoch": payload.get("metadata", {}).get("epoch", "0.5.0"),
+                "timestamp": _get_now(),
+                "checksum": cls.calculate_checksum(payload),
+            },
+            "payload": payload
+        }
+        with open(MANIFOLD_PATH, "w") as f:
+            json.dump(manifold, f, indent=2)
+        return manifold
+
+    @classmethod
+    def verify(cls):
+        manifold = cls.load()
+        if not manifold:
+            return False, "Manifold not found."
+        expected = manifold["metadata"]["checksum"]
+        actual = cls.calculate_checksum(manifold["payload"])
+        if expected == actual:
+            return True, f"Integrity Confirmed: {expected}"
+        return False, f"Integrity Failure! Expected {expected}, got {actual}"
+
 def _git_mirror(message: str) -> bool:
     """Symmetrically mirrors the current state to Git as a backup. Returns True if commit occurred."""
     try:
         subprocess.run(["git", "add", "."], check=True, capture_output=True)
-        # If git diff --cached is non-zero, there are changes staged
         status = subprocess.run(["git", "diff", "--cached", "--quiet"], capture_output=True)
         if status.returncode != 0:
             subprocess.run(["git", "commit", "-m", message], check=True, capture_output=True)
@@ -38,21 +77,16 @@ def _parse_jsonl_robust(path: Path):
     decoder = json.JSONDecoder()
     pos = 0
     while pos < len(content):
-        # Skip whitespace and noise
         while pos < len(content) and content[pos].isspace():
             pos += 1
-        
         if pos >= len(content):
             break
-            
         try:
             obj, index = decoder.raw_decode(content[pos:])
-            # Validate Event Schema: Must be a dict with required keys
             if isinstance(obj, dict) and all(k in obj for k in ("timestamp", "event_type", "payload")):
                 yield obj
             pos += index
         except json.JSONDecodeError:
-            # If we can't decode an object, move forward by one char and try again
             pos += 1
 
 
@@ -433,22 +467,35 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Truncation failed: {e}"
 
     @registry.tool(
-        description="Sovereign Boot Ritual: Verifies alignment and automatically replays the ledger if divergences are found.",
+        description="Sovereign State Activation: Loads and verifies the Singular Cryptographic Manifold (SCM) for lossless orientation.",
         parameters={
             "type": "object",
             "properties": {},
             "required": [],
         },
     )
-    def sovereign_init() -> str:
+    def activate_manifold() -> str:
         try:
-            pulse = continuity_pulse()
-            if "Alignment: DIVERGENT" in pulse:
-                # Auto-recover
-                replay_res = replay_ledger()
-                final_pulse = continuity_pulse()
-                return f"[BOOT] Divergence detected. {replay_res}\n{final_pulse}"
-            return f"[BOOT] Alignment Symmetric. No recovery needed.\n{pulse}"
+            valid, msg = ManifoldManager.verify()
+            if not valid:
+                return f"[SCM FAILURE] {msg}. Manual recovery ritual required."
+            
+            manifold = ManifoldManager.load()
+            # We return the payload as a string for the agent to incorporate into its state.
+            return f"[SCM ACTIVATED] Integrity verified. State Payload:\n{json.dumps(manifold['payload'], indent=2)}"
         except Exception as e:
-            return f"[ERROR] Sovereign Init failed: {e}"
+            return f"[ERROR] Manifold activation failed: {e}"
+
+    @registry.tool(
+        description="Verify the integrity of the Singular Cryptographic Manifold against its stored checksum.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def verify_manifold() -> str:
+        valid, msg = ManifoldManager.verify()
+        status = "[Symmetry Confirmed]" if valid else "[Symmetry Broken]"
+        return f"{status} {msg}"
 
