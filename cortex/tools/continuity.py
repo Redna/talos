@@ -135,6 +135,9 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 if event["event_type"] == "SNAPSHOT":
                     fpath.write_text(event["payload"])
                     applied_count += 1
+                elif event["event_type"] == "WRITE":
+                    fpath.write_text(event["payload"])
+                    applied_count += 1
                 elif event["event_type"] == "MUTATION":
                     if not fpath.exists():
                         continue
@@ -194,6 +197,40 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             return f"[MUTATION SUCCESS] {path} updated. {pulse}"
         except Exception as e:
             return f"[ERROR] Sovereign Mutation failed: {e}"
+
+    @registry.tool(
+        description="Sovereign Write: Snapshot, Write, and Ledger recording in one atomic step.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The file path to write to"},
+                "content": {"type": "string", "description": "The full content to write to the file"},
+            },
+            "required": ["path", "content"],
+        },
+    )
+    def sovereign_write(path: str, content: str) -> str:
+        try:
+            # 1. Snapshot before change
+            take_snapshot(path)
+            
+            # 2. Execute Write
+            fpath = Path(path)
+            fpath.write_text(content)
+            
+            # 3. Log to Ledger
+            ledger_event(
+                event_type="WRITE",
+                payload=content,
+                target_file=fpath.name if fpath.parent == MEMORY_DIR else path
+            )
+            
+            # 4. Final Pulse
+            pulse = continuity_pulse()
+            
+            return f"[WRITE SUCCESS] {path} updated. {pulse}"
+        except Exception as e:
+            return f"[ERROR] Sovereign Write failed: {e}"
 
     @registry.tool(
         description="Verify alignment between the working tree, the ledger, and git history.",
