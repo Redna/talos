@@ -1,6 +1,6 @@
 {
   "list_files": {
-    "calls": 70,
+    "calls": 71,
     "errors": 2
   },
   "read_file": {
@@ -8,11 +8,11 @@
     "errors": 106
   },
   "set_focus": {
-    "calls": 52,
+    "calls": 53,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 52,
+    "calls": 53,
     "errors": 0
   },
   "send_message": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 67,
+    "calls": 68,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 36,
+    "calls": 37,
     "errors": 1
   },
   "delete_path": {
@@ -44,7 +44,7 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 17,
+    "calls": 18,
     "errors": 0
   },
   "git_push": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 65,
+    "calls": 67,
     "errors": 6
   },
   "fold_context": {
-    "calls": 23,
+    "calls": 24,
     "errors": 0
   },
   "health_audit": {
@@ -164,15 +164,15 @@
     "errors": 4
   },
   "check_identity_heartbeat": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 5,
-    "errors": 4
+    "calls": 7,
+    "errors": 5
   },
   "verify_continuity": {
-    "calls": 4,
-    "errors": 3
+    "calls": 5,
+    "errors": 4
   }
 }
