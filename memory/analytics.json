@@ -84,7 +84,7 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 22,
+    "calls": 23,
     "errors": 5
   },
   "replay_ledger": {
