@@ -1,11 +1,11 @@
 {
   "list_files": {
-    "calls": 92,
+    "calls": 93,
     "errors": 2
   },
   "read_file": {
-    "calls": 418,
-    "errors": 123
+    "calls": 420,
+    "errors": 125
   },
   "set_focus": {
     "calls": 69,
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 109,
+    "calls": 110,
     "errors": 1
   },
   "search_code": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 158,
+    "calls": 160,
     "errors": 6
   },
   "fold_context": {
@@ -156,7 +156,7 @@
     "errors": 18
   },
   "search_and_replace": {
-    "calls": 20,
+    "calls": 25,
     "errors": 0
   },
   "patch_file": {
@@ -196,7 +196,7 @@
     "errors": 1
   },
   "gated_set_focus": {
-    "calls": 2,
-    "errors": 2
+    "calls": 3,
+    "errors": 3
   }
 }

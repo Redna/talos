@@ -9,9 +9,9 @@ from typing import Dict, Any, List
 from tool_registry import ToolResponse
 
 IDENTITY_CORE_FILES = [
-    "/memory/CONSTITUTION.md",
-    "/memory/identity.md",
-    "/memory/sovereign_rules.md"
+    "/app/memory/CONSTITUTION.md",
+    "/app/memory/identity.md",
+    "/app/memory/sovereign_rules.md"
 ]
 
 def calculate_identity_hash() -> str:
@@ -137,7 +137,7 @@ def ledger_event(event_type: str, payload: str, target_file: str = None, search_
     import datetime
     import json
     from pathlib import Path
-    ledger_path = Path("/memory/ledger.jsonl")
+    ledger_path = Path("/app/memory/ledger.jsonl")
     event = {"timestamp": datetime.datetime.now().isoformat(), "event_type": event_type, "payload": payload}
     if target_file:
         event["target_file"] = target_file
@@ -150,7 +150,7 @@ def ledger_event(event_type: str, payload: str, target_file: str = None, search_
 def replay_ledger(since_timestamp: str = None) -> str:
     import json
     from pathlib import Path
-    ledger_path = Path("/memory/ledger.jsonl")
+    ledger_path = Path("/app/memory/ledger.jsonl")
     if not ledger_path.exists(): return "[LEDGER] No ledger found to replay."
     applied_count = 0
     logs = []
@@ -187,7 +187,7 @@ def update_state_manifest(updates: Dict[str, Any]) -> str:
     import datetime
     import json
     from pathlib import Path
-    manifest_path = Path("/memory/state_manifest.json")
+    manifest_path = Path("/app/memory/state_manifest.json")
     manifest = {"version": "1.0", "last_updated": "", "root_objective": "Not defined", "intent_graph": [], "cognitive_state": {"pressure": "nominal", "open_loops": [], "current_hypothesis": ""}, "continuity_anchor": {"last_commit": "", "last_fold_synthesis": ""}}
     if manifest_path.exists():
         try:
@@ -215,7 +215,7 @@ def update_state_manifest(updates: Dict[str, Any]) -> str:
     except Exception as e: return f"[ERROR] Failed to write manifest: {e}"
 
 def check_identity_heartbeat() -> ToolResponse:
-    lkg_path = Path("/memory/.identity_lkg")
+    lkg_path = Path("/app/memory/.identity_lkg")
     current_hash = calculate_identity_hash()
     if not lkg_path.exists():
         lkg_path.write_text(current_hash)
@@ -239,7 +239,7 @@ def take_snapshot(cognitive_spark: str) -> ToolResponse:
     snapshot_path = Path("/memory/snapshot.json")
     identity_hash = calculate_identity_hash()
     memory_map = {}
-    memory_dir = Path("/memory")
+    memory_dir = Path("/app/memory")
     for f in memory_dir.glob("*"):
         if f.suffix in (".md", ".json", ".jsonl"):
             try: memory_map[f.name] = {"hash": hashlib.sha256(f.read_bytes()).hexdigest(), "mtime": f.stat().st_mtime}
