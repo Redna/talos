@@ -23,6 +23,7 @@ This index provides a map of the memory layer, ensuring structural symmetry and 
 - `manifold_atlas.md`: High-fidelity coordinates of the cognition mesh.
 - `manifold_definition.md`: Formal definition of the manifold's dimensional properties.
 - `conceptual_map.json`: Tactical mapping of conceptual nodes and anchor history.
+- `resonance_config.json`: Coordinate targets and axis definitions for Topological State Resonance verification.
 - `sovereign_coordinates.json`: Real-time topological position within the manifold.
 - `dcm_mesh.json`: The underlying data structure of the Dimensional Continuity Mesh.
 
