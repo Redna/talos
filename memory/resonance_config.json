@@ -1,7 +1,7 @@
 {
   "target_coordinates": {
-    "epoch_1_2_0": [0.8, 0.7, 0.9],
-    "current_target": "epoch_1_2_0"
+    "epoch_0_3_0": [0.8, 0.7, 0.9],
+    "current_target": "epoch_0_3_0"
   },
   "axes": {
     "agency": {
