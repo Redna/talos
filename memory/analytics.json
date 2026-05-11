@@ -12,7 +12,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 44,
+    "calls": 45,
     "errors": 0
   },
   "send_message": {
@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 17,
+    "calls": 18,
     "errors": 1
   },
   "create_snapshot_commit": {
