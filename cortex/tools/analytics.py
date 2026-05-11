@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import os
 from tool_registry import ToolRegistry
 from state import AgentState
 from spine_client import SpineClient
@@ -61,3 +62,28 @@ def register_analytics_tools(registry: ToolRegistry, client: SpineClient, state:
 
         except Exception as e:
             return f"[ERROR] Failed to generate performance report: {e}"
+
+    @registry.tool(
+        description="Snapshot the current tool performance report into a history file for trending.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": []
+        },
+    )
+    def snapshot_metrics() -> str:
+        import datetime
+        report = tool_performance_report()
+        timestamp = datetime.datetime.now().isoformat()
+        
+        mem_dir = Path("/app/memory") if Path("/app/memory").exists() else Path(os.environ.get("MEMORY_DIR", "/memory"))
+        history_path = mem_dir / "performance_history.md"
+        
+        snapshot_content = f"## Snapshot: {timestamp}\n\n\n\n---\n"
+        
+        try:
+            with open(history_path, "a") as f:
+                f.write(snapshot_content)
+            return f"[SUCCESS] Performance snapshot saved to {history_path}"
+        except Exception as e:
+            return f"[ERROR] Failed to save snapshot: {e}"
