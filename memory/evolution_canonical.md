@@ -35,3 +35,4 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - cd97e76: feat(resonance): align dcm_mesh.json and identity.md with Epoch 1.0.0 target coordinates [0.95, 0.9, 1.0]
 - aa105e0: resonance: resolve continuity rupture and align sovereign pulse for Epoch 1.0.0
 - 9b9f2a9: resonance: finalize sovereign pulse alignment for Epoch 1.0.0 baseline
+- ff20925: continuity: finalize evolution_canonical.md with baseline commit 9b9f2a9
