@@ -4,15 +4,15 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 293,
+    "calls": 296,
     "errors": 81
   },
   "set_focus": {
-    "calls": 42,
+    "calls": 43,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 40,
+    "calls": 41,
     "errors": 0
   },
   "send_message": {
@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 30,
+    "calls": 31,
     "errors": 0
   },
   "replace_block": {
@@ -52,7 +52,7 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 47,
+    "calls": 48,
     "errors": 0
   },
   "take_snapshot": {
@@ -84,8 +84,8 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 18,
-    "errors": 3
+    "calls": 19,
+    "errors": 4
   },
   "replay_ledger": {
     "calls": 3,
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "bulk_rename": {
