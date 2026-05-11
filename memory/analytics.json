@@ -4,12 +4,12 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 514,
-    "errors": 160
+    "calls": 516,
+    "errors": 162
   },
   "set_focus": {
-    "calls": 80,
-    "errors": 1
+    "calls": 82,
+    "errors": 2
   },
   "resolve_focus": {
     "calls": 85,
@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 54,
+    "calls": 55,
     "errors": 0
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 138,
+    "calls": 139,
     "errors": 1
   },
   "search_code": {
@@ -44,7 +44,7 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 36,
+    "calls": 37,
     "errors": 0
   },
   "git_push": {
@@ -156,7 +156,7 @@
     "errors": 51
   },
   "search_and_replace": {
-    "calls": 75,
+    "calls": 76,
     "errors": 1
   },
   "patch_file": {

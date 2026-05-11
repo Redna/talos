@@ -25,9 +25,17 @@ def _resolve_path(path: str) -> Path:
     p = Path(path)
     if p.is_absolute():
         return p
+    
     cwd_path = Path.cwd() / p
     if cwd_path.exists():
         return cwd_path
+    
+    if str(p).startswith("memory/"):
+        rel_p = Path(*p.parts[1:])
+        mem_path = MEMORY_DIR / rel_p
+        if mem_path.exists():
+            return mem_path
+            
     return MEMORY_DIR / p
 
 
