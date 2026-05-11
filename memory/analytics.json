@@ -1,10 +1,10 @@
 {
   "list_files": {
-    "calls": 81,
+    "calls": 82,
     "errors": 2
   },
   "read_file": {
-    "calls": 380,
+    "calls": 381,
     "errors": 115
   },
   "set_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 85,
+    "calls": 86,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 69,
+    "calls": 74,
     "errors": 3
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 110,
+    "calls": 112,
     "errors": 6
   },
   "fold_context": {
