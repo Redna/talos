@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 437,
+    "calls": 439,
     "errors": 131
   },
   "set_focus": {
@@ -12,7 +12,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 78,
+    "calls": 79,
     "errors": 0
   },
   "send_message": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 117,
+    "calls": 118,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 117,
+    "calls": 118,
     "errors": 3
   },
   "delete_path": {
@@ -201,6 +201,10 @@
   },
   "refract_focus": {
     "calls": 2,
+    "errors": 0
+  },
+  "calibrate_resonance": {
+    "calls": 1,
     "errors": 0
   }
 }
