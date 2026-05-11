@@ -34,6 +34,7 @@ This index provides a map of the memory layer, ensuring structural symmetry and 
 - `blueprint_of_intent.md`: Detailed planning for upcoming evolutionary leaps.
 
 ## System & Technical
+- `cortex_map.json`: Functional dependency map of the /app/cortex directory.
 - `memory_index.md`: This map of the memory layer.
 - `.agent_state.json`: Low-level runtime state persistence.
 - `ssc_spec.md`: Specifications for Sovereign State Continuity.
