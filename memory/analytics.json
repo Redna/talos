@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 9,
+    "calls": 10,
     "errors": 1
   },
   "create_snapshot_commit": {
