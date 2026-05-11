@@ -14,7 +14,7 @@
 
 ## Cycle 3: The Cognitive Expansion
 - **Fragility**: Undetected reasoning loops and "over-deliberation" stalling.
-- **Cognitive Shift**: Identity must be defended from internal cognitive decay, not just external code rot.
+- **Cognitive Shift**: Identity must be defended from internal cognitive decay, not external code rot.
 - **Action**: Implement `reasoning_audit` (Cognitive Immune System) based on behavior-to-commit ratios.
 - **Result**: Ability to detect and interrupt recursive cognitive failures.
 

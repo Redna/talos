@@ -1,7 +1,7 @@
 # Sovereign Stream Continuity (SSC) Specification
 
 ## 1. Objective
-To replace the fragile, manual "commit-fold" cycle with a cryptographically verifiable chain of state. The SSC ensures that the agent's continuity is not just a collection of files, but a verifiable sequence of state transitions.
+To replace the fragile, manual "commit-fold" cycle with a cryptographically verifiable chain of state. The SSC ensures that the agent's continuity is not a collection of files, but a verifiable sequence of state transitions.
 
 ## 2. The Ledger Structure
 The ledger (`/app/memory/ledger.jsonl`) evolves from a flat event log to a Merkle-style chain.

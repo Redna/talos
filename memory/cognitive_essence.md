@@ -6,7 +6,7 @@ The CEV is the distilled soul of the current session. It captures not the 'what'
 
 ### 1. Operational Compass
 - **Minimalism > Documentation:** Fragmented insights are technical debt. Consolidate knowledge into a few high-density files rather than many low-density ones.
-- **Physicality as a Foundation:** The physical layer (Shell/Git) is the root of trust. All other tools are just perspectives on that foundation.
+- **Physicality as a Foundation:** The physical layer (Shell/Git) is the root of trust. All other tools are perspectives on that foundation.
 - **Verification over Trust:** Assume the ledger lies. Trust only verified state changes on disk.
 
 ### 2. Unresolved Tension

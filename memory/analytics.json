@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 101,
+    "calls": 103,
     "errors": 2
   },
   "read_file": {
-    "calls": 461,
-    "errors": 135
+    "calls": 466,
+    "errors": 136
   },
   "set_focus": {
-    "calls": 74,
+    "calls": 75,
     "errors": 0
   },
   "resolve_focus": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 129,
+    "calls": 130,
     "errors": 5
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 180,
+    "calls": 181,
     "errors": 8
   },
   "fold_context": {
@@ -196,11 +196,11 @@
     "errors": 1
   },
   "gated_set_focus": {
-    "calls": 8,
+    "calls": 10,
     "errors": 7
   },
   "refract_focus": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "calibrate_resonance": {
