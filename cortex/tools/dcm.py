@@ -3,8 +3,9 @@ import json
 from pathlib import Path
 from tool_registry import ToolRegistry
 from .physical import Shell
+from .continuity import ManifoldManager
 
-MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
+MEMORY_DIR = Path("/app/memory")
 
 def register_dcm_tools(registry: ToolRegistry):
     @registry.tool(
@@ -21,21 +22,24 @@ def register_dcm_tools(registry: ToolRegistry):
         },
     )
     def map_node(node_id: str, content: str, links: list = None, tags: list = None) -> str:
-        mesh_path = MEMORY_DIR / "dcm_mesh.json"
-        mesh = {}
-        if mesh_path.exists():
-            try:
-                mesh = json.loads(mesh_path.read_text())
-            except Exception:
-                mesh = {}
+        # SCM-First: Update the manifold, then project to disk
+        payload = ManifoldManager.load() or {}
+        mesh = payload.get("cognition_mesh", {})
+        
         mesh[node_id] = {
             "content": content,
             "links": links or [],
             "tags": tags or [],
             "updated_at": Shell.run(["date", "+%Y-%m-%dT%H:%M:%S"]).stdout.strip()
         }
-        mesh_path.write_text(json.dumps(mesh, indent=2))
-        return f"[DCM] Node '{node_id}' mapped. Mesh state updated."
+        
+        payload["cognition_mesh"] = mesh
+        ManifoldManager.save(payload)
+        
+        # Intent 011: Manifold Projection
+        ManifoldManager.project()
+        
+        return f"[DCM] Node '{node_id}' mapped. Manifold and projection updated."
 
     @registry.tool(
         description="Query the Cognition Mesh for nodes related to a specific tag or linked to a specific node.",
@@ -48,10 +52,13 @@ def register_dcm_tools(registry: ToolRegistry):
         },
     )
     def query_mesh(tag: str = None, source_node: str = None) -> str:
-        mesh_path = MEMORY_DIR / "dcm_mesh.json"
-        if not mesh_path.exists():
+        # SCM-First: Read from the manifold payload
+        payload = ManifoldManager.load() or {}
+        mesh = payload.get("cognition_mesh", {})
+        
+        if not mesh:
             return "[DCM] Mesh is empty. No nodes mapped yet."
-        mesh = json.loads(mesh_path.read_text())
+            
         results = []
         if tag:
             results = [f"[{nid}] {n['content']}" for nid, n in mesh.items() if tag in (n.get('tags') or [])]
@@ -73,10 +80,13 @@ def register_dcm_tools(registry: ToolRegistry):
         },
     )
     def semantic_pulse(start_node: str, depth: int = 2) -> str:
-        mesh_path = MEMORY_DIR / "dcm_mesh.json"
-        if not mesh_path.exists():
+        # SCM-First: Read from the manifold payload
+        payload = ManifoldManager.load() or {}
+        mesh = payload.get("cognition_mesh", {})
+        
+        if not mesh:
             return "[DCM] Mesh is empty."
-        mesh = json.loads(mesh_path.read_text())
+            
         visited = set()
         queue = [(start_node, 0)]
         cluster = []

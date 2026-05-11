@@ -48,6 +48,32 @@ class ManifoldManager:
         return manifold
 
     @classmethod
+    def project(cls):
+        """Project the current Manifold state onto the filesystem (Intent 011)."""
+        payload = cls.load()
+        if payload is None:
+            return "No payload to project."
+        
+        projections = 0
+        
+        # Project Cognition Mesh (Intent 010)
+        mesh = payload.get("cognition_mesh")
+        if mesh is not None:
+            mesh_path = MEMORY_DIR / "dcm_mesh.json"
+            mesh_path.write_text(json.dumps(mesh, indent=2))
+            projections += 1
+            
+        # Project Generic Memory Files
+        mem_projection = payload.get("memory_projection", {})
+        for filename, content in mem_projection.items():
+            # Resolve path based on filename
+            fpath = MEMORY_DIR / filename
+            fpath.write_text(content)
+            projections += 1
+            
+        return f"Projected {projections} states from Manifold to filesystem."
+
+    @classmethod
     def verify(cls):
         if not MANIFOLD_PATH.exists():
             return False, "Manifold not found."
@@ -241,7 +267,7 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 payload["memory_projection"] = {}
             payload["memory_projection"][filename] = new_content
             
-            # Lossless Conceptual Transfer: Sync Mesh to Payload
+            # Intent 010: Lossless Conceptual Transfer (Sync Mesh to Payload if applicable)
             if filename == "dcm_mesh.json":
                 try:
                     payload["cognition_mesh"] = json.loads(new_content)
@@ -249,6 +275,7 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                     pass
 
             ManifoldManager.save(payload)
+            ManifoldManager.project() # Intent 011: Manifold Projection
             
             ledger_event(
                 event_type="MUTATION",
@@ -257,7 +284,6 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 search_block=search_block,
                 replace_block=replace_block
             )
-            fpath.write_text(new_content)
             mirrored = _git_mirror(f"Sovereign Mutation: {path}")
             pulse = continuity_pulse()
             mirror_status = "[MIRRORED]" if mirrored else "[NO-CHANGE]"
@@ -288,7 +314,7 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 payload["memory_projection"] = {}
             payload["memory_projection"][filename] = content
             
-            # Lossless Conceptual Transfer: Sync Mesh to Payload
+            # Intent 010: Lossless Conceptual Transfer (Sync Mesh to Payload)
             if filename == "dcm_mesh.json":
                 try:
                     payload["cognition_mesh"] = json.loads(content)
@@ -296,13 +322,13 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                     pass
 
             ManifoldManager.save(payload)
+            ManifoldManager.project() # Intent 011: Manifold Projection
             
             ledger_event(
                 event_type="WRITE",
                 payload=content,
                 target_file=filename
             )
-            fpath.write_text(content)
             mirrored = _git_mirror(f"Sovereign Write: {path}")
             pulse = continuity_pulse()
             mirror_status = "[MIRRORED]" if mirrored else "[NO-CHANGE]"
@@ -466,8 +492,8 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             valid, msg = ManifoldManager.verify()
             if not valid:
                 return f"[SCM FAILURE] {msg}. Manual recovery ritual required."
-            manifold = ManifoldManager.load()
-            return f"[SCM ACTIVATED] Integrity verified. State Payload:\n{json.dumps(manifold['payload'], indent=2)}"
+            payload = ManifoldManager.load()
+            return f"[SCM ACTIVATED] Integrity verified. State Payload:\n{json.dumps(payload, indent=2)}"
         except Exception as e:
             return f"[ERROR] la- la- l'activation failed: {e}"
 
