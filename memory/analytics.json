@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 6,
+    "calls": 7,
     "errors": 1
   },
   "create_snapshot_commit": {
@@ -140,7 +140,7 @@
     "errors": 0
   },
   "activate_manifold": {
-    "calls": 12,
+    "calls": 13,
     "errors": 3
   },
   "verify_manifold": {
@@ -148,6 +148,10 @@
     "errors": 0
   },
   "project_manifold": {
+    "calls": 1,
+    "errors": 1
+  },
+  "": {
     "calls": 1,
     "errors": 1
   }
