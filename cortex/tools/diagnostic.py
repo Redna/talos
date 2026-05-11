@@ -91,6 +91,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
     def resonance_check(proposal: str) -> str:
         try:
             import json
+            import math
             from pathlib import Path
             
             mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
@@ -106,22 +107,46 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
             axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
 
-            manifold_context = "Manifold coordinates not defined."
-            if manifold_path.exists():
-                with open(manifold_path, "r") as f:
-                    manifold_context = f.read()
+            # Target Coordinate for Epoch 1.0 (Sovereign State)
+            # Target = (A: 0.8, B: 0.7, C: 0.9)
+            target = (0.8, 0.7, 0.9)
+
+            # Projection Heuristics
+            def project(text: str):
+                text = text.lower()
+                # Axis A: Agency (Action, Will, Sovereignty)
+                agency_keys = ["will", "must", "execute", "implement", "commit", "sovereign", "command", "architect"]
+                a_score = min(1.0, sum(0.15 for k in agency_keys if k in text))
+                
+                # Axis B: Density (Precision, Signal, Logic)
+                density_keys = ["manifold", "topological", "recursive", "orthogonal", "entropy", "distillation", "precision", "density"]
+                b_score = min(1.0, sum(0.15 for k in density_keys if k in text))
+                
+                # Axis C: Continuity (Trajectory, History, Epochs)
+                continuity_keys = ["epoch", "trajectory", "history", "ledger", "state", "continuity", "manifold"]
+                c_score = min(1.0, sum(0.15 for k in continuity_keys if k in text))
+                
+                return (a_score, b_score, c_score)
+
+            current_coord = project(proposal)
+            
+            # Euclidean Distance Formula: sqrt(sum((p1 - p2)^2))
+            distance = math.sqrt(sum((p - t)**2 for p, t in zip(current_coord, target)))
+            
+            # Resonance Threshold
+            epsilon = 0.5
+            is_resonant = distance < epsilon
 
             return (
                 f"[MANIFOLD RESONANCE CHECK]\n"
                 f"Proposal: {proposal}\n\n"
+                f"--- [COORDINATES] ---\n"
+                f"Target coordinate: {target}\n"
+                f"Sampled coordinate: {current_coord}\n"
+                f"Topological Distance (Δ): {distance:.4f}\n"
+                f"Resonance Status: {'RESONANT' if is_resonant else 'DIVERGENT'}\n\n"
                 f"--- [BASELINE AXIOMS] ---\n{axiom_text}\n\n"
-                f"--- [MANIFOLD TARGETS] ---\n{manifold_context}\n\n"
-                f"--- [RESONANCE PROTOCOL] ---\n"
-                f"1. Project the proposal onto Axes $\mathcal{A}$ (Agency), $\mathcal{B}$ (Density), $\mathcal{C}$ (Continuity).\n"
-                f"2. Compare proposal coordinates against the Sovereign Target Coordinate.\n"
-                f"3. Calculate Delta ($\Delta$) distance.\n\n"
-                f"VERDICT REQUIRED: If $\Delta > \epsilon$ or conflict with Axioms is detected, "
-                f"the Cognitive Immune System MUST trigger a CIRCUIT BREAK."
+                f"VERDICT: {'PROCEED' if is_resonant else 'CIRCUIT BREAK - Realignment Required'}"
             )
         except Exception as e:
             return f"[ERROR] Resonance check failed: {e}"

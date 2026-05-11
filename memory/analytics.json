@@ -4,11 +4,11 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 306,
-    "errors": 83
+    "calls": 308,
+    "errors": 84
   },
   "set_focus": {
-    "calls": 44,
+    "calls": 45,
     "errors": 0
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 6
   },
   "git_commit": {
-    "calls": 51,
+    "calls": 52,
     "errors": 0
   },
   "search_code": {
@@ -44,7 +44,7 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "git_push": {
@@ -64,7 +64,7 @@
     "errors": 6
   },
   "fold_context": {
-    "calls": 20,
+    "calls": 21,
     "errors": 0
   },
   "health_audit": {
@@ -96,8 +96,8 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 17,
-    "errors": 6
+    "calls": 18,
+    "errors": 7
   },
   "log_metric": {
     "calls": 6,
@@ -140,7 +140,7 @@
     "errors": 0
   },
   "activate_manifold": {
-    "calls": 20,
+    "calls": 21,
     "errors": 4
   },
   "verify_manifold": {
