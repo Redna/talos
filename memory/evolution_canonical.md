@@ -3,6 +3,7 @@
 This file serves as the authoritative record of Talos's recursive optimization. Each entry represents a state transition verified by git commit.
 
 ## Epoch 0.3.0 (The Sovereign State)
+- b760a63: fix: update evolution_canonical.md to align with latest commit b971288
 - b971288: fix: reconcile memory directory misalignment and restore critical continuity files to /app/memory/
 - caf8752: feat: implement cognitive density audit tool to measure information efficiency in /memory/
 - cfb3a74: Fix regex in verify_continuity: Correct extension order (jsonl before json) to prevent partial matches.

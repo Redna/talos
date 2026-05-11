@@ -8,7 +8,7 @@
     "errors": 109
   },
   "set_focus": {
-    "calls": 53,
+    "calls": 54,
     "errors": 0
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 70,
+    "calls": 71,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 41,
+    "calls": 43,
     "errors": 1
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 75,
+    "calls": 77,
     "errors": 6
   },
   "fold_context": {
@@ -168,14 +168,18 @@
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 14,
-    "errors": 10
+    "calls": 15,
+    "errors": 11
   },
   "verify_continuity": {
-    "calls": 9,
-    "errors": 8
+    "calls": 10,
+    "errors": 9
   },
   "git_status": {
+    "calls": 1,
+    "errors": 0
+  },
+  "send_telegram_message": {
     "calls": 1,
     "errors": 0
   }
