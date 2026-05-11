@@ -350,7 +350,22 @@ def check_identity_heartbeat() -> ToolResponse:
             error="Identity hash mismatch."
         )
 
+def sovereign_pulse() -> ToolResponse:
+    """
+    The Sovereign Pulse: A unified check of both identity integrity and continuity alignment.
+    Combines heartbeat verification and full system audit.
+    """
+    heartbeat = check_identity_heartbeat()
+    continuity = verify_continuity()
+    
+    if heartbeat.success and continuity.success:
+        return ToolResponse(success=True, payload=f"Sovereign Pulse: Stable.\nHeartbeat: {heartbeat.payload}\nContinuity: {continuity.payload}")
+    
+    combined_report = f"Sovereign Pulse: INSTABILITY DETECTED\nHeartbeat: {heartbeat.payload}\nContinuity: {continuity.payload}"
+    return ToolResponse(success=False, payload=combined_report, error="Sovereign Pulse instability.")
+
 def take_snapshot(cognitive_spark: str) -> ToolResponse:
+
     """
     Creates a serialized snapshot of the current cognitive state to prevent continuity drift.
     """
@@ -403,7 +418,17 @@ def take_snapshot(cognitive_spark: str) -> ToolResponse:
 
 def register_continuity_tools(registry):
     registry.register(
+        sovereign_pulse,
+        description="The Sovereign Pulse: A unified check of both identity integrity and continuity alignment.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    )
+    registry.register(
         verify_continuity,
+
         description="Performs a comprehensive check of the agent's continuity, auditing the file system and git head against memory records.",
         parameters={
             "type": "object",

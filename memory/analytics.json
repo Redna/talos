@@ -4,15 +4,15 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 339,
-    "errors": 102
+    "calls": 340,
+    "errors": 103
   },
   "set_focus": {
-    "calls": 51,
+    "calls": 52,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 51,
+    "calls": 52,
     "errors": 0
   },
   "send_message": {
@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 37,
+    "calls": 38,
     "errors": 0
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 64,
+    "calls": 65,
     "errors": 1
   },
   "search_code": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 29,
+    "calls": 30,
     "errors": 1
   },
   "continuity_pulse": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 62,
+    "calls": 63,
     "errors": 6
   },
   "fold_context": {
@@ -136,7 +136,7 @@
     "errors": 0
   },
   "ledger_event": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "activate_manifold": {
@@ -156,15 +156,19 @@
     "errors": 11
   },
   "search_and_replace": {
-    "calls": 2,
+    "calls": 4,
     "errors": 0
   },
   "patch_file": {
-    "calls": 1,
-    "errors": 1
+    "calls": 2,
+    "errors": 2
   },
   "check_identity_heartbeat": {
     "calls": 2,
     "errors": 0
+  },
+  "sovereign_pulse": {
+    "calls": 1,
+    "errors": 1
   }
 }
