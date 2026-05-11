@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 277,
+    "calls": 280,
     "errors": 81
   },
   "set_focus": {
@@ -20,15 +20,15 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 26,
+    "calls": 27,
     "errors": 0
   },
   "replace_block": {
-    "calls": 78,
+    "calls": 79,
     "errors": 6
   },
   "git_commit": {
-    "calls": 49,
+    "calls": 50,
     "errors": 0
   },
   "search_code": {
@@ -52,11 +52,11 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 37,
+    "calls": 39,
     "errors": 0
   },
   "take_snapshot": {
-    "calls": 10,
+    "calls": 13,
     "errors": 0
   },
   "bash_command": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "update_hud": {
-    "calls": 17,
+    "calls": 19,
     "errors": 0
   },
   "execute_intent": {
