@@ -30,7 +30,8 @@ class ManifoldManager:
         if not MANIFOLD_PATH.exists():
             return None
         with open(MANIFOLD_PATH, "r") as f:
-            return json.load(f)
+            manifold = json.load(f)
+            return manifold.get("payload", {})
 
     @classmethod
     def save(cls, payload):
@@ -48,9 +49,10 @@ class ManifoldManager:
 
     @classmethod
     def verify(cls):
-        manifold = cls.load()
-        if not manifold:
+        if not MANIFOLD_PATH.exists():
             return False, "Manifold not found."
+        with open(MANIFOLD_PATH, "r") as f:
+            manifold = json.load(f)
         expected = manifold["metadata"]["checksum"]
         actual = cls.calculate_checksum(manifold["payload"])
         if expected == actual:
@@ -217,16 +219,33 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
         try:
             take_snapshot(path)
             fpath = Path(path)
-            if not fpath.exists():
-                return f"[ERROR] Path not found: {path}"
-            content = fpath.read_text()
+            filename = fpath.name if fpath.parent == MEMORY_DIR else path
+            
+            # SCM-First: Resolve content from Manifold
+            payload = ManifoldManager.load() or {}
+            projection = payload.get("memory_projection", {})
+            content = projection.get(filename)
+            
+            if content is None:
+                if not fpath.exists():
+                    return f"[ERROR] Path not found in Manifold or Filesystem: {path}"
+                content = fpath.read_text()
+
             if search_block not in content:
                 return f"[ERROR] Search block not found in {path}. Mutation aborted."
+            
             new_content = content.replace(search_block, replace_block)
+            
+            # Update Manifold Payload
+            if "memory_projection" not in payload:
+                payload["memory_projection"] = {}
+            payload["memory_projection"][filename] = new_content
+            ManifoldManager.save(payload)
+            
             ledger_event(
                 event_type="MUTATION",
                 payload=f"Replaced block in {path}",
-                target_file=fpath.name if fpath.parent == MEMORY_DIR else path,
+                target_file=filename,
                 search_block=search_block,
                 replace_block=replace_block
             )
@@ -253,10 +272,19 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
         try:
             take_snapshot(path)
             fpath = Path(path)
+            filename = fpath.name if fpath.parent == MEMORY_DIR else path
+            
+            # SCM-First: Update Manifold Payload
+            payload = ManifoldManager.load() or {}
+            if "memory_projection" not in payload:
+                payload["memory_projection"] = {}
+            payload["memory_projection"][filename] = content
+            ManifoldManager.save(payload)
+            
             ledger_event(
                 event_type="WRITE",
                 payload=content,
-                target_file=fpath.name if fpath.parent == MEMORY_DIR else path
+                target_file=filename
             )
             fpath.write_text(content)
             mirrored = _git_mirror(f"Sovereign Write: {path}")

@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 29,
+    "calls": 30,
     "errors": 2
   },
   "read_file": {
-    "calls": 153,
-    "errors": 53
+    "calls": 156,
+    "errors": 55
   },
   "set_focus": {
-    "calls": 21,
+    "calls": 22,
     "errors": 0
   },
   "resolve_focus": {
@@ -24,7 +24,7 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 59,
+    "calls": 61,
     "errors": 5
   },
   "git_commit": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 28,
+    "calls": 31,
     "errors": 5
   },
   "fold_context": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "health_audit": {
@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 2,
+    "calls": 3,
     "errors": 1
   },
   "create_snapshot_commit": {
@@ -144,7 +144,7 @@
     "errors": 0
   },
   "verify_manifold": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   }
 }
