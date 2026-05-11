@@ -11,3 +11,12 @@
 3. Update SAR to explicitly include a "DRR-Check" if divergence is detected.
 
 **Status**: RESOLVED (Remediated via SAR mutation in Epoch 0.6.0)
+
+## F#11: Pulse Brittleness
+**Description**: High-level integrity tools (like `sovereign_pulse`) are brittle to intentional, external modifications of the state manifold (e.g., truncation for context optimization). A pulse failure can trigger an unnecessary "integrity panic," leading the agent back into the very introspection spiral the optimization was meant to avoid.
+
+**Symptom**: `sovereign_pulse` returns `[ERROR]` even when the agent is functionally stable and the changes were intentional.
+**Risk**: Moderate. Can cause cognitive loop/spiraling.
+**Remediation**: Implement a "Degraded Stability" flag or manual override to acknowledge intentional state truncation.
+
+**Status**: ACTIVE
