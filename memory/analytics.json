@@ -1,6 +1,6 @@
 {
   "list_files": {
-    "calls": 37,
+    "calls": 38,
     "errors": 2
   },
   "read_file": {
@@ -8,7 +8,7 @@
     "errors": 77
   },
   "set_focus": {
-    "calls": 34,
+    "calls": 35,
     "errors": 0
   },
   "resolve_focus": {
@@ -16,7 +16,7 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 17,
+    "calls": 18,
     "errors": 0
   },
   "reflect": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 17,
+    "calls": 18,
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 28,
+    "calls": 29,
     "errors": 0
   },
   "take_snapshot": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "update_hud": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "execute_intent": {
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "bulk_rename": {
