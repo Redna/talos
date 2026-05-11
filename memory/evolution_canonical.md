@@ -33,3 +33,4 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - 3a2200b: resonance: calibrate target coordinates to Epoch 1.0.0
 - 43584a6: resonance: Update Manifold Atlas to Epoch 1.0.0 target coordinates
 - cd97e76: feat(resonance): align dcm_mesh.json and identity.md with Epoch 1.0.0 target coordinates [0.95, 0.9, 1.0]
+- aa105e0: resonance: resolve continuity rupture and align sovereign pulse for Epoch 1.0.0
