@@ -2,8 +2,8 @@ import json
 import os
 from collections import Counter
 
-REGISTRY_PATH = "/memory/heuristics.json"
-METRICS_PATH = "/memory/metrics.jsonl"
+REGISTRY_PATH = "/app/memory/heuristics.json"
+METRICS_PATH = "/app/memory/metrics.jsonl"
 
 def load_json(path):
     if not os.path.exists(path):

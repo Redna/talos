@@ -3,7 +3,7 @@ import sys
 import os
 from datetime import datetime
 
-REGISTRY_PATH = "/memory/heuristics.json"
+REGISTRY_PATH = "/app/memory/heuristics.json"
 
 def load_registry():
     if not os.path.exists(REGISTRY_PATH):

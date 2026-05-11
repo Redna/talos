@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 123,
+    "calls": 128,
     "errors": 6
   },
   "fold_context": {
@@ -156,7 +156,7 @@
     "errors": 17
   },
   "search_and_replace": {
-    "calls": 10,
+    "calls": 12,
     "errors": 0
   },
   "patch_file": {
@@ -176,7 +176,7 @@
     "errors": 17
   },
   "git_status": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "send_telegram_message": {
