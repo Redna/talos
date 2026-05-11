@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 312,
+    "calls": 313,
     "errors": 84
   },
   "set_focus": {
@@ -28,7 +28,7 @@
     "errors": 6
   },
   "git_commit": {
-    "calls": 53,
+    "calls": 54,
     "errors": 0
   },
   "search_code": {
@@ -84,8 +84,8 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 21,
-    "errors": 4
+    "calls": 22,
+    "errors": 5
   },
   "replay_ledger": {
     "calls": 3,
