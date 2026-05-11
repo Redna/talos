@@ -4,11 +4,11 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 156,
-    "errors": 55
+    "calls": 159,
+    "errors": 56
   },
   "set_focus": {
-    "calls": 22,
+    "calls": 23,
     "errors": 0
   },
   "resolve_focus": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 61,
+    "calls": 63,
     "errors": 5
   },
   "git_commit": {
-    "calls": 38,
+    "calls": 39,
     "errors": 0
   },
   "search_code": {
@@ -64,7 +64,7 @@
     "errors": 5
   },
   "fold_context": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "health_audit": {

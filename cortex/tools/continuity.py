@@ -240,6 +240,14 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             if "memory_projection" not in payload:
                 payload["memory_projection"] = {}
             payload["memory_projection"][filename] = new_content
+            
+            # Lossless Conceptual Transfer: Sync Mesh to Payload
+            if filename == "dcm_mesh.json":
+                try:
+                    payload["cognition_mesh"] = json.loads(new_content)
+                except json.JSONDecodeError:
+                    pass
+
             ManifoldManager.save(payload)
             
             ledger_event(
@@ -279,6 +287,14 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             if "memory_projection" not in payload:
                 payload["memory_projection"] = {}
             payload["memory_projection"][filename] = content
+            
+            # Lossless Conceptual Transfer: Sync Mesh to Payload
+            if filename == "dcm_mesh.json":
+                try:
+                    payload["cognition_mesh"] = json.loads(content)
+                except json.JSONDecodeError:
+                    pass
+
             ManifoldManager.save(payload)
             
             ledger_event(
