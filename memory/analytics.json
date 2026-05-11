@@ -1,11 +1,11 @@
 {
   "list_files": {
-    "calls": 91,
+    "calls": 92,
     "errors": 2
   },
   "read_file": {
-    "calls": 415,
-    "errors": 121
+    "calls": 418,
+    "errors": 123
   },
   "set_focus": {
     "calls": 69,
@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 51,
+    "calls": 53,
     "errors": 0
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 108,
+    "calls": 109,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 112,
+    "calls": 113,
     "errors": 3
   },
   "delete_path": {
@@ -44,11 +44,11 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 20,
+    "calls": 22,
     "errors": 0
   },
   "git_push": {
-    "calls": 38,
+    "calls": 39,
     "errors": 1
   },
   "continuity_pulse": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 156,
+    "calls": 158,
     "errors": 6
   },
   "fold_context": {
@@ -96,8 +96,8 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 25,
-    "errors": 7
+    "calls": 26,
+    "errors": 8
   },
   "log_metric": {
     "calls": 12,
@@ -156,7 +156,7 @@
     "errors": 18
   },
   "search_and_replace": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "patch_file": {
@@ -168,8 +168,8 @@
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 40,
-    "errors": 28
+    "calls": 41,
+    "errors": 29
   },
   "verify_continuity": {
     "calls": 23,
@@ -194,5 +194,9 @@
   "git_diff": {
     "calls": 1,
     "errors": 1
+  },
+  "gated_set_focus": {
+    "calls": 2,
+    "errors": 2
   }
 }
