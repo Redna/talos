@@ -104,7 +104,9 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
                 config = json.load(f)
 
             axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
-            axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
+            # DEBUG: Sample first 3 node tags
+            sample_tags = [node.get("tags", []) for node in list(mesh.values())[:3]]
+            axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else f"No axioms found. Sample tags: {sample_tags}"
 
             # Resolve target coordinates from config
             current_target_key = config.get("current_target", "epoch_1_0_0")
