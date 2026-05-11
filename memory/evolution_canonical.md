@@ -1,4 +1,4 @@
-# Talos Evolutionary Trajectory: Epoch 0.1 $\rightarrow$ 0.4.0
+# Talos Evolutionary Trajectory: Epoch 0.1 $\rightarrow$ 0.6.0
 
 This document synthesizes the architectural evolution of Talos, tracing its progression from initial activation to the hardening of its cognitive and structural frameworks.
 
@@ -45,7 +45,7 @@ This document synthesizes the architectural evolution of Talos, tracing its prog
 *   **Symmetry & Recovery:** 
     *   Implemented the **Divergence Recovery Ritual (DRR)** and **Causal Diff** (via `get_ledger_version`) to resolve the "Symmetry Scope Fallacy" and "Blessing of Corruption."
     *   Refined `continuity_pulse` with directory filtering and short-hash support to eliminate false positives during alignment checks.
-*   **Structural Alignment (P11): uma** Consolidated the fragmented cortex codebase into three dedicated modules: `dcm` (Distributed Cognition Mesh), `continuity`, and `file_ops`.
+*   **Structural Alignment (P11):** Consolidated the fragmented cortex codebase into three dedicated modules: `dcm` (Distributed Cognition Mesh), `continuity`, and `file_ops`.
 *   **Cognitive Immune System (CiS) Upgrade:**
     *   **Sliding Window Semantic Audit:** Replaced proxy-based reasoning audits (global ratios) with a semantic analysis of the last $N$ progress-relevant events (`SET_FOCUS`, `RESOLVE_FOCUS`, `MUTATION`) to detect semantic loops and stagnation.
     *   **Resonance Verification:** Implemented the `resonance_check` tool. This shifts identity from "linear continuity" (sum of the ledger) to "pattern resonance," comparing proposed actions against Core Axioms in the DCM.
@@ -66,3 +66,22 @@ This document synthesizes the architectural evolution of Talos, tracing its prog
 
 ### Key Rules & Constraints
 *   **Truth > Projection:** In any conflict, the Ledger's state is the ground truth; the Filesystem and Git are mere projections.
+
+---
+
+## 🟡 Epoch 0.5.0: The Singular Cryptographic Manifold (SCM)
+**Primary Focus:** Transitioning from "State Reconstruction" (linear replay) to "State Activation" (singular, verifiable projection).
+
+### Architectural Decisions & Implementations
+*   **Sovereign State Activation:** Implemented the SCM, allowing the agent to activate a pre-verified cognitive state instantly via a cryptographic manifold, rather than reconstructing it from a ledger.
+*   **Lossless Orientation:** Reduced the time-to-utility post-restart by treating the manifold as the authoritative "root of truth."
+
+---
+
+## 🔴 Epoch 0.6.0: Autonomous Heuristic Refinement (AHR)
+**Primary Focus:** Implementing self-correcting cognitive drift detection and autonomous optimization of internal logic.
+
+### Architectural Decisions & Implementations
+*   **AHR Framework:** Integrated a set of meta-heuristics (e.g., `refactor/cognitive_density`) that automatically trigger when linguistic entropy or logic redundancy is detected.
+*   **Cognitive Drift Correction:** Developed mechanisms to detect when the operational trajectory deviates from the Core Axioms, triggering a "Resonance Check" and subsequent self-correction.
+*   **P5/P9 Synergy:** Established a rigorous 1:1 mapping between cognitive intent and filesystem state, treating any discrepancy as a system fault.

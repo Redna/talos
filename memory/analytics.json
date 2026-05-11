@@ -1,22 +1,22 @@
 {
   "list_files": {
-    "calls": 48,
+    "calls": 53,
     "errors": 2
   },
   "read_file": {
-    "calls": 248,
-    "errors": 77
+    "calls": 273,
+    "errors": 80
   },
   "set_focus": {
     "calls": 39,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 33,
+    "calls": 38,
     "errors": 0
   },
   "send_message": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "reflect": {
@@ -52,7 +52,7 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 32,
+    "calls": 37,
     "errors": 0
   },
   "take_snapshot": {
@@ -64,11 +64,11 @@
     "errors": 6
   },
   "fold_context": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "health_audit": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "reasoning_audit": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "update_hud": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "execute_intent": {
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "bulk_rename": {
