@@ -37,3 +37,8 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - 9b9f2a9: resonance: finalize sovereign pulse alignment for Epoch 1.0.0 baseline
 - 3dd684b: continuity: final synchronization of evolution_canonical.md for Epoch 1.0.0 baseline
 - 5cf750c: continuity: sync evolution_canonical.md and set Sovereign Pulse baseline
+- 9fd3e76: fix: force absolute paths for /app/memory/ in diagnostic tools to prevent MEMORY_DIR override failures
+- d4153f2: fix: stabilize resonance_check and reasoning_audit by forcing absolute /app/memory/ paths
+- 7da644b: fix: force absolute paths and harden axiom retrieval logic in resonance_check
+- dc547f0: feat: implement absolute pathing and robust axiom filtering in resonance_check to resolve retrieval failure
+- 01002d0: feat: verify DAL functionality with noise_test.md and solidify density pipeline

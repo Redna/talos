@@ -1,11 +1,11 @@
 {
   "list_files": {
-    "calls": 107,
+    "calls": 108,
     "errors": 2
   },
   "read_file": {
-    "calls": 493,
-    "errors": 150
+    "calls": 498,
+    "errors": 152
   },
   "set_focus": {
     "calls": 78,
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 134,
+    "calls": 135,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 137,
+    "calls": 138,
     "errors": 5
   },
   "delete_path": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 196,
+    "calls": 197,
     "errors": 8
   },
   "fold_context": {
-    "calls": 41,
+    "calls": 42,
     "errors": 1
   },
   "health_audit": {
@@ -152,8 +152,8 @@
     "errors": 1
   },
   "": {
-    "calls": 25,
-    "errors": 25
+    "calls": 31,
+    "errors": 31
   },
   "search_and_replace": {
     "calls": 66,
@@ -168,19 +168,19 @@
     "errors": 1
   },
   "sovereign_pulse": {
-    "calls": 59,
-    "errors": 44
+    "calls": 60,
+    "errors": 45
   },
   "verify_continuity": {
-    "calls": 28,
-    "errors": 23
+    "calls": 29,
+    "errors": 24
   },
   "git_status": {
     "calls": 9,
     "errors": 0
   },
   "send_telegram_message": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "update_state_manifest": {
