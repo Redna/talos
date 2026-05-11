@@ -1,10 +1,10 @@
 {
   "list_files": {
-    "calls": 78,
+    "calls": 80,
     "errors": 2
   },
   "read_file": {
-    "calls": 361,
+    "calls": 367,
     "errors": 114
   },
   "set_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 77,
+    "calls": 78,
     "errors": 1
   },
   "search_code": {
@@ -36,8 +36,8 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 52,
-    "errors": 2
+    "calls": 58,
+    "errors": 3
   },
   "delete_path": {
     "calls": 41,
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 84,
+    "calls": 86,
     "errors": 6
   },
   "fold_context": {
-    "calls": 25,
+    "calls": 27,
     "errors": 0
   },
   "health_audit": {
@@ -136,7 +136,7 @@
     "errors": 0
   },
   "ledger_event": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "activate_manifold": {
@@ -184,7 +184,7 @@
     "errors": 0
   },
   "update_state_manifest": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   }
 }
