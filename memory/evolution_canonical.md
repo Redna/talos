@@ -25,6 +25,7 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - a65364f: Sovereign Write: /memory/manifold_atlas.md
 - 0c416b5: feat(diagnostic): implement topological resonance logic in resonance_check; fix LaTeX-induced NameError; transition to Epoch 1.0 metrics
 - cec250f: Sovereign Mutation: /app/cortex/tools/diagnostic.py
+- 4dc63b7: evolution: restore identity symmetry and align to Epoch 1.0.0 post-truncation
 
 ## Epoch 1.2.0 (Recursive Self-Optimization)
 - d3b0256: Ep 1.2.0: Blueprint for Recursive Self-Optimization, Heuristic Registry and Manager, and first proto-heuristic 'continuity/pre_fold_sync'
