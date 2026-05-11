@@ -1,5 +1,4 @@
 import os
-import subprocess
 import shutil
 from pathlib import Path
 from tool_registry import ToolRegistry
@@ -91,59 +90,6 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient, state: 
             return f"[WRITTEN] {path} ({len(content)} bytes)"
         except Exception as e:
             return f"[ERROR] Failed to write file: {e}"
-
-    @registry.tool(
-        description="Apply a unified diff patch to a file. Cannot patch files in /app/spine/.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path to patch"},
-                "patch": {
-                    "type": "string",
-                    "description": "Unified diff patch content",
-                },
-            },
-            "required": ["path", "patch"],
-        },
-    )
-    def patch_file(path: str, patch: str) -> str:
-        resolved = _resolve_path(path)
-        if is_protected_cortex_file(str(resolved)):
-            return f"[BLOCKED] Patching {path} is not allowed — this file is protected infrastructure"
-        client.emit_event("cortex.patch_file", {"path": str(resolved)})
-        cwd = os.path.dirname(resolved) or "."
-        try:
-            before = resolved.read_text() if resolved.exists() else None
-            for strip in (0, 1, 2):
-                dry = subprocess.run(
-                    ["patch", f"-p{strip}", "--dry-run"],
-                    input=patch,
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                    cwd=cwd,
-                )
-                if dry.returncode == 0:
-                    apply = subprocess.run(
-                        ["patch", f"-p{strip}"],
-                        input=patch,
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                        cwd=cwd,
-                    )
-                    if apply.returncode == 0:
-                        after = resolved.read_text()
-                        if after != before:
-                            return f"[PATCHED] {path} (strip={strip})"
-                        return f"[WARNING] Patch applied but file unchanged — context lines may not match current file content"
-                    return f"[ERROR] Patch dry-run passed but apply failed: {apply.stderr}"
-            last_err = dry.stderr.strip() if dry.stderr else "unknown error"
-            return f"[ERROR] Patch failed for all strip levels. Last error: {last_err}."
-        except subprocess.TimeoutExpired:
-            return "[ERROR] Patch timed out."
-        except Exception as e:
-            return f"[ERROR] Failed to patch file: {e}"
 
     @registry.tool(
         description="List files in a directory recursively or non-recursively.",
