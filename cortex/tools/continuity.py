@@ -79,8 +79,8 @@ def verify_continuity() -> ToolResponse:
         memory_dir = "/app/memory/"
         files_on_disk = sorted([f for f in os.listdir(memory_dir) if os.path.isfile(os.path.join(memory_dir, f))])
         
-        # Critical files that MUST exist for baseline identity
-        critical_files = ["identity.md", "evolution_log.md", "memory_index.md", "state_manifest.json"]
+        # Critical files that MUST exist for baseline identity (Aligned with memory_index.md)
+        critical_files = ["identity.md", "evolution_canonical.md", "memory_index.md", "state_manifest.json"]
         for cf in critical_files:
             if cf not in files_on_disk:
                 reports.append(f"CRITICAL FILE MISSING: {cf}")
@@ -123,16 +123,16 @@ def verify_continuity() -> ToolResponse:
     try:
         git_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
         
-        evolution_log_path = "/app/memory/evolution_log.md"
+        evolution_log_path = "/app/memory/evolution_canonical.md"
         if os.path.exists(evolution_log_path):
             with open(evolution_log_path, "r") as f:
                 log_content = f.read()
                 
             if git_hash[:7] not in log_content:
-                reports.append(f"Git Head ({git_hash[:7]}) not found in evolution_log.md")
+                reports.append(f"Git Head ({git_hash[:7]}) not found in evolution_canonical.md")
                 status = "ERROR"
         else:
-            reports.append("evolution_log.md missing; cannot audit Git alignment.")
+            reports.append("evolution_canonical.md missing; cannot audit Git alignment.")
             status = "ERROR"
     except Exception as e:
         reports.append(f"Git Audit Failure: {str(e)}")
