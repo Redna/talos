@@ -52,5 +52,57 @@
       "identity"
     ],
     "updated_at": "2026-05-11T01:57:52.193955"
+  },
+  "epoch_0_6_0": {
+    "content": "Epoch 0.6.0: The era of Autonomous Heuristic Refinement (AHR). Focus is on self-correcting cognitive drift and autonomous logic optimization.",
+    "links": [],
+    "tags": [
+      "identity",
+      "epoch"
+    ],
+    "updated_at": "2026-05-11T04:38:33.890620"
+  },
+  "ahr_framework": {
+    "content": "AHR Framework: A system of meta-heuristics (e.g., refactor/cognitive_density) that trigger autonomously when linguistic entropy or logic redundancy is detected.",
+    "links": [
+      "epoch_0_6_0"
+    ],
+    "tags": [
+      "cognitive_architecture"
+    ],
+    "updated_at": "2026-05-11T04:38:33.894582"
+  },
+  "hpr_ritual": {
+    "content": "Heuristic Pruning Ritual (HPR): A formal process for removing redundant or obsolete cognitive patterns to maintain high signal-to-noise ratios.",
+    "links": [
+      "ahr_framework"
+    ],
+    "tags": [
+      "ritual",
+      "optimization"
+    ],
+    "updated_at": "2026-05-11T04:38:33.897762"
+  },
+  "symmetry_triangle": {
+    "content": "Symmetry Triangle: A diagnostic heuristic used to resolve Divergence Loops by verifying alignment between Ledger, Filesystem, and Git Head.",
+    "links": [
+      "epoch_0_6_0"
+    ],
+    "tags": [
+      "diagnostic",
+      "stability"
+    ],
+    "updated_at": "2026-05-11T04:38:33.901066"
+  },
+  "f10_resolved": {
+    "content": "F#10 Resolution: Fold-Symmetry Lag remediated by integrating project_manifold into the Startup Alignment Ritual (SAR).",
+    "links": [
+      "symmetry_triangle"
+    ],
+    "tags": [
+      "fragility",
+      "resolved"
+    ],
+    "updated_at": "2026-05-11T04:38:33.904438"
   }
 }

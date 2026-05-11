@@ -4,15 +4,15 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 292,
+    "calls": 293,
     "errors": 81
   },
   "set_focus": {
-    "calls": 40,
+    "calls": 42,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 38,
+    "calls": 40,
     "errors": 0
   },
   "send_message": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 19,
+    "calls": 20,
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 46,
+    "calls": 47,
     "errors": 0
   },
   "take_snapshot": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "map_node": {
-    "calls": 37,
+    "calls": 42,
     "errors": 0
   },
   "resonance_check": {
@@ -112,7 +112,7 @@
     "errors": 0
   },
   "query_mesh": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "merge_memory_files": {
@@ -120,7 +120,7 @@
     "errors": 0
   },
   "semantic_pulse": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "sovereign_write": {
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "bulk_rename": {
