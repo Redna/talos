@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 56,
+    "calls": 57,
     "errors": 2
   },
   "read_file": {
-    "calls": 288,
+    "calls": 292,
     "errors": 81
   },
   "set_focus": {
-    "calls": 39,
+    "calls": 40,
     "errors": 0
   },
   "resolve_focus": {
@@ -52,7 +52,7 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 45,
+    "calls": 46,
     "errors": 0
   },
   "take_snapshot": {
@@ -64,7 +64,7 @@
     "errors": 6
   },
   "fold_context": {
-    "calls": 18,
+    "calls": 19,
     "errors": 0
   },
   "health_audit": {
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "bulk_rename": {
