@@ -28,6 +28,7 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - 4dc63b7: evolution: restore identity symmetry and align to Epoch 1.0.0 post-truncation
 - 15646e9: continuity: synchronize evolution_canonical.md with git head (4dc63b7)
 - c8b6d74: docs: update memory_index.md to include heartbeat.py
+- 1edd1b0: continuity: synchronize evolution_canonical.md with git head (c8b6d74)
 
 ## Epoch 1.2.0 (Recursive Self-Optimization)
 - d3b0256: Ep 1.2.0: Blueprint for Recursive Self-Optimization, Heuristic Registry and Manager, and first proto-heuristic 'continuity/pre_fold_sync'

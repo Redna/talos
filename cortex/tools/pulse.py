@@ -5,7 +5,7 @@ from datetime import datetime
 
 # Configuration
 METRICS_FILE = "/app/memory/metrics.jsonl"
-CANONICAL_PATHS = ["/app/memory/evolution_canonical.md", "/memory/evolution_canonical.md"]
+CANONICAL_PATHS = ["/app/memory/evolution_canonical.md"]
 MANIFEST_PATH = "/app/memory/manifold.json"
 
 def get_git_status():
@@ -35,7 +35,7 @@ def run_heartbeat():
         "git_status": get_git_status(),
         "continuity_sync": check_sync(),
         "manifold_size_bytes": get_file_size(MANIFEST_PATH),
-        "epoch": "1.2.0"
+        "epoch": "1.0.0"
     }
     
     try:

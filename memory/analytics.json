@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 96,
+    "calls": 99,
     "errors": 2
   },
   "read_file": {
-    "calls": 431,
-    "errors": 130
+    "calls": 437,
+    "errors": 131
   },
   "set_focus": {
-    "calls": 71,
+    "calls": 72,
     "errors": 0
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 116,
+    "calls": 117,
     "errors": 1
   },
   "search_code": {
@@ -40,7 +40,7 @@
     "errors": 3
   },
   "delete_path": {
-    "calls": 41,
+    "calls": 43,
     "errors": 1
   },
   "request_restart": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 169,
+    "calls": 170,
     "errors": 8
   },
   "fold_context": {
-    "calls": 34,
+    "calls": 35,
     "errors": 0
   },
   "health_audit": {
@@ -156,7 +156,7 @@
     "errors": 18
   },
   "search_and_replace": {
-    "calls": 32,
+    "calls": 36,
     "errors": 0
   },
   "patch_file": {
@@ -164,11 +164,11 @@
     "errors": 10
   },
   "check_identity_heartbeat": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 44,
+    "calls": 45,
     "errors": 32
   },
   "verify_continuity": {
@@ -188,7 +188,7 @@
     "errors": 8
   },
   "get_conversation_history": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "git_diff": {

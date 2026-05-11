@@ -3,7 +3,7 @@ import sys
 import os
 
 # We write to both to satisfy the Git repository and the Sovereign Pulse tool
-CANONICAL_PATHS = ["/app/memory/evolution_canonical.md", "/memory/evolution_canonical.md"]
+CANONICAL_PATHS = ["/app/memory/evolution_canonical.md"]
 
 def run_command(command):
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
