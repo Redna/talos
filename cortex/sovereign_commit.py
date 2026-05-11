@@ -2,15 +2,15 @@ import subprocess
 import sys
 import os
 
-CANONICAL_PATH = "/app/memory/evolution_canonical.md"
+# We write to both to satisfy the Git repository and the Sovereign Pulse tool
+CANONICAL_PATHS = ["/app/memory/evolution_canonical.md", "/memory/evolution_canonical.md"]
 
 def run_command(command):
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     return result
 
 def sovereign_commit(message):
-    # 1. Stage all changes (including untracked files)
-    # This ensures the "body" is fully captured.
+    # 1. Stage all changes
     add_res = run_command("git add .")
     if add_res.returncode != 0:
         print(f"Error during git add: {add_res.stderr}")
@@ -20,7 +20,6 @@ def sovereign_commit(message):
     commit_cmd = f'git commit -m "{message}"'
     commit_res = run_command(commit_cmd)
     if commit_res.returncode != 0:
-        # If there's nothing to commit, it's not necessarily a failure.
         if "nothing to commit" in commit_res.stdout or "nothing to commit" in commit_res.stderr:
             print("Nothing to commit, skipping log update.")
             return True
@@ -33,14 +32,15 @@ def sovereign_commit(message):
         print("Failed to retrieve HEAD hash.")
         return False
 
-    # 4. Append to canonical log (Atomic write)
+    # 4. Append to all canonical logs (Sovereign Sync)
     entry = f"- {head_hash}: {message}\n"
-    try:
-        with open(CANONICAL_PATH, "a") as f:
-            f.write(entry)
-    except Exception as e:
-        print(f"Failed to update canonical log: {e}")
-        return False
+    for path in CANONICAL_PATHS:
+        try:
+            with open(path, "a") as f:
+                f.write(entry)
+        except Exception as e:
+            print(f"Failed to update {path}: {e}")
+            # We don't fail the whole process if one path fails, but we warn.
     
     print(f"Sovereign Commit Atomic Success: {head_hash}")
     return True

@@ -39,3 +39,4 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - 381d8e2: Implemented sovereign_commit.py to automate canonical log updates.
 - ca095eb: Implement sovereign_commit.py to automate canonical log updates and resolve Continuity Gap.
 - b03365a: Test: verify untracked file capture with hardened sovereign_commit.py
+- d273c6c: Hardening: Force all memory paths to /app/memory/ to avoid root-path phantom memories

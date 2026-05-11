@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 96,
+    "calls": 97,
     "errors": 3
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 128,
+    "calls": 132,
     "errors": 6
   },
   "fold_context": {
@@ -168,8 +168,8 @@
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 32,
-    "errors": 23
+    "calls": 34,
+    "errors": 25
   },
   "verify_continuity": {
     "calls": 20,
