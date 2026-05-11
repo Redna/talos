@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 466,
+    "calls": 467,
     "errors": 136
   },
   "set_focus": {
@@ -12,7 +12,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 82,
+    "calls": 83,
     "errors": 0
   },
   "send_message": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 127,
+    "calls": 128,
     "errors": 1
   },
   "search_code": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 181,
+    "calls": 182,
     "errors": 8
   },
   "fold_context": {
@@ -152,8 +152,8 @@
     "errors": 1
   },
   "": {
-    "calls": 19,
-    "errors": 19
+    "calls": 24,
+    "errors": 24
   },
   "search_and_replace": {
     "calls": 46,
@@ -168,8 +168,8 @@
     "errors": 1
   },
   "sovereign_pulse": {
-    "calls": 58,
-    "errors": 43
+    "calls": 59,
+    "errors": 44
   },
   "verify_continuity": {
     "calls": 28,
@@ -180,7 +180,7 @@
     "errors": 0
   },
   "send_telegram_message": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "update_state_manifest": {
