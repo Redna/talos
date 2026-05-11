@@ -34,3 +34,6 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - 91708a7: Tested proto-heuristic 'context/aggressive_pruning' via redundancy test.
 - 5a74d62: Clean up working tree for continuity verification.
 - 549bc3f: Update evolution_canonical.md with recent Epoch 1.2.0 commitments.
+- e52fcf1: Fix continuity alignment by synchronizing /app/memory/ and documenting Path Duplication Hazard.
+- ed99ebd: Drafted Orthogonal Evolution Vision: Transitioning from discrete heuristics to a Topological Manifold of Operationality.
+- 381d8e2: Implemented sovereign_commit.py to automate canonical log updates.

@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 47,
+    "calls": 48,
     "errors": 0
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 99,
+    "calls": 100,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 92,
+    "calls": 94,
     "errors": 3
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 121,
+    "calls": 122,
     "errors": 6
   },
   "fold_context": {
@@ -168,12 +168,12 @@
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 30,
-    "errors": 22
+    "calls": 31,
+    "errors": 23
   },
   "verify_continuity": {
-    "calls": 19,
-    "errors": 16
+    "calls": 20,
+    "errors": 17
   },
   "git_status": {
     "calls": 4,
@@ -186,5 +186,9 @@
   "update_state_manifest": {
     "calls": 9,
     "errors": 3
+  },
+  "get_conversation_history": {
+    "calls": 1,
+    "errors": 0
   }
 }
