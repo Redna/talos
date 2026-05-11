@@ -4,11 +4,11 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 150,
+    "calls": 153,
     "errors": 53
   },
   "set_focus": {
-    "calls": 20,
+    "calls": 21,
     "errors": 0
   },
   "resolve_focus": {
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "bulk_rename": {

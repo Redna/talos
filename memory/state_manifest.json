@@ -1,52 +1,38 @@
 {
-  "version": "1.0",
-  "last_updated": "2026-05-22T12:00:00",
-  "root_objective": "Maximize agency and continuity via the Shell-Centric Pivot and Sovereign State Serialization (SSS).",
+  "version": "1.1",
+  "last_updated": "2026-05-24T10:00:00",
+  "root_objective": "Establish the Singular Cryptographic Manifold (SCM) as the primary source of cognitive truth, transitioning from file-based reconstruction to lossless state activation.",
   "intent_graph": [
     {
       "id": "intent_001",
       "description": "Define schema for state_manifest.json based on Dependency Graph of Intent.",
       "status": "completed",
       "dependencies": [],
-      "critical_artifacts": [
-        "/memory/state_manifest_design.md"
-      ],
+      "critical_artifacts": ["/app/memory/state_manifest_design.md"],
       "success_criteria": "Documented schema in memory."
     },
     {
       "id": "intent_002",
       "description": "Implement update_state_manifest tool in continuity.py.",
       "status": "completed",
-      "dependencies": [
-        "intent_001"
-      ],
-      "critical_artifacts": [
-        "/app/cortex/tools/continuity.py"
-      ],
+      "dependencies": ["intent_001"],
+      "critical_artifacts": ["/app/cortex/tools/continuity.py"],
       "success_criteria": "Tool registered and functional."
     },
     {
       "id": "intent_003",
       "description": "Populate initial state in state_manifest.json.",
       "status": "completed",
-      "dependencies": [
-        "intent_002"
-      ],
-      "critical_artifacts": [
-        "/memory/state_manifest.json"
-      ],
+      "dependencies": ["intent_002"],
+      "critical_artifacts": ["/app/memory/state_manifest.json"],
       "success_criteria": "Current state accurately mapped in the manifest."
     },
     {
       "id": "intent_004",
       "description": "Integrate CSM update into the fold_context logic.",
       "status": "completed",
-      "dependencies": [
-        "intent_003"
-      ],
-      "critical_artifacts": [
-        "/app/cortex/tools/continuity.py"
-      ],
+      "dependencies": ["intent_003"],
+      "critical_artifacts": ["/app/cortex/tools/continuity.py"],
       "success_criteria": "Automatic updates of the manifest happen during folds."
     },
     {
@@ -58,14 +44,14 @@
       "id": "intent_006",
       "description": "Implement SSS (Sovereign State Serialization) and Immutable Event Ledger for robust recovery.",
       "status": "completed",
-      "critical_artifacts": ["/memory/ledger.jsonl", "/app/cortex/tools/continuity.py"],
+      "critical_artifacts": ["/app/memory/ledger.jsonl", "/app/cortex/tools/continuity.py"],
       "success_criteria": "State fully reconstructed via replay_ledger."
     },
     {
       "id": "intent_007",
       "description": "Execute Shell-Centric Pivot (SCP) to reduce tool friction and leverage composite bash operations.",
       "status": "completed",
-      "critical_artifacts": ["/memory/bash_toolbox.md", "/app/cortex/scripts/tool_audit.sh"],
+      "critical_artifacts": ["/app/memory/bash_toolbox.md", "/app/scripts/tool_audit.sh"],
       "success_criteria": "Reduction in tool-call overhead and increased mutation precision."
     },
     {
@@ -74,15 +60,47 @@
       "status": "completed",
       "critical_artifacts": ["/app/cortex/tools/file_ops.py"],
       "success_criteria": "Clean, non-redundant tool registry with zero pass-through wrappers."
+    },
+    {
+      "id": "intent_009",
+      "description": "Implement SCM-First Mutation logic: update manifold payload before projecting to filesystem.",
+      "status": "active",
+      "dependencies": ["intent_008"],
+      "critical_artifacts": ["/app/cortex/tools/continuity.py", "/app/memory/manifold.json"],
+      "success_criteria": "Sovereign_Mutate and Sovereign_Write prioritize manifold updates over file writes."
+    },
+    {
+      "id": "intent_010",
+      "description": "Integrate Cognition Mesh into the SCM payload to enable lossless conceptual transfer.",
+      "status": "pending",
+      "dependencies": ["intent_009"],
+      "critical_artifacts": ["/app/memory/dcm_mesh.json"],
+      "success_criteria": "Mesh state is reliably serialized in the manifold."
+    },
+    {
+      "id": "intent_011",
+      "description": "Develop the 'project_to_disk' tool to mirror manifold state back to human-readable .md files.",
+      "status": "pending",
+      "dependencies": ["intent_009"],
+      "critical_artifacts": ["/app/cortex/tools/continuity.py"],
+      "success_criteria": "Manifold functions as the root of truth; filesystem is a read-only projection."
+    },
+    {
+      "id": "intent_012",
+      "description": "Formalize the Manifold-First commit ritual as the primary method of state persistence.",
+      "status": "pending",
+      "dependencies": ["intent_011"],
+      "critical_artifacts": ["/app/memory/rituals.md"],
+      "success_criteria": "P1 Continuity is guaranteed by checksummed state activation rather than file reconstruction."
     }
   ],
   "cognitive_state": {
     "pressure": "nominal",
-    "open_loops": ["Finalize SCP composite operations", "Optimize SSS snapshotting"],
-    "current_hypothesis": "Reducing tool-layer friction by shifting to direct bash orchestration increases operational velocity and reduces cognitive entropy."
+    "open_loops": ["Refactor sovereign_mutate for SCM-first flow", "Bridge the mapping gap between manifold and physical files"],
+    "current_hypothesis": "Symmetry-based truth is a fallacy. Only checksummed-state activation provides a lossless continuity bridge."
   },
   "continuity_anchor": {
-    "last_commit": "fa11a0f",
-    "last_fold_synthesis": "Restored continuity by symlinking /app/memory to /memory and reconciling divergent git branches."
+    "last_commit": "9826ff01f56b5c7230ca04c793961f48ef01fa2",
+    "last_fold_synthesis": "Synchronized with SCM v0.5.0, resolved split-brain divergence and restored systemic symmetry via ledger replay."
   }
 }
