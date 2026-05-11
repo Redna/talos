@@ -47,3 +47,4 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - a5cdd4f: docs: synchronize memory_index.md with filesystem and stabilize Sovereign Pulse
 - 573f713: feat: resolve path ambiguity by prioritizing /app/memory over environment variables in file_ops, executive, and analytics tools
 - 1e5af9d: refactor: improve _resolve_path to handle 'memory/' prefix and avoid path double-nesting
+- 95754b7: feat: add snapshot_metrics tool to track performance trends and fix os import in analytics.py

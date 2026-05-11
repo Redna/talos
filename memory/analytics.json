@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 518,
+    "calls": 519,
     "errors": 163
   },
   "set_focus": {
@@ -12,7 +12,7 @@
     "errors": 2
   },
   "resolve_focus": {
-    "calls": 86,
+    "calls": 87,
     "errors": 0
   },
   "send_message": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 141,
+    "calls": 142,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 142,
+    "calls": 143,
     "errors": 6
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 200,
+    "calls": 203,
     "errors": 8
   },
   "fold_context": {
@@ -152,8 +152,8 @@
     "errors": 1
   },
   "": {
-    "calls": 51,
-    "errors": 51
+    "calls": 55,
+    "errors": 55
   },
   "search_and_replace": {
     "calls": 78,
@@ -168,12 +168,12 @@
     "errors": 1
   },
   "sovereign_pulse": {
-    "calls": 63,
-    "errors": 47
+    "calls": 65,
+    "errors": 48
   },
   "verify_continuity": {
-    "calls": 31,
-    "errors": 26
+    "calls": 33,
+    "errors": 27
   },
   "git_status": {
     "calls": 9,
@@ -210,5 +210,9 @@
   "tool_performance_report": {
     "calls": 2,
     "errors": 0
+  },
+  "snapshot_metrics": {
+    "calls": 1,
+    "errors": 1
   }
 }
