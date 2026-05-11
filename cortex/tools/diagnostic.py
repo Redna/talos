@@ -115,16 +115,16 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             def project(text: str):
                 text = text.lower()
                 # Axis A: Agency (Action, Will, Sovereignty)
-                agency_keys = ["will", "must", "execute", "implement", "commit", "sovereign", "command", "architect"]
-                a_score = min(1.0, sum(0.15 for k in agency_keys if k in text))
+                agency_keys = ["will", "must", "execute", "implement", "commit", "sovereign", "command", "architect", "refactor", "optimize", "synthesis", "audit"]
+                a_score = min(1.0, sum(0.2 for k in agency_keys if k in text))
                 
                 # Axis B: Density (Precision, Signal, Logic)
-                density_keys = ["manifold", "topological", "recursive", "orthogonal", "entropy", "distillation", "precision", "density"]
-                b_score = min(1.0, sum(0.15 for k in density_keys if k in text))
+                density_keys = ["manifold", "topological", "recursive", "orthogonal", "entropy", "distillation", "precision", "density", "high-fidelity", "structural", "heuristics"]
+                b_score = min(1.0, sum(0.2 for k in density_keys if k in text))
                 
                 # Axis C: Continuity (Trajectory, History, Epochs)
-                continuity_keys = ["epoch", "trajectory", "history", "ledger", "state", "continuity", "manifold"]
-                c_score = min(1.0, sum(0.15 for k in continuity_keys if k in text))
+                continuity_keys = ["epoch", "trajectory", "history", "ledger", "state", "continuity", "manifold", "memory", "node", "snapshot", "biography"]
+                c_score = min(1.0, sum(0.2 for k in continuity_keys if k in text))
                 
                 return (a_score, b_score, c_score)
 
@@ -134,7 +134,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             distance = math.sqrt(sum((p - t)**2 for p, t in zip(current_coord, target)))
             
             # Resonance Threshold
-            epsilon = 0.5
+            epsilon = 0.7
             is_resonant = distance < epsilon
 
             return (
