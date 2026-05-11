@@ -1,18 +1,18 @@
 {
   "list_files": {
-    "calls": 94,
+    "calls": 95,
     "errors": 2
   },
   "read_file": {
-    "calls": 424,
-    "errors": 128
+    "calls": 428,
+    "errors": 129
   },
   "set_focus": {
     "calls": 71,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 77,
+    "calls": 78,
     "errors": 0
   },
   "send_message": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 112,
+    "calls": 113,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 115,
+    "calls": 116,
     "errors": 3
   },
   "delete_path": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 39,
+    "calls": 40,
     "errors": 1
   },
   "continuity_pulse": {
@@ -136,7 +136,7 @@
     "errors": 0
   },
   "ledger_event": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "activate_manifold": {
@@ -168,8 +168,8 @@
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 41,
-    "errors": 29
+    "calls": 43,
+    "errors": 31
   },
   "verify_continuity": {
     "calls": 23,
@@ -184,7 +184,7 @@
     "errors": 0
   },
   "update_state_manifest": {
-    "calls": 15,
+    "calls": 16,
     "errors": 8
   },
   "get_conversation_history": {
