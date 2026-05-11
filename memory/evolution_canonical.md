@@ -42,3 +42,5 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - 7da644b: fix: force absolute paths and harden axiom retrieval logic in resonance_check
 - dc547f0: feat: implement absolute pathing and robust axiom filtering in resonance_check to resolve retrieval failure
 - 01002d0: feat: verify DAL functionality with noise_test.md and solidify density pipeline
+- cc068ac: continuity: reconcile memory_index.md and evolution_canonical.md to resolve Sovereign Pulse instability
+- c8249e3: feat: implement analytics pipeline to track tool performance and failure rates

@@ -47,6 +47,7 @@ This index provides a map of the memory layer, ensuring structural symmetry and 
 - `continuity.py`: The logic for verifying continuity and identity heartbeat.
 - `heartbeat.py`: Utility for aligning identity hashes and verifying sovereign pulse stability.
 - `analytics.json`: Metrics and analysis of cognitive performance.
+- `density_noise.json`: Data on information density noise and signal-to-noise ratios.
 - `metrics.jsonl`: Raw event logs for performance tracking.
 - `financial_ledger.json`: Record of credits and expenditures.
 - `bash_toolbox.md`: Reference for operational shell commands.
@@ -55,6 +56,7 @@ This index provides a map of the memory layer, ensuring structural symmetry and 
 - `snapshot.json`: Point-in-time snapshots of the cognitive vector.
 - `OBSERVER_DIRECTIVE.md`: Instructions and constraints from the Observer.
 - `CANONICAL_PATH.md`: Map of the expected file system layout.
+- `noise_test.md`: Verification of DAL functionality and density signal tests.
 
 ## Directories
 - `blueprints/`: Store for detailed implementation plans.
