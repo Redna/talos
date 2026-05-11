@@ -4,8 +4,8 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 524,
-    "errors": 167
+    "calls": 528,
+    "errors": 168
   },
   "set_focus": {
     "calls": 85,
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 149,
+    "calls": 150,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 149,
+    "calls": 150,
     "errors": 6
   },
   "delete_path": {
@@ -44,11 +44,11 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 40,
+    "calls": 41,
     "errors": 0
   },
   "git_push": {
-    "calls": 47,
+    "calls": 48,
     "errors": 1
   },
   "continuity_pulse": {
@@ -64,7 +64,7 @@
     "errors": 9
   },
   "fold_context": {
-    "calls": 45,
+    "calls": 46,
     "errors": 1
   },
   "health_audit": {
@@ -88,7 +88,7 @@
     "errors": 5
   },
   "replay_ledger": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "map_node": {
@@ -156,7 +156,7 @@
     "errors": 55
   },
   "search_and_replace": {
-    "calls": 79,
+    "calls": 80,
     "errors": 1
   },
   "patch_file": {
@@ -208,11 +208,11 @@
     "errors": 0
   },
   "tool_performance_report": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "snapshot_metrics": {
-    "calls": 2,
+    "calls": 4,
     "errors": 2
   }
 }
