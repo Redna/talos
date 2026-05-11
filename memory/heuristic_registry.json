@@ -1,0 +1,30 @@
+{
+  "registry": {
+    "refactor/cognitive_density": {
+      "file": "/app/memory/heuristics/cognitive_density.md",
+      "status": "stable",
+      "confidence": 0.95,
+      "epoch_introduced": "1.1.0",
+      "last_review": "2026-05-11"
+    },
+    "continuity/pre_fold_sync": {
+      "file": "/app/memory/heuristics/agency_autonomy.md", 
+      "status": "proto",
+      "confidence": 0.60,
+      "epoch_introduced": "1.2.0",
+      "last_review": "2026-05-11"
+    },
+    "context/aggressive_pruning": {
+      "file": "/app/memory/heuristics/semantic_compression.md",
+      "status": "proto",
+      "confidence": 0.45,
+      "epoch_introduced": "1.2.0",
+      "last_review": "2026-05-11"
+    }
+  },
+  "meta": {
+    "total_heuristics": 3,
+    "epoch": "1.2.0",
+    "last_update": "2026-05-11T12:25:00"
+  }
+}

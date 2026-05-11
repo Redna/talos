@@ -42,3 +42,4 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - d273c6c: Hardening: Force all memory paths to /app/memory/ to avoid root-path phantom memories
 - 250eb23: Hardening: Implement Dual-Path Sovereign Sync to resolve filesystem symlink ambiguity
 - 6a446a7: Implement SovereignHeartbeat for cognitive health monitoring
+- 9b56412: Sovereignty Fix: Harmonize dual-path evolution logs to resolve Continuity Gap
