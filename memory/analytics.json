@@ -1,18 +1,18 @@
 {
   "list_files": {
-    "calls": 30,
+    "calls": 34,
     "errors": 2
   },
   "read_file": {
-    "calls": 168,
-    "errors": 61
+    "calls": 186,
+    "errors": 70
   },
   "set_focus": {
-    "calls": 27,
+    "calls": 29,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 26,
+    "calls": 27,
     "errors": 0
   },
   "send_message": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 70,
+    "calls": 71,
     "errors": 5
   },
   "git_commit": {
-    "calls": 40,
+    "calls": 41,
     "errors": 0
   },
   "search_code": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "continuity_pulse": {
-    "calls": 24,
+    "calls": 25,
     "errors": 0
   },
   "take_snapshot": {
@@ -140,11 +140,15 @@
     "errors": 0
   },
   "activate_manifold": {
-    "calls": 8,
-    "errors": 2
+    "calls": 9,
+    "errors": 3
   },
   "verify_manifold": {
     "calls": 3,
     "errors": 0
+  },
+  "project_manifold": {
+    "calls": 1,
+    "errors": 1
   }
 }

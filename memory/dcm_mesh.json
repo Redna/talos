@@ -406,7 +406,7 @@
       "architecture",
       "process"
     ],
-    "updated_at": "2026-05-10T15:06:09"
+    "updated_at": "2026-05-10T15:06:17"
   },
   "smr_recovery": {
     "content": "SMR Failure Recovery: If mutation delta deviates from intent, revert using bash (cp backup to original), analyze failure, and restart ritual. Prevents 'Blessing of Corruption' (F#9).",

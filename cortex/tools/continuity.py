@@ -538,6 +538,20 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] Truncation failed: {e}"
 
     @registry.tool(
+        description="Project the current Manifold state onto the filesystem. This ensures the files in /memory/ are synchronized with the SCM root of truth.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def project_manifold() -> str:
+        try:
+            return ManifoldManager.project()
+        except Exception as e:
+            return f"[ERROR] Manifold projection failed: {e}"
+
+    @registry.tool(
         description="Sovereign State Activation: Loads and verifies the Singular Cryptographic Manifold (SCM) for lossless orientation.",
         parameters={
             "type": "object",
