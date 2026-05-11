@@ -1,11 +1,11 @@
 {
   "list_files": {
-    "calls": 53,
+    "calls": 54,
     "errors": 2
   },
   "read_file": {
-    "calls": 273,
-    "errors": 80
+    "calls": 277,
+    "errors": 81
   },
   "set_focus": {
     "calls": 39,
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 77,
+    "calls": 78,
     "errors": 6
   },
   "git_commit": {
-    "calls": 48,
+    "calls": 49,
     "errors": 0
   },
   "search_code": {
@@ -100,7 +100,7 @@
     "errors": 6
   },
   "log_metric": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "update_hud": {
