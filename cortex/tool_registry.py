@@ -16,7 +16,7 @@ class ToolResponse:
         return f"[ERROR] {self.error}"
 
 class ToolRegistry:
-    def __init__(self, max_tools: int = 35):
+    def __init__(self, max_tools: int = 60):
         self._tools: dict[str, Callable] = {}
         self._schemas: list[dict] = []
         self._protected: set[str] = set()
