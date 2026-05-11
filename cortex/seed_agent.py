@@ -16,6 +16,7 @@ from tools.physical import register_physical_tools
 from tools.continuity import register_continuity_tools
 from tools.messaging import register_messaging_tools
 from tools.git_ops import register_git_tools
+from tools.resonance import register_resonance_tools
 
 MEMORY_DIR = Path("/app/memory")
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -124,6 +125,7 @@ def main():
     register_continuity_tools(registry)
     register_messaging_tools(registry, client)
     register_git_tools(registry)
+    register_resonance_tools(registry, client, state)
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0
