@@ -46,3 +46,4 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - edbabd4: Implement Heuristic Registry for tracking confidence scores of Epoch 1.2.0 proto-heuristics
 - 5df8267: Stabilize Epoch 1.2.0: Implement HEC promoter and promote agency/operational_autonomy and memory/semantic_compression to stable
 - f35f347: feat(diag): implement saturated projection for Topological State Resonance; fix coordinate-based identity verification logic
+- c05b87f: docs(continuity): update memory_index.md and evolution_canonical.md to resolve Continuity Gap after Topological Projection refactor
