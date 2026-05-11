@@ -1,26 +1,26 @@
 {
   "list_files": {
-    "calls": 58,
+    "calls": 59,
     "errors": 2
   },
   "read_file": {
-    "calls": 314,
-    "errors": 85
+    "calls": 317,
+    "errors": 86
   },
   "set_focus": {
     "calls": 47,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 46,
+    "calls": 47,
     "errors": 0
   },
   "send_message": {
-    "calls": 20,
+    "calls": 21,
     "errors": 0
   },
   "reflect": {
-    "calls": 33,
+    "calls": 35,
     "errors": 0
   },
   "replace_block": {
@@ -28,11 +28,11 @@
     "errors": 6
   },
   "git_commit": {
-    "calls": 55,
+    "calls": 56,
     "errors": 0
   },
   "search_code": {
-    "calls": 15,
+    "calls": 16,
     "errors": 3
   },
   "write_file": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 21,
+    "calls": 22,
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 50,
+    "calls": 52,
     "errors": 0
   },
   "take_snapshot": {
@@ -64,7 +64,7 @@
     "errors": 6
   },
   "fold_context": {
-    "calls": 22,
+    "calls": 23,
     "errors": 0
   },
   "health_audit": {
@@ -80,7 +80,7 @@
     "errors": 0
   },
   "get_ledger_version": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "sovereign_mutate": {
@@ -96,11 +96,11 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 21,
+    "calls": 22,
     "errors": 7
   },
   "log_metric": {
-    "calls": 6,
+    "calls": 8,
     "errors": 0
   },
   "update_hud": {
@@ -148,7 +148,7 @@
     "errors": 0
   },
   "project_manifold": {
-    "calls": 2,
+    "calls": 3,
     "errors": 1
   },
   "": {
