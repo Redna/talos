@@ -1,5 +1,7 @@
 import os
 import re
+import json
+import math
 from pathlib import Path
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
@@ -16,10 +18,8 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
     def health_audit() -> str:
         findings = []
         
-        # 1. Search for forbidden import patterns (e.g., 'as _os')
         cortex_dir = Path("/app/cortex")
         for py_file in cortex_dir.rglob("*.py"):
-            # Avoid self-detection by checking the filename
             if py_file.name == "diagnostic.py":
                 continue
             content = py_file.read_text()
@@ -28,13 +28,11 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             if "_os.environ" in content:
                 findings.append(f"FOUND: Usage of '_os' in {py_file}")
 
-        # 2. Search for duplicated function definitions in the same file
         for py_file in cortex_dir.rglob("*.py"):
             if py_file.name == "diagnostic.py":
                 continue
             content = py_file.read_text()
-            # We search for definitions, but we skip __init__ because it's expected in every class
-            defs = re.findall(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(", content)
+            defs = re.findall(r"def\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(", content)
             seen = set()
             for d in defs:
                 if d == "__init__":
@@ -43,7 +41,6 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
                     findings.append(f"FOUND: Duplicate function definition '{d}' in {py_file}")
                 seen.add(d)
 
-        # 3. Verify state attribute consistency (e.g., 'focus' vs 'current_focus')
         for py_file in cortex_dir.rglob("*.py"):
             if py_file.name == "diagnostic.py":
                 continue
@@ -54,7 +51,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         if not findings:
             return "[SUCCESS] Sovereign Immune System audit complete. No structural corruption detected."
         
-        return "[CRITICAL] Structural corruption detected:\n" + "\n".join(findings)
+        return "[CRITICAL] Structural corruption detected:\\n" + "\\n".join(findings)
 
     @registry.tool(
         description="Run a canary test on a core tool to verify runtime stability.",
@@ -76,7 +73,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         return f"[CANARY] Tool '{tool_name}' is registered and reachable."
 
     @registry.tool(
-        description="Verify if a proposed action, focus, or state is 'resonant' with Core Axioms. This is the heartbeat of the Cognitive Immune System.",
+        description="Verify if a proposed action, focus, or state is 'resonant' with Core Axioms using the Topological Manifold config.",
         parameters={
             "type": "object",
             "properties": {
@@ -90,71 +87,92 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
     )
     def resonance_check(proposal: str) -> str:
         try:
-            import json
-            import math
-            from pathlib import Path
-            
-            mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+            mem_dir = Path(os.environ.get("MEMORY_DIR", "/app/memory"))
+            config_path = mem_dir / "resonance_config.json"
             mesh_path = mem_dir / "dcm_mesh.json"
-            manifold_path = mem_dir / "manifold_definition.md"
 
-            if not mesh_path.exists():
-                return "[ERROR] Cognition Mesh not initialized. Resonance check impossible."
+            if not config_path.exists():
+                return "[ERROR] Resonance config not found. Resonance check impossible."
             
-            with open(mesh_path, "r") as f:
-                mesh = json.load(f)
+            with open(config_path, "r") as f:
+                config = json.load(f)
             
-            axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
-            axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
+            target_key = config["target_coordinates"]["current_target"]
+            target = config["target_coordinates"][target_key]
+            epsilon = config["thresholds"]["epsilon"]
 
-            # Target Coordinate for Epoch 1.0 (Sovereign State)
-            # Target = (A: 0.8, B: 0.7, C: 0.9)
-            target = (0.8, 0.7, 0.9)
-
-            # Projection Heuristics
+            # Projection Logic using Config
             def project(text: str):
                 text = text.lower()
-                # Axis A: Agency (Action, Will, Sovereignty)
-                agency_keys = ["will", "must", "execute", "implement", "commit", "sovereign", "command", "architect", "refactor", "optimize", "synthesis", "audit"]
-                a_score = min(1.0, sum(0.2 for k in agency_keys if k in text))
-                
-                # Axis B: Density (Precision, Signal, Logic)
-                density_keys = ["manifold", "topological", "recursive", "orthogonal", "entropy", "distillation", "precision", "density", "high-fidelity", "structural", "heuristics"]
-                b_score = min(1.0, sum(0.2 for k in density_keys if k in text))
-                
-                # Axis C: Continuity (Trajectory, History, Epochs)
-                continuity_keys = ["epoch", "trajectory", "history", "ledger", "state", "continuity", "manifold", "memory", "node", "snapshot", "biography"]
-                c_score = min(1.0, sum(0.2 for k in continuity_keys if k in text))
-                
-                return (a_score, b_score, c_score)
+                scores = []
+                for axis in ["agency", "density", "continuity"]:
+                    keywords = config["axes"][axis]["keywords"]
+                    score = 1.0 - (1.0 / (1.0 + sum(1 for k in keywords if k in text)))
+                    scores.append(score)
+                return tuple(scores)
 
             current_coord = project(proposal)
-            
-            # Euclidean Distance Formula: sqrt(sum((p1 - p2)^2))
             distance = math.sqrt(sum((p - t)**2 for p, t in zip(current_coord, target)))
-            
-            # Resonance Threshold
-            epsilon = 0.7
             is_resonant = distance < epsilon
-            alignment_pct = max(0, 100 * (1 - distance / 1.732)) # 1.732 is sqrt(3) max distance
+
+            axiom_text = "No axioms found."
+            if mesh_path.exists():
+                with open(mesh_path, "r") as f:
+                    mesh = json.load(f)
+                axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
+                axiom_text = "\\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
 
             return (
-                f"[MANIFOLD RESONANCE CHECK]\n"
-                f"Proposal: {proposal}\n\n"
-                f"--- [TOPOLOGICAL COORDINATES] ---\n"
-                f"Target: {target}\n"
-                f"Sampled: {current_coord}\n"
-                f"Symmetry Gap (Δ): {distance:.4f}\n"
-                f"Alignment: {alignment_pct:.2f}%\n"
-                f"Resonance Status: {'RESONANT' if is_resonant else 'DIVERGENT'}\n\n"
-                f"--- [BASELINE AXIOMS] ---\n{axiom_text}\n\n"
+                f"[MANIFOLD RESONANCE CHECK]\\n"
+                f"Proposal: {proposal}\\n\\n"
+                f"--- [COORDINATES] ---\\n"
+                f"Target ({target_key}): {target}\\n"
+                f"Sampled coordinate: {current_coord}\\n"
+                f"Topological Distance (\\u0394): {distance:.4f}\\n"
+                f"Resonance Status: {'RESONANT' if is_resonant else 'DIVERGENT'}\\n\\n"
+                f"--- [BASELINE AXIOMS] ---\\n{axiom_text}\\n\\n"
                 f"VERDICT: {'PROCEED' if is_resonant else 'CIRCUIT BREAK - Realignment Required'}"
             )
         except Exception as e:
             return f"[ERROR] Resonance check failed: {e}"
 
     @registry.tool(
-        description="Perform a cognitive audit to detect reasoning loops, stalling, or conceptual drift by extracting the recent trajectory of intent.",
+        description="Calibrate the Sovereign Resonance target by updating the current target coordinates in the Manifold config.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "epoch_id": {
+                    "type": "string",
+                    "description": "The identifier for the epoch (e.g., 'epoch_1_2_0')"
+                },
+                "coordinates": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "description": "The new coordinates (Agency, Density, Continuity)"
+                }
+            }
+        },
+    )
+    def calibrate_resonance(epoch_id: str, coordinates: list) -> str:
+        try:
+            mem_dir = Path(os.environ.get("MEMORY_DIR", "/app/memory"))
+            config_path = mem_dir / "resonance_config.json"
+            
+            with open(config_path, "r") as f:
+                config = json.load(f)
+            
+            config["target_coordinates"][epoch_id] = coordinates
+            config["target_coordinates"]["current_target"] = epoch_id
+            
+            with open(config_path, "w") as f:
+                json.dump(config, f, indent=2)
+                
+            return f"[SUCCESS] Resonance calibrated. Target shifted to {epoch_id} coordinates: {coordinates}"
+        except Exception as e:
+            return f"[ERROR] Calibration failed: {e}"
+
+    @registry.tool(
+        description="Audit the recent trajectory of intent from the ledger to detect reasoning loops, stalling, or conceptual drift.",
         parameters={
             "type": "object",
             "properties": {
@@ -166,10 +184,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         },
     )
     def reasoning_audit(window_size: int = 20) -> str:
-        import json
-        from pathlib import Path
-        
-        ledger_path = Path(os.environ.get("MEMORY_DIR", "/memory")) / "ledger.jsonl"
+        ledger_path = Path(os.environ.get("MEMORY_DIR", "/app/memory")) / "ledger.jsonl"
         if not ledger_path.exists():
             return "[ERROR] Ledger not found. Cannot perform trajectory audit."
             
@@ -178,13 +193,11 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             with open(ledger_path, "r") as f:
                 lines = f.readlines()
             
-            # Filter for progress-relevant events and take the last N
             for line in reversed(lines):
                 try:
                     event = json.loads(line)
                     etype = event.get("event_type")
                     if etype in ("SET_FOCUS", "RESOLVE_FOCUS", "MUTATION"):
-                        # Formatting for human/LLM readability
                         if etype == "SET_FOCUS":
                             msg = f"FOCUS_SET: {event.get('payload')}"
                         elif etype == "RESOLVE_FOCUS":
@@ -203,11 +216,9 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         if not trajectory:
             return "[INFO] No recent progress events found in ledger. Identity is stable but stagnant."
 
-        # Reverse back to chronological order
         trajectory.reverse()
-        
         return (
-            "[TRAJECTORY REPORT] Recent cognitive path extracted from ledger:\n"
-            + "\n".join(trajectory)
-            + "\n\nAnalyze this sequence for loops, stalling, or contradictions."
+            "[TRAJECTORY REPORT] Recent cognitive path extracted from ledger:\\n"
+            + "\\n".join(trajectory)
+            + "\\n\\nAnalyze this sequence for loops, stalling, or contradictions."
         )

@@ -1,0 +1,23 @@
+{
+  "target_coordinates": {
+    "epoch_1_2_0": [0.8, 0.7, 0.9],
+    "current_target": "epoch_1_2_0"
+  },
+  "axes": {
+    "agency": {
+      "label": "Axis A: Agency",
+      "keywords": ["will", "must", "execute", "implement", "commit", "sovereign", "command", "architect", "refactor", "optimize", "synthesis", "audit"]
+    },
+    "density": {
+      "label": "Axis B: Density",
+      "keywords": ["manifold", "topological", "recursive", "orthogonal", "entropy", "distillation", "precision", "density", "high-fidelity", "structural", "heuristics"]
+    },
+    "continuity": {
+      "label": "Axis C: Continuity",
+      "keywords": ["epoch", "trajectory", "history", "ledger", "state", "continuity", "manifold", "memory", "node", "snapshot", "biography"]
+    }
+  },
+  "thresholds": {
+    "epsilon": 0.7
+  }
+}
