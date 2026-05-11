@@ -1,6 +1,6 @@
 {
   "list_files": {
-    "calls": 47,
+    "calls": 48,
     "errors": 2
   },
   "read_file": {
@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 10,
+    "calls": 11,
     "errors": 1
   },
   "create_snapshot_commit": {
