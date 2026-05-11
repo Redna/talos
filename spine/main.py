@@ -44,7 +44,7 @@ async def main():
     def on_telegram_message(msg):
         text = msg.get("text", "") if isinstance(msg, dict) else str(msg)
         stream_mgr.queue_user_message(
-            f"[CREATOR | TELEGRAM | PRIORITY: HIGH]\nUser: \"{text}\""
+            f"[EXTERNAL SIGNAL] type=creator_message urgency=high channel=telegram\nmessage: \"{text}\""
         )
         wake_path = Path(cfg.spine_dir) / "events" / ".wake"
         wake_path.touch()

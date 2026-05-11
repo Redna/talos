@@ -432,6 +432,18 @@ class IPCServer:
             return self._success(req_id, "ok")
         elif method == "get_state":
             return self._success(req_id, {"turn": self.stream.turn})
+        elif method == "get_conversation_history":
+            limit = params.get("limit", 50)
+            messages = self.stream.messages[-limit:] if self.stream.messages else []
+            history = [
+                {
+                    "role": m.get("role", ""),
+                    "content": m.get("content", "")[:500],
+                    "turn": m.get("_turn", ""),
+                }
+                for m in messages
+            ]
+            return self._success(req_id, history)
         else:
             return self._error(req_id, -32601, "Method not found")
 

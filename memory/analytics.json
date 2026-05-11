@@ -1,30 +1,30 @@
 {
   "list_files": {
-    "calls": 59,
+    "calls": 62,
     "errors": 2
   },
   "read_file": {
-    "calls": 319,
-    "errors": 87
+    "calls": 323,
+    "errors": 90
   },
   "set_focus": {
-    "calls": 48,
+    "calls": 49,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 48,
+    "calls": 49,
     "errors": 0
   },
   "send_message": {
-    "calls": 21,
+    "calls": 22,
     "errors": 0
   },
   "reflect": {
-    "calls": 35,
+    "calls": 36,
     "errors": 0
   },
   "replace_block": {
-    "calls": 82,
+    "calls": 84,
     "errors": 7
   },
   "git_commit": {
@@ -52,7 +52,7 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 52,
+    "calls": 54,
     "errors": 0
   },
   "take_snapshot": {
@@ -68,7 +68,7 @@
     "errors": 0
   },
   "health_audit": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "reasoning_audit": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "physical_health_check": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "get_ledger_version": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "update_hud": {
-    "calls": 20,
+    "calls": 21,
     "errors": 0
   },
   "execute_intent": {
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "bulk_rename": {
@@ -144,7 +144,7 @@
     "errors": 4
   },
   "verify_manifold": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "project_manifold": {
