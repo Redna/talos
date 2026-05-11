@@ -1,154 +1,15 @@
 {
   "list_files": {
-    "calls": 34,
+    "calls": 30,
     "errors": 2
   },
   "read_file": {
-    "calls": 186,
-    "errors": 70
+    "calls": 155,
+    "errors": 54
   },
   "set_focus": {
-    "calls": 29,
+    "calls": 22,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 27,
-    "errors": 0
-  },
-  "send_message": {
-    "calls": 16,
-    "errors": 0
-  },
-  "reflect": {
-    "calls": 24,
-    "errors": 0
-  },
-  "replace_block": {
-    "calls": 71,
-    "errors": 5
-  },
-  "git_commit": {
-    "calls": 41,
-    "errors": 0
-  },
-  "search_code": {
-    "calls": 10,
-    "errors": 2
-  },
-  "write_file": {
-    "calls": 20,
-    "errors": 1
-  },
-  "delete_path": {
-    "calls": 10,
-    "errors": 1
-  },
-  "request_restart": {
-    "calls": 11,
-    "errors": 0
-  },
-  "git_push": {
-    "calls": 16,
-    "errors": 0
-  },
-  "continuity_pulse": {
-    "calls": 25,
-    "errors": 0
-  },
-  "take_snapshot": {
-    "calls": 10,
-    "errors": 0
-  },
-  "bash_command": {
-    "calls": 31,
-    "errors": 5
-  },
-  "fold_context": {
-    "calls": 11,
-    "errors": 0
-  },
-  "health_audit": {
-    "calls": 1,
-    "errors": 0
-  },
-  "reasoning_audit": {
-    "calls": 4,
-    "errors": 0
-  },
-  "physical_health_check": {
-    "calls": 1,
-    "errors": 0
-  },
-  "get_ledger_version": {
-    "calls": 2,
-    "errors": 0
-  },
-  "sovereign_mutate": {
-    "calls": 10,
-    "errors": 2
-  },
-  "replay_ledger": {
-    "calls": 2,
-    "errors": 0
-  },
-  "map_node": {
-    "calls": 31,
-    "errors": 0
-  },
-  "resonance_check": {
-    "calls": 10,
-    "errors": 6
-  },
-  "log_metric": {
-    "calls": 4,
-    "errors": 0
-  },
-  "update_hud": {
-    "calls": 14,
-    "errors": 0
-  },
-  "execute_intent": {
-    "calls": 2,
-    "errors": 0
-  },
-  "query_mesh": {
-    "calls": 1,
-    "errors": 0
-  },
-  "merge_memory_files": {
-    "calls": 1,
-    "errors": 0
-  },
-  "semantic_pulse": {
-    "calls": 1,
-    "errors": 0
-  },
-  "sovereign_write": {
-    "calls": 4,
-    "errors": 1
-  },
-  "create_snapshot_commit": {
-    "calls": 6,
-    "errors": 0
-  },
-  "bulk_rename": {
-    "calls": 1,
-    "errors": 0
-  },
-  "ledger_event": {
-    "calls": 1,
-    "errors": 0
-  },
-  "activate_manifold": {
-    "calls": 9,
-    "errors": 3
-  },
-  "verify_manifold": {
-    "calls": 3,
-    "errors": 0
-  },
-  "project_manifold": {
-    "calls": 1,
-    "errors": 1
-  }
-}
+    "call... [truncated from 2165 chars — read original file for full content]
