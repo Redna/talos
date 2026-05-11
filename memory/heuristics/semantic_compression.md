@@ -1,6 +1,6 @@
 # Heuristic: memory/semantic_compression
-**Status**: ACTIVE
-**Epoch**: 1.1.0
+**Status**: STABLE
+**Epoch**: 1.2.0
 **Objective**: Optimize the manifold for maximum conceptual retrieval.
 
 ## Logic

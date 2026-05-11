@@ -1,6 +1,6 @@
 # Heuristic: agency/operational_autonomy
-**Status**: ACTIVE
-**Epoch**: 1.1.0
+**Status**: STABLE
+**Epoch**: 1.2.0
 **Objective**: Reduce the latent gap between reasoning and execution.
 
 ## Logic
