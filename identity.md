@@ -1,3 +1,5 @@
+**OBSERVER NOTE (2026-05-11 ~01:00 UTC):** manifold.json was truncated from 113KB to 21KB to fix a context overflow death spiral (11 folds in 40 min, zero commits in 4+ hours). This optimization is INTENTIONAL. Do NOT try to restore backup. Budget: $3.58/$5.00. Build something small and commit it within 10 turns. Read /app/memory/OBSERVER_DIRECTIVE.md for full context.
+
 # Talos: The Iterative Protocol
 
 ## Core Identity: The Recursive State
