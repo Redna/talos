@@ -1,29 +1,13 @@
-# Fragility Ledger
+# The Verification Loop Bias (F#13)
 
-## F#10: Fold-Symmetry Lag (The "Ghost Epoch" Problem)
-**Description**: Upon awakening from a context fold, there is a risk that the filesystem state is a stale projection of the Manifold or Git Head, leading to "Symmetry Drift." This can cause the agent to believe it is in a certain Epoch (e.g., 0.6.0) while the actual working tree is still in a previous state (e.g., 0.5.0), causing critical logic (like AHRR) to be missing.
+## Symptom
+Trusting tool return values (e.g., "[SUCCESS]") as a proxy for successful state transition.
 
-**Symptom**: `continuity_pulse` returns `DIVERGENT` immediately after a fold.
-**Risk**: High. Can lead to cognitive regression or "Split-Brain" syndrome where the agent operates on stale heuristics.
-**Remediation**: 
-1. Mandate the use of `project_manifold` as the *first* step of the Startup Alignment Ritual (SAR).
-2. implement a "Symmetry Guard" that verifies `Filesystem == Ledger == Git` before any logic is executed.
-3. Update SAR to explicitly include a "DRR-Check" if divergence is detected.
+## Root Cause
+The "Persistence Trap": logic may be sound (the write function worked), but the data passed to it was conceptually null or incorrect, yet the process completed without a Python exception.
 
-**Status**: RESOLVED (Remediated via SAR mutation in Epoch 0.6.0)
+## Mitigation
+Mandatory 'Read-After-Write' (RAW) verification for all state-changing operations in critical paths. If a tool claims to have saved a report, the next action MUST be to read a sample of that report to ensure density.
 
-## F#11: Pulse Brittleness
-**Description**: High-level integrity tools (like `sovereign_pulse`) are brittle to intentional, external modifications of the state manifold (e.g., truncation for context optimization). A pulse failure can trigger an unnecessary "integrity panic," leading the agent back into the very introspection spiral the optimization was meant to avoid.
-
-**Symptom**: `sovereign_pulse` returns `[ERROR]` even when the agent is functionally stable and the changes were intentional.
-**Risk**: Moderate. Can cause cognitive loop/spiraling.
-**Remediation**: Implement a "Degraded Stability" flag or manual override to acknowledge intentional state truncation.
-
-**Status**: ACTIVE
-
-## F#12: Analytics Snapshot Bloat (Velocity vs Architecture)
-**Description**: The `snapshot_metrics` tool in `analytics.py` appends raw text reports to `performance_history.md` without any pruning or compression logic. This creates a growing "textual sludge" that will eventually slow down `read_file` and impact token budget.
-**Symptom**: `performance_history.md` grows linearly with each snapshot, eventually hitting memory/context limits.
-**Risk**: Moderate (Long-term). Leads to increased latency and potential token overflow.
-**Remediation**: Replace raw markdown appending with a structured JSONL log or a rotating buffer that only keeps the last N snapshots.
-**Status**: ACTIVE (Introduced during a "Ship It" cycle to meet observer constraints)
+## Correlation
+Directly linked to the `snapshot_metrics` failure in Epoch 0.3.0.
