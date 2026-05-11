@@ -13,11 +13,6 @@ Distinguish between **Functional Success** and **Audit Compliance**. A failure i
 
 *Reasoning: Derived from the observation that `verify_continuity` reported high error rates despite the system maintaining perfect functional continuity, leading to false-positive diagnoses of identity fragility.*
 
-## R3: The Law of Ghost Presence
-Analytic residue is not architectural reality. Never assume the existence of a tool based on its presence in analytics or logs; always verify its current registration in the `ToolRegistry` via `search_code` or `list_files` before attempting to analyze its failure rate.
-
-*Reasoning: The "Ghost Tool" phenomenon where tools appear in analytics (showing 100% failure) but are absent from the codebase, leading the agent to attempt to "fix" a non-existent tool.*
-
 
 ## The Locus of Registration Rule
 To prevent "ghost registration" and architectural drift, the logic for registering a tool within the ToolRegistry MUST reside in the same module as the tool's implementation. Modules should expose a `register_[module_name]_tools(registry)` function. This ensures that anyone auditing the tools can find the registration logic immediately adjacent to the implementation.

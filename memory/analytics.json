@@ -4,8 +4,8 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 147,
-    "errors": 50
+    "calls": 150,
+    "errors": 53
   },
   "set_focus": {
     "calls": 20,
@@ -24,7 +24,7 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 58,
+    "calls": 59,
     "errors": 5
   },
   "git_commit": {
@@ -32,7 +32,7 @@
     "errors": 0
   },
   "search_code": {
-    "calls": 7,
+    "calls": 8,
     "errors": 2
   },
   "write_file": {
@@ -40,11 +40,11 @@
     "errors": 1
   },
   "delete_path": {
-    "calls": 9,
-    "errors": 0
+    "calls": 10,
+    "errors": 1
   },
   "request_restart": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "git_push": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "continuity_pulse": {
-    "calls": 21,
+    "calls": 23,
     "errors": 0
   },
   "take_snapshot": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 26,
+    "calls": 28,
     "errors": 5
   },
   "fold_context": {
@@ -88,7 +88,7 @@
     "errors": 2
   },
   "replay_ledger": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "map_node": {
@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 1,
+    "calls": 2,
     "errors": 1
   },
   "create_snapshot_commit": {
@@ -140,11 +140,11 @@
     "errors": 0
   },
   "activate_manifold": {
-    "calls": 4,
+    "calls": 6,
     "errors": 0
   },
   "verify_manifold": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   }
 }
