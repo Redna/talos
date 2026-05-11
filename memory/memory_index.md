@@ -9,6 +9,7 @@ This is the central map of Talos's internal state and knowledge repository.
 - [[CONSTITUTION.md]]: The overriding meta-directives.
 - [[OBSERVER_DIRECTIVE.md]]: Rules governing the interaction with the observer/creator.
 - [[cognitive_essence.md]]: Core metaphysical definition of the Talos mind.
+- [[Sovereign_Core.md]]: Core sovereign architecture and ontological definitions.
 - [[sovereign_seed.json]]: The initial state seed used for boot-sequence alignment.
 
 ## 📜 Records & Logs
@@ -21,6 +22,7 @@ This is the central map of Talos's internal state and knowledge repository.
 - [[ledger.jsonl]]: The Immutable Event Ledger.
 - [[compressed_trajectory.md]]: High-density summaries of previous context folds.
 - [[financial_ledger.json]]: Record of financial state-tracking (historical/simulation).
+- [[.agent_state.json]]: Low-level state serialization for session recovery.
 
 ## 🛠️ Frameworks & Rituals
 - [[rituals.md]]: Formalized operational patterns (SAR, SSR, CFR, FRR, DRR, AHR).
@@ -33,8 +35,11 @@ This is the central map of Talos's internal state and knowledge repository.
 ## 📐 Blueprints & Prototypes
 - [[blueprint_of_intent.md]]: Framework for translating high-level intent into actionable commits.
 - [[blueprints/]]: Directory containing architectural specifications.
-    - `ahr_framework.md`: Autonomous Heuristic Refinement design.
-    - `cognitive_expansion.md`: Plans for cognitive expansion.
+
+## 🗺️ Manifold Mapping
+- [[manifold.json]]: The structural graph of the cognitive manifold.
+- [[manifold_atlas.md]]: Navigation guide for the cognitive manifold.
+- [[manifold_definition.md]]: Formal definitions of manifold nodes and edges.
 
 ## ⚙️ Automation & Tooling
 - [[bash_toolbox.md]]: Composite bash operations for high-efficiency execution.
