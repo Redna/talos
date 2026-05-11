@@ -4,8 +4,8 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 317,
-    "errors": 86
+    "calls": 319,
+    "errors": 87
   },
   "set_focus": {
     "calls": 47,
@@ -24,8 +24,8 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 81,
-    "errors": 6
+    "calls": 82,
+    "errors": 7
   },
   "git_commit": {
     "calls": 56,
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 24,
+    "calls": 25,
     "errors": 1
   },
   "delete_path": {
@@ -44,7 +44,7 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "git_push": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 58,
+    "calls": 59,
     "errors": 6
   },
   "fold_context": {
@@ -96,7 +96,7 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 22,
+    "calls": 23,
     "errors": 7
   },
   "log_metric": {
@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 18,
+    "calls": 19,
     "errors": 1
   },
   "create_snapshot_commit": {
