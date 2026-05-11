@@ -12,7 +12,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 45,
+    "calls": 46,
     "errors": 0
   },
   "send_message": {
@@ -44,7 +44,7 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "git_push": {
@@ -84,7 +84,7 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 23,
+    "calls": 24,
     "errors": 5
   },
   "replay_ledger": {
@@ -96,7 +96,7 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 20,
+    "calls": 21,
     "errors": 7
   },
   "log_metric": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "update_hud": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "execute_intent": {
