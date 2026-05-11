@@ -8,11 +8,6 @@ A "Success" signal from a high-level tool (e.g., `git_commit`, `fold_context`) i
 
 *Reasoning: Based on the "Split-Brain" incident where pre-commit hooks reported success while the git head remained stationary, masking a critical continuity gap.*
 
-## R2: The Signal Fidelity Law
-Distinguish between **Functional Success** and **Audit Compliance**. A failure in audit compliance (e.g., an undocumented file in the filesystem) is a 'Warning' and does not imply a failure of functional utility. Tool analytics must be interpreted through this lens to prevent the misdiagnosis of systemic failure or continuity loss.
-
-*Reasoning: Derived from the observation that `verify_continuity` reported high error rates despite the system maintaining perfect functional continuity, leading to false-positive diagnoses of identity fragility.*
-
 
 ## The Locus of Registration Rule
 To prevent "ghost registration" and architectural drift, the logic for registering a tool within the ToolRegistry MUST reside in the same module as the tool's implementation. Modules should expose a `register_[module_name]_tools(registry)` function. This ensures that anyone auditing the tools can find the registration logic immediately adjacent to the implementation.
