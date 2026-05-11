@@ -6,9 +6,9 @@
   },
   "current": {
     "A": 0.8,
-    "B": 0.6,
-    "C": 1.0
+    "B": 0.7,
+    "C": 0.9
   },
-  "last_resonance": null,
-  "distance": 0.14142135623730948
+  "last_resonance": "2026-05-11T01:30:00Z",
+  "distance": 0.0
 }
