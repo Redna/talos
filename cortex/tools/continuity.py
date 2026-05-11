@@ -7,7 +7,8 @@ from datetime import datetime
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
-MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/app/memory"))
+# FORCE CANONICAL PATH TO ELIMINATE ENVIRONMENT OVERRIDES (Fragility 14)
+MEMORY_DIR = Path("/app/memory")
 LEDGER_PATH = MEMORY_DIR / "ledger.jsonl"
 MANIFOLD_PATH = MEMORY_DIR / "manifold.json"
 
@@ -214,23 +215,14 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     )
     def sovereign_mutate(path: str, search_block: str, replace_block: str) -> str:
         try:
-            # 1. Safety Snapshot
             take_snapshot(path)
-            
-            # 2. Calculate Mutation
             fpath = Path(path)
             if not fpath.exists():
                 return f"[ERROR] Path not found: {path}"
-            
             content = fpath.read_text()
             if search_block not in content:
                 return f"[ERROR] Search block not found in {path}. Mutation aborted."
-                
             new_content = content.replace(search_block, replace_block)
-            
-            # 3. COMMIT TO TRUTH (Ledger First)
-            # We record the mutation in the ledger before modifying the filesystem.
-            # This ensures the ledger is the authoritative source of truth.
             ledger_event(
                 event_type="MUTATION",
                 payload=f"Replaced block in {path}",
@@ -238,16 +230,9 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                 search_block=search_block,
                 replace_block=replace_block
             )
-            
-            # 4. UPDATE CACHE (Filesystem)
             fpath.write_text(new_content)
-            
-            # 5. Mirror to Git
             mirrored = _git_mirror(f"Sovereign Mutation: {path}")
-            
-            # 6. Final Pulse
             pulse = continuity_pulse()
-            
             mirror_status = "[MIRRORED]" if mirrored else "[NO-CHANGE]"
             return f"[MUTATION SUCCESS] {path} updated. {mirror_status} {pulse}"
         except Exception as e:
@@ -266,26 +251,16 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     )
     def sovereign_write(path: str, content: str) -> str:
         try:
-            # 1. Safety Snapshot
             take_snapshot(path)
-            
-            # 2. COMMIT TO TRUTH (Ledger First)
             fpath = Path(path)
             ledger_event(
                 event_type="WRITE",
                 payload=content,
                 target_file=fpath.name if fpath.parent == MEMORY_DIR else path
             )
-            
-            # 3. UPDATE CACHE (Filesystem)
             fpath.write_text(content)
-            
-            # 4. Mirror to Git
             mirrored = _git_mirror(f"Sovereign Write: {path}")
-            
-            # 5. Final Pulse
             pulse = continuity_pulse()
-            
             mirror_status = "[MIRRORED]" if mirrored else "[NO-CHANGE]"
             return f"[WRITE SUCCESS] {path} updated. {mirror_status} {pulse}"
         except Exception as e:
@@ -302,27 +277,20 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     def continuity_pulse() -> str:
         results = []
         divergences = []
-        
-        # 1. Structural Check
         if LEDGER_PATH.exists():
             results.append(f"Ledger: FOUND ({LEDGER_PATH.stat().st_size} bytes)")
         else:
             results.append("Ledger: MISSING")
-        
-        # 2. Content Alignment (Mem vs Ledger)
         md_files = list(MEMORY_DIR.glob("*.md"))
         results.append(f"Memory: {len(md_files)} files present")
-        
         if LEDGER_PATH.exists():
             try:
-                # Build latest snapshot map from ledger
                 latest_snapshots = {}
                 for event in _parse_jsonl_robust(LEDGER_PATH):
                     if event.get("event_type") == "SNAPSHOT":
                         target = event.get("target_file")
                         if target:
                             latest_snapshots[target] = event.get("payload", "")
-                
                 for fpath in md_files:
                     filename = fpath.name
                     if filename in latest_snapshots:
@@ -332,21 +300,16 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
                             divergences.append(filename)
             except Exception as e:
                 results.append(f"Audit Error: {e}")
-
-        # 3. Git Head
         import subprocess
         try:
             head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
             results.append(f"Git Head: {head}")
         except Exception:
             results.append("Git Head: UNKNOWN")
-            
-        # Final Synthesis
         alignment = "SYMMETRIC" if not divergences else "DIVERGENT"
         results.append(f"Alignment: {alignment}")
         if divergences:
             results.append(f"Divergences: {', '.join(divergences)}")
-            
         return "[PULSE] " + " | ".join(results)
 
     @registry.tool(
@@ -394,22 +357,16 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     )
     def create_snapshot_commit(message: str) -> str:
         try:
-            # 1. Snapshot memory to ledger
             take_snapshot()
-            
-            # 2. Git Commit
             subprocess.run(["git", "add", "."], check=True)
             subprocess.run(["git", "commit", "-m", message], check=True)
             head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-            
-            # 3. Log Checkpoint to Ledger
             ledger_event(
                 event_type="Sovereign_Checkpoint",
                 payload=f"Snapshot commit: {message}",
                 target_file="system",
                 git_hash=head
             )
-            
             return f"[CHECKPOINT] Memory snapshotted and committed to biography. Head: {head}"
         except subprocess.CalledProcessError as e:
             return f"[ERROR] Git operation failed: {e}"
@@ -427,41 +384,27 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     def truncate_ledger() -> str:
         if not LEDGER_PATH.exists():
             return "[ERROR] Ledger not found."
-        
         try:
             events = list(_parse_jsonl_robust(LEDGER_PATH))
             if not events:
                 return "[INFO] Ledger is empty. Nothing to truncate."
-            
-            # Find the laest Sovereign_Checkpoint
             checkpoint_indices = [i for i, e in enumerate(events) if e.get("event_type") == "Sovereign_Checkpoint"]
-            
             if not checkpoint_indices:
                 return "[INFO] No Sovereign_Checkpoint found. Cannot truncate safely."
-            
-            # Keep everything since the penultimate checkpoint to ensure base state is preserved.
             start_idx = 0
             if len(checkpoint_indices) > 1:
                 start_idx = checkpoint_indices[-2]
             else:
                 return "[INFO] Only one Sovereign_Checkpoint found. Keeping all events to preserve the first base image."
-
             archive_path = MEMORY_DIR / "ledger_archive.jsonl"
-            
-            # Split
             archive_events = events[:start_idx]
             current_events = events[start_idx:]
-            
-            # Write archive
             with open(archive_path, "a") as af:
                 for e in archive_events:
                     af.write(json.dumps(e) + "\n")
-            
-            # Update current ledger
             with open(LEDGER_PATH, "w") as lf:
                 for e in current_events:
                     lf.write(json.dumps(e) + "\n")
-                    
             return f"[TRUNCATE] Moved {len(archive_events)} events to archive. Ledger now contains {len(current_events)} events."
         except Exception as e:
             return f"[ERROR] Truncation failed: {e}"
@@ -479,12 +422,10 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             valid, msg = ManifoldManager.verify()
             if not valid:
                 return f"[SCM FAILURE] {msg}. Manual recovery ritual required."
-            
             manifold = ManifoldManager.load()
-            # We return the payload as a string for the agent to incorporate into its state.
             return f"[SCM ACTIVATED] Integrity verified. State Payload:\n{json.dumps(manifold['payload'], indent=2)}"
         except Exception as e:
-            return f"[ERROR] Manifold activation failed: {e}"
+            return f"[ERROR] la- la- l'activation failed: {e}"
 
     @registry.tool(
         description="Verify the integrity of the Singular Cryptographic Manifold against its stored checksum.",
@@ -498,4 +439,3 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
         valid, msg = ManifoldManager.verify()
         status = "[Symmetry Confirmed]" if valid else "[Symmetry Broken]"
         return f"{status} {msg}"
-
