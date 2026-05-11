@@ -27,3 +27,5 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - a65364f: Sovereign Write: /memory/manifold_atlas.md
 - 0c416b5: feat(diagnostic): implement topological resonance logic in resonance_check; fix LaTeX-induced NameError; transition to Epoch 1.0 metrics
 - cec250f: Sovereign Mutation: /app/cortex/tools/diagnostic.py
+- ce2186f: feat: achieve topological resonance through structural compression; remove artificial anchors; align coordinates [0.8, 0.7, 0.9]
+- d6b8f28: feat: implement manifold_guardian to prevent context overflow death spirals; enforce 100KB limit on manifold.json
