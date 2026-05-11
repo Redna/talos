@@ -1,1 +1,0 @@
-Initial state of the test file.
