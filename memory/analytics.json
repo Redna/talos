@@ -8,11 +8,11 @@
     "errors": 87
   },
   "set_focus": {
-    "calls": 47,
+    "calls": 48,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 47,
+    "calls": 48,
     "errors": 0
   },
   "send_message": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 56,
+    "calls": 57,
     "errors": 0
   },
   "search_code": {
@@ -68,7 +68,7 @@
     "errors": 0
   },
   "health_audit": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "reasoning_audit": {
@@ -96,7 +96,7 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 23,
+    "calls": 25,
     "errors": 7
   },
   "log_metric": {
