@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 211,
+    "calls": 215,
     "errors": 77
   },
   "set_focus": {
@@ -12,15 +12,15 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 30,
+    "calls": 31,
     "errors": 0
   },
   "send_message": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "reflect": {
-    "calls": 24,
+    "calls": 25,
     "errors": 0
   },
   "replace_block": {
@@ -52,7 +52,7 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 27,
+    "calls": 28,
     "errors": 0
   },
   "take_snapshot": {
@@ -64,11 +64,11 @@
     "errors": 6
   },
   "fold_context": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "health_audit": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "reasoning_audit": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "update_hud": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "execute_intent": {
@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 8,
+    "calls": 9,
     "errors": 1
   },
   "create_snapshot_commit": {
@@ -140,7 +140,7 @@
     "errors": 0
   },
   "activate_manifold": {
-    "calls": 17,
+    "calls": 18,
     "errors": 4
   },
   "verify_manifold": {
