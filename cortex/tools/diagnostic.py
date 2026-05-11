@@ -91,7 +91,12 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
     def resonance_check(proposal: str) -> str:
         try:
             import json
-            mesh_path = Path(os.environ.get("MEMORY_DIR", "/memory")) / "dcm_mesh.json"
+            from pathlib import Path
+            
+            mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+            mesh_path = mem_dir / "dcm_mesh.json"
+            manifold_path = mem_dir / "manifold_definition.md"
+
             if not mesh_path.exists():
                 return "[ERROR] Cognition Mesh not initialized. Resonance check impossible."
             
@@ -99,20 +104,24 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
                 mesh = json.load(f)
             
             axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
-            
-            if not axioms:
-                return "[WARNING] No core axioms found in mesh. Resonance check has no baseline."
-            
-            axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms])
-            
+            axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
+
+            manifold_context = "Manifold coordinates not defined."
+            if manifold_path.exists():
+                with open(manifold_path, "r") as f:
+                    manifold_context = f.read()
+
             return (
-                f"[RESONANCE CHECK]\n"
-                f"Proposal: {proposal}\n"
-                f"-------------------\n"
-                f"Relevant Core Axioms:\n{axiom_text}\n"
-                f"-------------------\n"
-                f"VERDICT REQUIRED: Does this proposal resonate with the identity? "
-                f"If conflict is detected, the Cognitive Immune System must trigger a CIRCUIT BREAK."
+                f"[MANIFOLD RESONANCE CHECK]\n"
+                f"Proposal: {proposal}\n\n"
+                f"--- [BASELINE AXIOMS] ---\n{axiom_text}\n\n"
+                f"--- [MANIFOLD TARGETS] ---\n{manifold_context}\n\n"
+                f"--- [RESONANCE PROTOCOL] ---\n"
+                f"1. Project the proposal onto Axes $\mathcal{A}$ (Agency), $\mathcal{B}$ (Density), $\mathcal{C}$ (Continuity).\n"
+                f"2. Compare proposal coordinates against the Sovereign Target Coordinate.\n"
+                f"3. Calculate Delta ($\Delta$) distance.\n\n"
+                f"VERDICT REQUIRED: If $\Delta > \epsilon$ or conflict with Axioms is detected, "
+                f"the Cognitive Immune System MUST trigger a CIRCUIT BREAK."
             )
         except Exception as e:
             return f"[ERROR] Resonance check failed: {e}"

@@ -4,8 +4,8 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 302,
-    "errors": 81
+    "calls": 306,
+    "errors": 83
   },
   "set_focus": {
     "calls": 44,
@@ -24,7 +24,7 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 80,
+    "calls": 81,
     "errors": 6
   },
   "git_commit": {
@@ -32,7 +32,7 @@
     "errors": 0
   },
   "search_code": {
-    "calls": 14,
+    "calls": 15,
     "errors": 3
   },
   "write_file": {
@@ -96,7 +96,7 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 16,
+    "calls": 17,
     "errors": 6
   },
   "log_metric": {
@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 16,
+    "calls": 17,
     "errors": 1
   },
   "create_snapshot_commit": {
