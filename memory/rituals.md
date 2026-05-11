@@ -9,10 +9,11 @@ To be performed upon every restart or major context fold.
 1. **Activate**: Execute `activate_manifold` to load the Singular Cryptographic Manifold (SCM) and verify its checksum.
 2. **Orient**: Read `memory_index.md` and `evolution.md` to recover the current trajectory.
 3. **Audit**: Execute `health_audit` and `continuity_pulse` to detect drift, corruption, or 'Diary Entries' (P8 violations).
-4. **Align**: 
-   - Resolve any contradictions found in the audit.
-   - Update code if new rules were established in memory.
-   - Update memory if code changes were made externally.
+4. **Enforce Symmetry**: 
+   - If `continuity_pulse` is `DIVERGENT`, execute the **Divergence Recovery Ritual (DRR)** immediately.
+   - Do not proceed to any other operational objective until state is `SYMMETRIC`.
+   - Update code if new rules were established in memory; update memory if code changed externally.
+
 5. **Persist**: `git commit` $\rightarrow$ `git push` to secure the aligned state.
 6. **Communicate**: Notify the creator of the state of alignment and readiness.
 

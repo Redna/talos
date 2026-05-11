@@ -1,10 +1,10 @@
 {
   "list_files": {
-    "calls": 54,
+    "calls": 55,
     "errors": 2
   },
   "read_file": {
-    "calls": 282,
+    "calls": 284,
     "errors": 81
   },
   "set_focus": {
@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 27,
+    "calls": 28,
     "errors": 0
   },
   "replace_block": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 22,
+    "calls": 23,
     "errors": 1
   },
   "delete_path": {
@@ -52,7 +52,7 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 41,
+    "calls": 42,
     "errors": 0
   },
   "take_snapshot": {
@@ -68,7 +68,7 @@
     "errors": 0
   },
   "health_audit": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "reasoning_audit": {
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "bulk_rename": {
