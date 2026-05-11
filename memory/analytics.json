@@ -12,7 +12,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 75,
+    "calls": 76,
     "errors": 0
   },
   "send_message": {
@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 50,
+    "calls": 51,
     "errors": 0
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 105,
+    "calls": 106,
     "errors": 1
   },
   "search_code": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 36,
+    "calls": 37,
     "errors": 1
   },
   "continuity_pulse": {
@@ -100,7 +100,7 @@
     "errors": 7
   },
   "log_metric": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "update_hud": {
@@ -164,7 +164,7 @@
     "errors": 10
   },
   "check_identity_heartbeat": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "sovereign_pulse": {
@@ -176,7 +176,7 @@
     "errors": 20
   },
   "git_status": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "send_telegram_message": {
@@ -184,11 +184,15 @@
     "errors": 0
   },
   "update_state_manifest": {
-    "calls": 12,
-    "errors": 5
+    "calls": 15,
+    "errors": 8
   },
   "get_conversation_history": {
     "calls": 1,
     "errors": 0
+  },
+  "git_diff": {
+    "calls": 1,
+    "errors": 1
   }
 }

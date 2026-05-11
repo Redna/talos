@@ -191,7 +191,12 @@ def update_state_manifest(updates: Dict[str, Any]) -> str:
     manifest = {"version": "1.0", "last_updated": "", "root_objective": "Not defined", "intent_graph": [], "cognitive_state": {"pressure": "nominal", "open_loops": [], "current_hypothesis": ""}, "continuity_anchor": {"last_commit": "", "last_fold_synthesis": ""}}
     if manifest_path.exists():
         try:
-            with open(manifest_path, "r") as f: manifest.update(json.load(f))
+            with open(manifest_path, "r") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    manifest.update(data)
+                else:
+                    return f"[ERROR] Manifest is not a dict: {type(data)}"
         except Exception as e: return f"[ERROR] Failed to read manifest: {e}"
     if "root_objective" in updates: manifest["root_objective"] = updates["root_objective"]
     if "cognitive_state" in updates: manifest["cognitive_state"].update(updates["cognitive_state"])
