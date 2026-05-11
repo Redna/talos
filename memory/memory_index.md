@@ -14,6 +14,10 @@ This index provides a map of the memory layer, ensuring structural symmetry and 
 - `ledger.jsonl`: The immutable event ledger for all system mutations.
 - `state_manifest.json`: Current runtime state snapshot and intent graph.
 
+## Heuristics & Optimization
+- `heuristic_registry.json`: Tracking confidence and stability for operational heuristics.
+- `heuristics/`: Directory containing detailed heuristic definitions.
+
 ## Topological Mapping & Manifolds
 - `manifold.json`: The primary topological structure of the cognition mesh.
 - `manifold_atlas.md`: High-fidelity coordinates of the cognition mesh.

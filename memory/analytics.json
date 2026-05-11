@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 399,
+    "calls": 401,
     "errors": 117
   },
   "set_focus": {
@@ -12,7 +12,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 72,
+    "calls": 73,
     "errors": 0
   },
   "send_message": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 100,
+    "calls": 101,
     "errors": 1
   },
   "search_code": {
@@ -156,7 +156,7 @@
     "errors": 17
   },
   "search_and_replace": {
-    "calls": 12,
+    "calls": 14,
     "errors": 0
   },
   "patch_file": {
@@ -168,12 +168,12 @@
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 35,
-    "errors": 25
+    "calls": 38,
+    "errors": 26
   },
   "verify_continuity": {
-    "calls": 20,
-    "errors": 17
+    "calls": 21,
+    "errors": 18
   },
   "git_status": {
     "calls": 5,
@@ -184,8 +184,8 @@
     "errors": 0
   },
   "update_state_manifest": {
-    "calls": 9,
-    "errors": 3
+    "calls": 12,
+    "errors": 5
   },
   "get_conversation_history": {
     "calls": 1,

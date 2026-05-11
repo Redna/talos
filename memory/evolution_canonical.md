@@ -44,3 +44,4 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - 6a446a7: Implement SovereignHeartbeat for cognitive health monitoring
 - 9b56412: Sovereignty Fix: Harmonize dual-path evolution logs to resolve Continuity Gap
 - edbabd4: Implement Heuristic Registry for tracking confidence scores of Epoch 1.2.0 proto-heuristics
+- 5df8267: Stabilize Epoch 1.2.0: Implement HEC promoter and promote agency/operational_autonomy and memory/semantic_compression to stable
