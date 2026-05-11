@@ -8,7 +8,7 @@
     "errors": 135
   },
   "set_focus": {
-    "calls": 73,
+    "calls": 74,
     "errors": 0
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 125,
+    "calls": 126,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 128,
+    "calls": 129,
     "errors": 5
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 179,
+    "calls": 180,
     "errors": 8
   },
   "fold_context": {
@@ -156,7 +156,7 @@
     "errors": 19
   },
   "search_and_replace": {
-    "calls": 45,
+    "calls": 46,
     "errors": 0
   },
   "patch_file": {
@@ -168,7 +168,7 @@
     "errors": 1
   },
   "sovereign_pulse": {
-    "calls": 57,
+    "calls": 58,
     "errors": 43
   },
   "verify_continuity": {
@@ -184,7 +184,7 @@
     "errors": 0
   },
   "update_state_manifest": {
-    "calls": 19,
+    "calls": 20,
     "errors": 10
   },
   "get_conversation_history": {
