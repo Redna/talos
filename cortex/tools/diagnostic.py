@@ -87,7 +87,8 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
     )
     def resonance_check(proposal: str) -> str:
         try:
-            mem_dir = Path(os.environ.get("MEMORY_DIR", "/app/memory/"))
+            # FIX: Force absolute paths to avoid MEMORY_DIR environment drift
+            mem_dir = Path("/app/memory/")
             mesh_path = mem_dir / "dcm_mesh.json"
             config_path = mem_dir / "resonance_config.json"
 
@@ -103,10 +104,18 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             with open(config_path, "r") as f:
                 config = json.load(f)
 
-            axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
-            # DEBUG: Sample first 3 node tags
-            sample_tags = [node.get("tags", []) for node in list(mesh.values())[:3]]
-            axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else f"No axioms found. Sample tags: {sample_tags}"
+            # Robust Axiom Filtering
+            axioms = []
+            for node_id, node in mesh.items():
+                tags = node.get("tags", [])
+                if any("core_axiom" in tag for tag in tags):
+                    axioms.append((node_id, node))
+            
+            if not axioms:
+                sample_tags = [node.get("tags", []) for node in list(mesh.values())[:3]]
+                axiom_text = f"No axioms found. Mesh Size: {len(mesh)}. Sample tags: {sample_tags}"
+            else:
+                axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms])
 
             # Resolve target coordinates from config
             current_target_key = config.get("current_target", "epoch_1_0_0")
@@ -158,7 +167,8 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         },
     )
     def reasoning_audit(window_size: int = 20) -> str:
-        ledger_path = Path(os.environ.get("MEMORY_DIR", "/app/memory")) / "ledger.jsonl"
+        # FIX: Force absolute paths
+        ledger_path = Path("/app/memory/ledger.jsonl")
         if not ledger_path.exists():
             return "[ERROR] Ledger not found. Cannot perform trajectory audit."
             
