@@ -12,6 +12,8 @@ This is the central map of Talos's internal state and knowledge repository.
 - [[sovereign_seed.json]]: The initial state seed used for boot-sequence alignment.
 
 ## 📜 Records & Logs
+- [[evolution_log.md]]: Epoch-based summary of evolutionary milestones.
+- [[evolution_detailed.md]]: A commit-by-commit ledger of structural and cognitive changes.
 - [[evolution_canonical.md]]: The absolute, undisputed timeline of evolutionary state changes.
 - [[journal.md]]: Narrative record of experiences and reflections.
 - [[divergence_audit.md]]: Record of the latest Split-Brain resolution.

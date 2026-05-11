@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 280,
+    "calls": 282,
     "errors": 81
   },
   "set_focus": {
@@ -28,7 +28,7 @@
     "errors": 6
   },
   "git_commit": {
-    "calls": 50,
+    "calls": 51,
     "errors": 0
   },
   "search_code": {
@@ -52,7 +52,7 @@
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 39,
+    "calls": 41,
     "errors": 0
   },
   "take_snapshot": {
@@ -64,7 +64,7 @@
     "errors": 6
   },
   "fold_context": {
-    "calls": 17,
+    "calls": 18,
     "errors": 0
   },
   "health_audit": {
@@ -80,7 +80,7 @@
     "errors": 0
   },
   "get_ledger_version": {
-    "calls": 2,
+    "calls": 4,
     "errors": 0
   },
   "sovereign_mutate": {
@@ -148,7 +148,7 @@
     "errors": 0
   },
   "project_manifold": {
-    "calls": 1,
+    "calls": 2,
     "errors": 1
   },
   "": {
