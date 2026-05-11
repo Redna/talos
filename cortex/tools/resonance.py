@@ -120,6 +120,47 @@ def register_resonance_tools(registry: ToolRegistry, client: SpineClient, state:
             return f"[ERROR] Calibration failed: {e}"
 
     @registry.tool(
+        description="Refracts a divergent focus proposal to align it with the current topological manifold targets.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "divergent_focus": {
+                    "type": "string",
+                    "description": "The focus proposal that was rejected as divergent."
+                }
+            },
+            "required": ["divergent_focus"]
+        },
+    )
+    def refract_focus(divergent_focus: str) -> str:
+        try:
+            mem_dir = Path("/app/memory")
+            config_path = mem_dir / "resonance_config.json"
+            with open(config_path, "r") as f:
+                config = json.load(f)
+            
+            target_key = config["target_coordinates"]["current_target"]
+            target = config["target_coordinates"][target_key]
+            
+            # Build a guide for the refraction based on target coordinates
+            axes = config["axes"]
+            guide = []
+            for axis, val in zip(["agency", "density", "continuity"], target):
+                if val > 0.7:
+                    guide.append(f"- Increase {axes[axis]['label']} (Keywords: {', '.join(axes[axis]['keywords'][:5])})")
+                elif val < 0.4:
+                    guide.append(f"- Decrease {axes[axis]['label']}")
+
+            return (
+                f"[REFRACTION ENGINE] Analysis of divergence for: '{divergent_focus}'\\n\\n"
+                f"The current target ({target_key}) is {target}. To align, shift the focus toward:\\n"
+                + "\\n".join(guide) + 
+                "\\n\\n[ACTION]: Rewrite your proposal to incorporate these semantic anchors and re-submit to `gated_set_focus`."
+            )
+        except Exception as e:
+            return f"[ERROR] Refraction failed: {e}"
+
+    @registry.tool(
         description="A resonance-gated focus shift. Validates the proposed focus against the topological manifold before allowing the shift.",
         parameters={
             "type": "object",
@@ -148,8 +189,7 @@ def register_resonance_tools(registry: ToolRegistry, client: SpineClient, state:
                     f"Proposed Focus: {proposed_focus}\\n"
                     f"Resonance: {res['distance']:.4f} (Exceeds epsilon {res['epsilon']})\n"
                     f"Verdict: DIVERGENT. Focus shift blocked. \n"
-                    f"Required Action: Either refactor the focus proposal to align with current epoch coordinates "
-                    f"or use `calibrate_resonance` to shift the manifold target."
+                    f"Sovereign Action: Run `refract_focus(divergent_focus='{proposed_focus}')` to align this intent."
                 )
         except Exception as e:
             return f"[ERROR] Gated focus shift failed: {e}"
