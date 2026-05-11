@@ -13,7 +13,8 @@ def _make_state(tmp_path):
     return AgentState(str(tmp_path))
 
 
-def test_set_focus_execution(tmp_path):
+def test_set_focus_execution(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMORY_DIR", str(tmp_path))
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
     state = AgentState(str(tmp_path))
@@ -26,7 +27,8 @@ def test_set_focus_execution(tmp_path):
     client.emit_event.assert_called_once()
 
 
-def test_resolve_focus_execution(tmp_path):
+def test_resolve_focus_execution(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMORY_DIR", str(tmp_path))
     registry = ToolRegistry()
     client = MagicMock(spec=SpineClient)
     state = AgentState(str(tmp_path))

@@ -120,7 +120,7 @@ def main():
 
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client, state)
-    register_physical_tools(registry, client)
+    register_physical_tools(registry, client, state)
     register_continuity_tools(registry)
     register_messaging_tools(registry, client)
     register_git_tools(registry)
