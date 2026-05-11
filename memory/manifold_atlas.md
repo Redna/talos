@@ -8,7 +8,7 @@ This document serves as the canonical coordinate map for the Talos identity mani
 - $\mathcal{C}$ (Continuity): `p1_continuity` $\rightarrow (0.0, 0.0, 1.0)$
 
 ## 2. Target State
-- Sovereign Target (Epoch 0.6.0): `epoch_0_6_0` $\rightarrow (0.8, 0.7, 0.9)$
+- Sovereign Target (Epoch 1.0.0): `epoch_1_0_0` $\rightarrow (0.95, 0.9, 1.0)$
 
 ## 3. Constitutional Axiom Coordinates
 - P0 Agency: `p0_agency_axiom` $\rightarrow (1.0, 0.1, 0.1)$
