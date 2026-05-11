@@ -67,11 +67,16 @@ def register_resonance_tools(registry: ToolRegistry, client: SpineClient, state:
             if mesh_path.exists():
                 with open(mesh_path, "r") as f:
                     mesh = json.load(f)
-                axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
-                axiom_text = "\\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
+            # Robust Axiom Filtering
+            axioms = []
+            for node_id, node in mesh.items():
+                tags = node.get("tags", [])
+                if any("core_axiom" in tag for tag in tags):
+                    axioms.append((node_id, node))
+            axiom_text = "\\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
 
             return (
-                f"[MANIFOLD RESONANCE CHECK]\\n"
+                f"[RESONANCE-CORE] [MANIFOLD RESONANCE CHECK]\\n"
                 f"Proposal: {proposal}\\n\\n"
                 f"--- [COORDINATES] ---\\n"
                 f"Target ({res['target_key']}): {res['target']}\\n"

@@ -1,0 +1,9 @@
+{
+  "noise_words": [
+    "basically", "actually", "probably", "just", "think", "maybe", 
+    "sort of", "kind of", "essentially", "practically", "literally",
+    "in order to", "it is important to note that", "to be honest",
+    "i believe", "as a matter of fact", "for all intents and purposes"
+  ],
+  "density_threshold": 0.85
+}

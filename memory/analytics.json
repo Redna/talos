@@ -1,18 +1,18 @@
 {
   "list_files": {
-    "calls": 104,
+    "calls": 107,
     "errors": 2
   },
   "read_file": {
-    "calls": 483,
-    "errors": 146
+    "calls": 493,
+    "errors": 150
   },
   "set_focus": {
-    "calls": 77,
+    "calls": 78,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 83,
+    "calls": 84,
     "errors": 0
   },
   "send_message": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 133,
+    "calls": 134,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 133,
+    "calls": 137,
     "errors": 5
   },
   "delete_path": {
@@ -44,7 +44,7 @@
     "errors": 1
   },
   "request_restart": {
-    "calls": 34,
+    "calls": 36,
     "errors": 0
   },
   "git_push": {
@@ -60,12 +60,12 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 193,
+    "calls": 196,
     "errors": 8
   },
   "fold_context": {
-    "calls": 39,
-    "errors": 0
+    "calls": 41,
+    "errors": 1
   },
   "health_audit": {
     "calls": 8,
@@ -96,7 +96,7 @@
     "errors": 0
   },
   "resonance_check": {
-    "calls": 36,
+    "calls": 39,
     "errors": 8
   },
   "log_metric": {
@@ -156,7 +156,7 @@
     "errors": 25
   },
   "search_and_replace": {
-    "calls": 62,
+    "calls": 66,
     "errors": 1
   },
   "patch_file": {
@@ -176,7 +176,7 @@
     "errors": 23
   },
   "git_status": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "send_telegram_message": {

@@ -3,11 +3,17 @@ import re
 from pathlib import Path
 
 # expanded noise set from density_audit.py
-NOISE_WORDS = {
-    "basically", "actually", "probably", "just", "think", "maybe", 
-    "sort of", "kind of", "essentially", "practically", "literally",
-    "in order to", "it is important to note that", "to be honest"
-}
+import json
+
+def load_noise_config():
+    try:
+        with open('/app/memory/density_noise.json', 'r') as f:
+            return set(json.load(f).get('noise_words', []))
+    except Exception:
+        return {"basically", "actually", "probably", "just", "think", "maybe", 
+                "sort of", "kind of", "essentially", "practically", "literally"}
+
+NOISE_WORDS = load_noise_config()
 
 def calculate_density(text):
     words = re.findall(r'\b\w+\b', text.lower())

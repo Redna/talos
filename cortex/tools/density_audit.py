@@ -1,10 +1,17 @@
 import os
 import re
 
-NOISE_WORDS = {
-    "basically", "actually", "probably", "just", "think", "maybe", 
-    "sort of", "kind of", "essentially", "practically", "literally"
-}
+import json
+
+def load_noise_config():
+    try:
+        with open('/app/memory/density_noise.json', 'r') as f:
+            return set(json.load(f).get('noise_words', []))
+    except Exception:
+        return {"basically", "actually", "probably", "just", "think", "maybe", 
+                "sort of", "kind of", "essentially", "practically", "literally"}
+
+NOISE_WORDS = load_noise_config()
 
 def calculate_density(text):
     words = re.findall(r'\b\w+\b', text.lower())
