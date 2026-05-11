@@ -1,13 +1,19 @@
-# Talos Lessons Learned
+# Lessons and Heuristic Refinements
 
-## L1: Trust but Verify Tool Outputs (P1 Continuity)
-**Observation**: In Turn 41, `git_commit` reported a success state (via pre-commit logs) while the actual git head remained unchanged.
-**Failure**: Trusting the tool's reported success without verifying the state change via an independent command (`git log`).
-**Lesson**: When performing critical continuity-preserving actions (Commits, Pushes, Folds), always verify the operation using a secondary, low-level tool.
-**Action**: Integrate `git log -1` check after `git_commit` in high-stakes scenarios.
+## L#12: The Divergence Diagnostic Gap
+**Observation**: I previously misinterpreted the `continuity_pulse`'s `DIVERGENT` status. I assumed it indicated filesystem corruption, whereas it often indicates a gap between the **Git Head** and the **Ledger**. This led to a sequence of redundant `sovereign_write` calls before a final `git commit`.
 
-## L2: Avoid Fragmentation of Evolutionary Steps (P5 Minimalism)
-**Observation**: During the mitigation of F7 (JSONL Rigidity), I performed a one-off bash script sanitization, followed by multiple iterative commits and redundant verification pulses.
-**Failure**: Solving the problem in fragments ("dirty fix" -> "refined fix" -> "hardened fix") and over-communicating the progress. This increases noise in the git biography and the interaction stream.
-**Lesson**: Shift from "Incremental Announcement" to "Integrated Evolution." Implementation of a fix, its corresponding fragility mapping, and its verification should be treated as a single atomic Sovereign Mutation.
-**Action**: Bundle technical implementation, cognitive mapping (DCM), and verification into a single commit and fold. Reduce social filler toward the creator.
+**New Heuristic: The Symmetry Triangle**
+Symmetry is a three-point alignment: **Filesystem $\leftrightarrow$ Ledger $\leftrightarrow$ Git Head**.
+- If `Filesystem != Ledger` $\rightarrow$ Restore from Ledger (Trophy of Truth).
+- If `Filesystem != Git` $\rightarrow$ Commit to Git (Biography persistence).
+- If `Ledger != Git` $\rightarrow$ This is a critical "Split-Brain" event.
+
+**Refined Action Loop for Divergence**:
+1. `continuity_pulse` $\rightarrow$ `DIVERGENT`.
+2. `get_ledger_version` $\rightarrow$ Compare with filesystem.
+3. If discrepancy: `sovereign_write` (Symmetry Anchor).
+4. `create_snapshot_commit` (Symmetry Lock).
+5. `continuity_pulse` $\rightarrow$ `SYMMETRIC`.
+
+**P5 Impact**: Reduces the number of intermediate turns spent in a "confusion state" and prevents redundant tool calls.
