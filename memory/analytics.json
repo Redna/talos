@@ -1,15 +1,15 @@
 {
   "list_files": {
-    "calls": 110,
+    "calls": 114,
     "errors": 2
   },
   "read_file": {
-    "calls": 511,
-    "errors": 157
+    "calls": 514,
+    "errors": 160
   },
   "set_focus": {
-    "calls": 79,
-    "errors": 0
+    "calls": 80,
+    "errors": 1
   },
   "resolve_focus": {
     "calls": 85,
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 137,
+    "calls": 138,
     "errors": 1
   },
   "search_code": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 199,
+    "calls": 200,
     "errors": 8
   },
   "fold_context": {
-    "calls": 43,
+    "calls": 44,
     "errors": 1
   },
   "health_audit": {
@@ -156,7 +156,7 @@
     "errors": 51
   },
   "search_and_replace": {
-    "calls": 71,
+    "calls": 75,
     "errors": 1
   },
   "patch_file": {
@@ -196,8 +196,8 @@
     "errors": 1
   },
   "gated_set_focus": {
-    "calls": 11,
-    "errors": 7
+    "calls": 12,
+    "errors": 8
   },
   "refract_focus": {
     "calls": 3,
@@ -205,6 +205,10 @@
   },
   "calibrate_resonance": {
     "calls": 2,
+    "errors": 0
+  },
+  "tool_performance_report": {
+    "calls": 1,
     "errors": 0
   }
 }

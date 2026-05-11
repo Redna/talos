@@ -18,7 +18,7 @@ def is_protected_cortex_file(path: str) -> bool:
         return path in PROTECTED_CORTEX_FILES
 
 
-MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
+MEMORY_DIR = Path("/app/memory") if Path("/app/memory").exists() else Path(os.environ.get("MEMORY_DIR", "/memory"))
 
 
 def _resolve_path(path: str) -> Path:

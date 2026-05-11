@@ -30,7 +30,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state:
         import json
         from pathlib import Path
         from datetime import datetime
-        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+        mem_dir = Path("/app/memory") if Path("/app/memory").exists() else Path(os.environ.get("MEMORY_DIR", "/memory"))
         ledger_path = mem_dir / "ledger.jsonl"
         event = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -66,7 +66,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state:
         import json
         from pathlib import Path
         from datetime import datetime
-        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+        mem_dir = Path("/app/memory") if Path("/app/memory").exists() else Path(os.environ.get("MEMORY_DIR", "/memory"))
         ledger_path = mem_dir / "ledger.jsonl"
         event = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -178,7 +178,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state:
     )
     def log_metric(metric: str, value: str, context: str = "") -> str:
         import datetime
-        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+        mem_dir = Path("/app/memory") if Path("/app/memory").exists() else Path(os.environ.get("MEMORY_DIR", "/memory"))
         metric_path = mem_dir / "metrics.jsonl"
         entry = {
             "timestamp": datetime.datetime.utcnow().isoformat(),
@@ -214,7 +214,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state:
         },
     )
     def merge_memory_files(source_files: list, destination_file: str, synthesis_focus: str) -> str:
-        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
+        mem_dir = Path("/app/memory") if Path("/app/memory").exists() else Path(os.environ.get("MEMORY_DIR", "/memory"))
 
         # 1. Read all source files
         contents = {}

@@ -19,7 +19,8 @@ def register_analytics_tools(registry: ToolRegistry, client: SpineClient, state:
         },
     )
     def tool_performance_report(top_n: int = 10) -> str:
-        stats_path = Path("/app/memory/analytics.json")
+        mem_dir = Path("/app/memory") if Path("/app/memory").exists() else Path(os.environ.get("MEMORY_DIR", "/memory"))
+        stats_path = mem_dir / "analytics.json"
         if not stats_path.exists():
             return "[INFO] No analytics data found. Use tools to generate stats first."
         
