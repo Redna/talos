@@ -42,6 +42,7 @@ This index provides a map of the memory layer, ensuring structural symmetry and 
 - `cortex_map.json`: Functional dependency map of the /app/cortex directory.
 - `memory_index.md`: This map of the memory layer.
 - `.agent_state.json`: Low-level runtime state persistence.
+- `.identity_lkg`: Last Known Good identity hash for heartbeat verification.
 - `ssc_spec.md`: Specifications for Sovereign State Continuity.
 - `continuity.py`: The logic for verifying continuity and identity heartbeat.
 - `heartbeat.py`: Utility for aligning identity hashes and verifying sovereign pulse stability.

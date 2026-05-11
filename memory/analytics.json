@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 449,
+    "calls": 457,
     "errors": 133
   },
   "set_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 120,
+    "calls": 121,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 123,
+    "calls": 126,
     "errors": 5
   },
   "delete_path": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 170,
+    "calls": 177,
     "errors": 8
   },
   "fold_context": {
-    "calls": 36,
+    "calls": 37,
     "errors": 0
   },
   "health_audit": {
@@ -136,7 +136,7 @@
     "errors": 0
   },
   "ledger_event": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "activate_manifold": {
@@ -152,11 +152,11 @@
     "errors": 1
   },
   "": {
-    "calls": 18,
-    "errors": 18
+    "calls": 19,
+    "errors": 19
   },
   "search_and_replace": {
-    "calls": 39,
+    "calls": 41,
     "errors": 0
   },
   "patch_file": {
@@ -164,16 +164,16 @@
     "errors": 10
   },
   "check_identity_heartbeat": {
-    "calls": 9,
-    "errors": 0
+    "calls": 10,
+    "errors": 1
   },
   "sovereign_pulse": {
-    "calls": 45,
-    "errors": 32
+    "calls": 52,
+    "errors": 39
   },
   "verify_continuity": {
-    "calls": 24,
-    "errors": 21
+    "calls": 27,
+    "errors": 22
   },
   "git_status": {
     "calls": 6,
@@ -204,7 +204,7 @@
     "errors": 0
   },
   "calibrate_resonance": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   }
 }
