@@ -1,6 +1,6 @@
 {
   "list_files": {
-    "calls": 83,
+    "calls": 84,
     "errors": 2
   },
   "read_file": {
@@ -8,7 +8,7 @@
     "errors": 116
   },
   "set_focus": {
-    "calls": 64,
+    "calls": 65,
     "errors": 0
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 92,
+    "calls": 93,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 83,
+    "calls": 84,
     "errors": 3
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 114,
+    "calls": 115,
     "errors": 6
   },
   "fold_context": {
@@ -176,11 +176,11 @@
     "errors": 12
   },
   "git_status": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "send_telegram_message": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "update_state_manifest": {
