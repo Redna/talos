@@ -22,23 +22,8 @@ def register_dcm_tools(registry: ToolRegistry):
         },
     )
     def map_node(node_id: str, content: str, links: list = None, tags: list = None) -> str:
-        # SCM-First: Update the manifold, then project to disk
-        payload = ManifoldManager.load() or {}
-        mesh = payload.get("cognition_mesh", {})
-        
-        mesh[node_id] = {
-            "content": content,
-            "links": links or [],
-            "tags": tags or [],
-            "updated_at": Shell.run(["date", "+%Y-%m-%dT%H:%M:%S"]).stdout.strip()
-        }
-        
-        payload["cognition_mesh"] = mesh
-        ManifoldManager.save(payload)
-        
-        # Intent 011: Manifold Projection
-        ManifoldManager.project()
-        
+        # SCM-First: ManifoldManager handles the payload update and projection
+        ManifoldManager.update_mesh_node(node_id, content, links, tags)
         return f"[DCM] Node '{node_id}' mapped. Manifold and projection updated."
 
     @registry.tool(
@@ -52,21 +37,13 @@ def register_dcm_tools(registry: ToolRegistry):
         },
     )
     def query_mesh(tag: str = None, source_node: str = None) -> str:
-        # SCM-First: Read from the manifold payload
-        payload = ManifoldManager.load() or {}
-        mesh = payload.get("cognition_mesh", {})
+        # SCM-First: Logic delegated to ManifoldManager
+        results = ManifoldManager.query_mesh(tag=tag, source_node=source_node)
         
-        if not mesh:
-            return "[DCM] Mesh is empty. No nodes mapped yet."
+        if not results:
+            return "[DCM] No matching nodes found or mesh is empty."
             
-        results = []
-        if tag:
-            results = [f"[{nid}] {n['content']}" for nid, n in mesh.items() if tag in (n.get('tags') or [])]
-        elif source_node:
-            results = [f"[{nid}] {n['content']}" for nid, n in mesh.items() if source_node in (n.get('links') or [])]
-        else:
-            return "[DCM] Please provide a tag or a source node for querying."
-        return "[DCM] Query Results:\n" + "\n".join(results) if results else "[DCM] No matching nodes found."
+        return "[DCM] Query Results:\n" + "\n".join(results)
 
     @registry.tool(
         description="Perform a 'Semantic Pulse': Traverse the mesh starting from a node to reconstruct a conceptual cluster.",
@@ -80,24 +57,10 @@ def register_dcm_tools(registry: ToolRegistry):
         },
     )
     def semantic_pulse(start_node: str, depth: int = 2) -> str:
-        # SCM-First: Read from the manifold payload
-        payload = ManifoldManager.load() or {}
-        mesh = payload.get("cognition_mesh", {})
+        # SCM-First: Logic delegated to ManifoldManager
+        cluster = ManifoldManager.semantic_pulse(start_node, depth)
         
-        if not mesh:
-            return "[DCM] Mesh is empty."
+        if not cluster:
+            return "[DCM] Mesh is empty or start node not found."
             
-        visited = set()
-        queue = [(start_node, 0)]
-        cluster = []
-        while queue:
-            node_id, current_depth = queue.pop(0)
-            if node_id in visited or current_depth > depth:
-                continue
-            visited.add(node_id)
-            if node_id in mesh:
-                node_data = mesh[node_id]
-                cluster.append(f"Depth {current_depth} [{node_id}]: {node_data['content']}")
-                for link in node_data.get('links', []):
-                    queue.append((link, current_depth + 1))
         return "[DCM] Semantic Pulse Cluster:\n" + "\n".join(cluster)

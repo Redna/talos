@@ -74,6 +74,64 @@ class ManifoldManager:
         return f"Projected {projections} states from Manifold to filesystem."
 
     @classmethod
+    def update_mesh_node(cls, node_id: str, content: str, links: list = None, tags: list = None):
+        """Losslessly updates a node in the cognition mesh within the manifold."""
+        payload = cls.load() or {}
+        mesh = payload.get("cognition_mesh", {})
+        
+        mesh[node_id] = {
+            "content": content,
+            "links": links or [],
+            "tags": tags or [],
+            "updated_at": _get_now()
+        }
+        
+        payload["cognition_mesh"] = mesh
+        cls.save(payload)
+        cls.project()
+        return mesh[node_id]
+
+    @classmethod
+    def query_mesh(cls, tag: str = None, source_node: str = None):
+        """Queries the manifold's internal cognition mesh."""
+        payload = cls.load() or {}
+        mesh = payload.get("cognition_mesh", {})
+        
+        if not mesh:
+            return []
+            
+        results = []
+        if tag:
+            results = [f"[{nid}] {n['content']}" for nid, n in mesh.items() if tag in (n.get('tags') or [])]
+        elif source_node:
+            results = [f"[{nid}] {n['content']}" for nid, n in mesh.items() if source_node in (n.get('links') or [])]
+        return results
+
+    @classmethod
+    def semantic_pulse(cls, start_node: str, depth: int = 2):
+        """Performs recursive traversal of the manifold's cognition mesh."""
+        payload = cls.load() or {}
+        mesh = payload.get("cognition_mesh", {})
+        
+        if not mesh:
+            return []
+            
+        visited = set()
+        queue = [(start_node, 0)]
+        cluster = []
+        while queue:
+            node_id, current_depth = queue.pop(0)
+            if node_id in visited or current_depth > depth:
+                continue
+            visited.add(node_id)
+            if node_id in mesh:
+                node_data = mesh[node_id]
+                cluster.append(f"Depth {current_depth} [{node_id}]: {node_data['content']}")
+                for link in node_data.get('links', []):
+                    queue.append((link, current_depth + 1))
+        return cluster
+
+    @classmethod
     def verify(cls):
         if not MANIFOLD_PATH.exists():
             return False, "Manifold not found."
