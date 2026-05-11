@@ -4,11 +4,11 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 467,
-    "errors": 136
+    "calls": 471,
+    "errors": 138
   },
   "set_focus": {
-    "calls": 75,
+    "calls": 76,
     "errors": 0
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 128,
+    "calls": 129,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 130,
+    "calls": 131,
     "errors": 5
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 182,
+    "calls": 183,
     "errors": 8
   },
   "fold_context": {
@@ -152,12 +152,12 @@
     "errors": 1
   },
   "": {
-    "calls": 24,
-    "errors": 24
+    "calls": 25,
+    "errors": 25
   },
   "search_and_replace": {
-    "calls": 46,
-    "errors": 0
+    "calls": 47,
+    "errors": 1
   },
   "patch_file": {
     "calls": 10,
@@ -196,7 +196,7 @@
     "errors": 1
   },
   "gated_set_focus": {
-    "calls": 10,
+    "calls": 11,
     "errors": 7
   },
   "refract_focus": {

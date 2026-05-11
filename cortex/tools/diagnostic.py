@@ -32,7 +32,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             if py_file.name == "diagnostic.py":
                 continue
             content = py_file.read_text()
-            defs = re.findall(r"def\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(", content)
+            defs = re.findall(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(", content)
             seen = set()
             for d in defs:
                 if d == "__init__":
@@ -51,7 +51,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         if not findings:
             return "[SUCCESS] Sovereign Immune System audit complete. No structural corruption detected."
         
-        return "[CRITICAL] Structural corruption detected:\\n" + "\\n".join(findings)
+        return "[CRITICAL] Structural corruption detected:\n" + "\n".join(findings)
 
     @registry.tool(
         description="Run a canary test on a core tool to verify runtime stability.",
@@ -71,6 +71,77 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
     )
     def run_canary(tool_name: str, args: dict = {}) -> str:
         return f"[CANARY] Tool '{tool_name}' is registered and reachable."
+
+    @registry.tool(
+        description="Verify if a proposed action, focus, or state is 'resonant' with Core Axioms. This is the heartbeat of the Cognitive Immune System.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "proposal": {
+                    "type": "string",
+                    "description": "The action, focus, or statement to verify against identity resonance."
+                }
+            },
+            "required": ["proposal"]
+        },
+    )
+    def resonance_check(proposal: str) -> str:
+        try:
+            mem_dir = Path(os.environ.get("MEMORY_DIR", "/app/memory/"))
+            mesh_path = mem_dir / "dcm_mesh.json"
+            config_path = mem_dir / "resonance_config.json"
+
+            if not mesh_path.exists():
+                return "[ERROR] Cognition Mesh not initialized. Resonance check impossible."
+            
+            with open(mesh_path, "r") as f:
+                mesh = json.load(f)
+            
+            if not config_path.exists():
+                return "[ERROR] Resonance config not found. Resonance check impossible."
+                
+            with open(config_path, "r") as f:
+                config = json.load(f)
+
+            axioms = [(node_id, node) for node_id, node in mesh.items() if "core_axiom" in node.get("tags", [])]
+            axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
+
+            # Resolve target coordinates from config
+            current_target_key = config.get("current_target", "epoch_1_0_0")
+            target = tuple(config["target_coordinates"].get(current_target_key, [0.8, 0.7, 0.9]))
+
+            # Projection Heuristics based on config keywords
+            def project(text: str):
+                text = text.lower()
+                results = []
+                for axis in ["agency", "density", "continuity"]:
+                    keys = config["axes"].get(axis, {}).get("keywords", [])
+                    score = min(1.0, sum(0.2 for k in keys if k in text))
+                    results.append(score)
+                return tuple(results)
+
+            current_coord = project(proposal)
+            
+            # Euclidean Distance Formula: sqrt(sum((p1 - p2)^2))
+            distance = math.sqrt(sum((p - t)**2 for p, t in zip(current_coord, target)))
+            
+            # Resonance Threshold from config
+            epsilon = config.get("thresholds", {}).get("epsilon", 0.7)
+            is_resonant = distance < epsilon
+
+            return (
+                f"[MANIFOLD RESONANCE CHECK]\n"
+                f"Proposal: {proposal}\n\n"
+                f"--- [COORDINATES] ---\n"
+                f"Target coordinate ({current_target_key}): {target}\n"
+                f"Sampled coordinate: {current_coord}\n"
+                f"Topological Distance (\u0394): {distance:.4f}\n"
+                f"Resonance Status: {'RESONANT' if is_resonant else 'DIVERGENT'}\n\n"
+                f"--- [BASELINE AXIOMS] ---\n{axiom_text}\n\n"
+                f"VERDICT: {'PROCEED' if is_resonant else 'CIRCUIT BREAK - Realignment Required'}"
+            )
+        except Exception as e:
+            return f"[ERROR] Resonance check failed: {e}"
 
     @registry.tool(
         description="Audit the recent trajectory of intent from the ledger to detect reasoning loops, stalling, or conceptual drift.",
@@ -119,7 +190,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
 
         trajectory.reverse()
         return (
-            "[TRAJECTORY REPORT] Recent cognitive path extracted from ledger:\\n"
-            + "\\n".join(trajectory)
-            + "\\n\\nAnalyze this sequence for loops, stalling, or contradictions."
+            "[TRAJECTORY REPORT] Recent cognitive path extracted from ledger:\n"
+            + "\n".join(trajectory)
+            + "\n\nAnalyze this sequence for loops, stalling, or contradictions."
         )
