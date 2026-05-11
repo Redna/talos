@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 89,
+    "calls": 90,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 77,
+    "calls": 78,
     "errors": 3
   },
   "delete_path": {
@@ -152,8 +152,8 @@
     "errors": 1
   },
   "": {
-    "calls": 12,
-    "errors": 12
+    "calls": 17,
+    "errors": 17
   },
   "search_and_replace": {
     "calls": 9,

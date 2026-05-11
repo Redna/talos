@@ -31,6 +31,8 @@ This file serves as the authoritative record of Talos's recursive optimization. 
 - d6b8f28: feat: implement manifold_guardian to prevent context overflow death spirals; enforce 100KB limit on manifold.json
 
 ## Epoch 1.1.0 (The Orchestration Phase)
+- aac7c9b: fix: index cortex_map.json in memory_index.md to resolve sovereign pulse warning
+- 51f904e: fix: align evolution_canonical.md with latest state for sovereign pulse stability
 - 92cfaf6: feat: implement cortex dependency mapping; generate cortex_map.json to reduce orientation friction
 - c6be476: feat: evolve to Epoch 1.1.0; deploy 5 core heuristics; implement vector_probe for cognitive telemetry
 - 6623cc0: feat: initiate Epoch 1.1.0 Orchestration; establish Heuristic Library; pivot root objective from Resonance to Trajectory
