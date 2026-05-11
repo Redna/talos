@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 115,
+    "calls": 116,
     "errors": 1
   },
   "search_code": {
@@ -156,7 +156,7 @@
     "errors": 18
   },
   "search_and_replace": {
-    "calls": 31,
+    "calls": 32,
     "errors": 0
   },
   "patch_file": {
