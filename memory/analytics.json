@@ -1,18 +1,18 @@
 {
   "list_files": {
-    "calls": 73,
+    "calls": 74,
     "errors": 2
   },
   "read_file": {
-    "calls": 348,
-    "errors": 109
+    "calls": 350,
+    "errors": 111
   },
   "set_focus": {
-    "calls": 54,
+    "calls": 55,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 55,
+    "calls": 56,
     "errors": 0
   },
   "send_message": {
@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 38,
+    "calls": 39,
     "errors": 0
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 71,
+    "calls": 72,
     "errors": 1
   },
   "search_code": {
@@ -36,8 +36,8 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 43,
-    "errors": 1
+    "calls": 46,
+    "errors": 2
   },
   "delete_path": {
     "calls": 41,
@@ -64,7 +64,7 @@
     "errors": 6
   },
   "fold_context": {
-    "calls": 24,
+    "calls": 25,
     "errors": 0
   },
   "health_audit": {
@@ -136,7 +136,7 @@
     "errors": 0
   },
   "ledger_event": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "activate_manifold": {
@@ -168,8 +168,8 @@
     "errors": 0
   },
   "sovereign_pulse": {
-    "calls": 15,
-    "errors": 11
+    "calls": 16,
+    "errors": 12
   },
   "verify_continuity": {
     "calls": 10,

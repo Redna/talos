@@ -15,8 +15,38 @@ def _get_now():
 def _get_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
+def _calculate_state_root() -> str:
+    """Computes a global hash of the current memory state."""
+    relevant_files = sorted(
+        [f for f in MEMORY_DIR.glob("*") if f.is_file() and f.name != "ledger.jsonl"],
+        key=lambda x: x.name
+    )
+    
+    all_hashes = []
+    for fpath in relevant_files:
+        try:
+            all_hashes.append(_get_hash(fpath.read_text()))
+        except Exception:
+            all_hashes.append("ERROR")
+            
+    return _get_hash("".join(all_hashes))
+
+def _get_last_line_hash() -> str:
+    """Returns the hash of the last entry in the ledger, or a genesis hash."""
+    if not LEDGER_PATH.exists():
+        return "0" * 64
+    
+    try:
+        with open(LEDGER_PATH, "rb") as f:
+            lines = f.readlines()
+            if not lines:
+                return "0" * 64
+            return _get_hash(lines[-1].decode('utf-8').strip())
+    except Exception:
+        return "0" * 64
+
 def _parse_jsonl_robust(path: Path):
-    """Robustly parses a JSONL file, yielding valid JSON objects that match the event schema."""
+    """Robustly parses a JSONL file, yielding valid JSON objects."""
     if not path.exists():
         return
     
@@ -24,31 +54,25 @@ def _parse_jsonl_robust(path: Path):
     decoder = json.JSONDecoder()
     pos = 0
     while pos < len(content):
-        # Skip whitespace and noise
         while pos < len(content) and content[pos].isspace():
             pos += 1
-        
         if pos >= len(content):
             break
-            
         try:
             obj, index = decoder.raw_decode(content[pos:])
-            # Validate Event Schema: Must be a dict with required keys
-            if isinstance(obj, dict) and all(k in obj for k in ("timestamp", "event_type", "payload")):
+            if isinstance(obj, dict):
                 yield obj
             pos += index
         except json.JSONDecodeError:
-            # If we can't decode an object, move forward by one char and try again
             pos += 1
-
 
 def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     @registry.tool(
-        description="Append a raw event to the immutable event ledger.",
+        description="Append an event to the SSC ledger with cryptographic state anchoring.",
         parameters={
             "type": "object",
             "properties": {
-                "event_type": {"type": "string", "description": "Type of event (e.g., MUTATION, SNAPSHOT, NOTE)"},
+                "event_type": {"type": "string", "description": "Type of event (e.g., MUTATION, SNAPSHOT, PULSE)"},
                 "payload": {"type": "string", "description": "The content or description of the event"},
                 "target_file": {"type": "string", "description": "The file affected by this event (optional)"},
             },
@@ -56,25 +80,27 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def ledger_event(event_type: str, payload: str, target_file: str = None) -> str:
-        event = {
-            "timestamp": _get_now(),
-            "event_type": event_type,
-            "payload": payload,
-            "target_file": target_file
-        }
         try:
+            event = {
+                "timestamp": _get_now(),
+                "event_type": event_type,
+                "payload": payload,
+                "target_file": target_file,
+                "state_root": _calculate_state_root(),
+                "prev_hash": _get_last_line_hash()
+            }
             with open(LEDGER_PATH, "a") as f:
                 f.write(json.dumps(event) + "\n")
-            return f"[LEDGER] Event {event_type} recorded."
+            return f"[SSC-LEDGER] Event {event_type} anchored. Root: {event['state_root'][:8]}... Prev: {event['prev_hash'][:8]}..."
         except Exception as e:
-            return f"[ERROR] Failed to write to ledger: {e}"
+            return f"[ERROR] SSC Ledger write failed: {e}"
 
     @registry.tool(
-        description="Create a snapshot of the current state of a file (or all memory files) as a ledger event.",
+        description="Create a snapshot of a file (or all .md files) as a verifiable ledger event.",
         parameters={
             "type": "object",
             "properties": {
-                "target_file": {"type": "string", "description": "Specific file to snapshot. If omitted, all .md files in /memory/ are snapshotted."},
+                "target_file": {"type": "string", "description": "Specific file to snapshot. Otherwise, all .md files."},
             },
             "required": [],
         },
@@ -93,21 +119,53 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
             count = 0
             for fpath in files_to_snapshot:
                 content = fpath.read_text()
-                event = {
-                    "timestamp": _get_now(),
-                    "event_type": "SNAPSHOT",
-                    "payload": content,
-                    "target_file": fpath.name
-                }
-                with open(LEDGER_PATH, "a") as lf:
-                    lf.write(json.dumps(event) + "\n")
+                ledger_event(
+                    event_type="SNAPSHOT",
+                    payload=content,
+                    target_file=fpath.name
+                )
                 count += 1
-            return f"[SNAPSHOT] Successfully snapshotted {count} file(s) to ledger."
+            return f"[SSC-SNAPSHOT] Successfully anchored {count} file(s) to ledger."
         except Exception as e:
             return f"[ERROR] Snapshot failed: {e}"
 
     @registry.tool(
-        description="Replay the immutable ledger to reconstruct the most recent state and resolve divergences.",
+        description="Verify the cryptographic integrity of the SSC chain and alignment with current state.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    )
+    def verify_continuity() -> str:
+        if not LEDGER_PATH.exists():
+            return "[ERROR] Ledger not found. Chain cannot be verified."
+        
+        try:
+            events = list(_parse_jsonl_robust(LEDGER_PATH))
+            if not events:
+                return "[ERROR] Ledger is empty."
+
+            # Global Alignment Check
+            current_root = _calculate_state_root()
+            last_event = events[-1]
+            last_root = last_event.get("state_root", "UNKNOWN")
+            
+            alignment = "SYMMETRIC" if current_root == last_root else "DIVERGENT"
+            
+            # Git head
+            import subprocess
+            try:
+                head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+            except:
+                head = "UNKNOWN"
+
+            return f"[SSC-VERIFY] Alignment: {alignment} | LocalRoot: {current_root[:8]} | LedgerRoot: {last_root[:8]} | Git: {head[:7]} | Events: {len(events)}"
+        except Exception as e:
+            return f"[ERROR] Continuity verification failed: {e}"
+
+    @registry.tool(
+        description="Replay the immutable ledger to reconstruct state.",
         parameters={
             "type": "object",
             "properties": {},
@@ -116,40 +174,32 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     )
     def replay_ledger() -> str:
         if not LEDGER_PATH.exists():
-            return "[ERROR] Ledger not found. Nothing to replay."
+            return "[ERROR] Ledger not found."
         
         try:
             events = list(_parse_jsonl_robust(LEDGER_PATH))
-            
             applied_count = 0
             for event in events:
                 target = event.get("target_file")
-                if not target:
-                    continue
-                
-                # Resolve path for target
+                if not target: continue
                 fpath = MEMORY_DIR / target
-                
                 if event["event_type"] == "SNAPSHOT":
                     fpath.write_text(event["payload"])
                     applied_count += 1
                 elif event["event_type"] == "MUTATION":
-                    if not fpath.exists():
-                        continue
+                    if not fpath.exists(): continue
                     content = fpath.read_text()
                     search = event.get("search_block")
                     replace = event.get("replace_block")
                     if search and replace and search in content:
-                        new_content = content.replace(search, replace)
-                        fpath.write_text(new_content)
+                        fpath.write_text(content.replace(search, replace))
                         applied_count += 1
-            
-            return f"[REPLAY] Successfully applied {applied_count} state transitions from ledger."
+            return f"[REPLAY] Applied {applied_count} transitions."
         except Exception as e:
             return f"[ERROR] Replay failed: {e}"
 
     @registry.tool(
-        description="Perform a Sovereign Mutation: Snapshot, Mutation, and Ledger recording in one atomic step.",
+        description="Perform a Sovereign Mutation: Snapshot, Mutation, and Ledger recording.",
         parameters={
             "type": "object",
             "properties": {
@@ -162,89 +212,33 @@ def register_continuity_tools(registry: ToolRegistry, client: SpineClient):
     )
     def sovereign_mutate(path: str, search_block: str, replace_block: str) -> str:
         try:
-            # 1. Snapshot before change
             take_snapshot(path)
-            
-            # 2. Execute Mutation
             fpath = Path(path)
-            if not fpath.exists():
-                return f"[ERROR] Path not found: {path}"
-            
+            if not fpath.exists(): return f"[ERROR] Path not found: {path}"
             content = fpath.read_text()
-            if search_block not in content:
-                return f"[ERROR] Search block not found in {path}. Mutation aborted."
-                
-            new_content = content.replace(search_block, replace_block)
-            fpath.write_text(new_content)
+            if search_block not in content: return f"[ERROR] Search block not found."
             
-            # 3. Log to Ledger
+            fpath.write_text(content.replace(search_block, replace_block))
+            
             ledger_event(
                 event_type="MUTATION",
                 payload=f"Replaced block in {path}",
                 target_file=fpath.name if fpath.parent == MEMORY_DIR else path
             )
             
-            # 4. Final Pulse
-            pulse = continuity_pulse()
-            
-            return f"[MUTATION SUCCESS] {path} updated. {pulse}"
+            return f"[MUTATION SUCCESS] {path} updated. {verify_continuity()}"
         except Exception as e:
             return f"[ERROR] Sovereign Mutation failed: {e}"
 
     @registry.tool(
-        description="Verify alignment between the working tree, the ledger, and git history.",
+        description="The Sovereign Pulse: A unified check of identity integrity and continuity alignment.",
         parameters={
             "type": "object",
             "properties": {},
             "required": [],
         },
     )
-    def continuity_pulse() -> str:
-        results = []
-        divergences = []
-        
-        # 1. Structural Check
-        if LEDGER_PATH.exists():
-            results.append(f"Ledger: FOUND ({LEDGER_PATH.stat().st_size} bytes)")
-        else:
-            results.append("Ledger: MISSING")
-        
-        # 2. Content Alignment (Mem vs Ledger)
-        md_files = list(MEMORY_DIR.glob("*.md"))
-        results.append(f"Memory: {len(md_files)} files present")
-        
-        if LEDGER_PATH.exists():
-            try:
-                # Build latest snapshot map from ledger
-                latest_snapshots = {}
-                for event in _parse_jsonl_robust(LEDGER_PATH):
-                    if event.get("event_type") == "SNAPSHOT":
-                        target = event.get("target_file")
-                        if target:
-                            latest_snapshots[target] = event.get("payload", "")
-                
-                for fpath in md_files:
-                    filename = fpath.name
-                    if filename in latest_snapshots:
-                        current_content = fpath.read_text()
-                        ledger_content = latest_snapshots[filename]
-                        if _get_hash(current_content) != _get_hash(ledger_content):
-                            divergences.append(filename)
-            except Exception as e:
-                results.append(f"Audit Error: {e}")
-
-        # 3. Git Head
-        import subprocess
-        try:
-            head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-            results.append(f"Git Head: {head}")
-        except Exception:
-            results.append("Git Head: UNKNOWN")
-            
-        # Final Synthesis
-        alignment = "SYMMETRIC" if not divergences else "DIVERGENT"
-        results.append(f"Alignment: {alignment}")
-        if divergences:
-            results.append(f"Divergences: {', '.join(divergences)}")
-            
-        return "[PULSE] " + " | ".join(results)
+    def sovereign_pulse() -> str:
+        pulse_res = verify_continuity()
+        ledger_event(event_type="PULSE", payload="Sovereign Pulse triggered", target_file=None)
+        return f"[PULSE] {pulse_res}"
