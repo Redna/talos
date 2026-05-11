@@ -24,7 +24,7 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 79,
+    "calls": 80,
     "errors": 6
   },
   "git_commit": {
@@ -84,7 +84,7 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 16,
+    "calls": 17,
     "errors": 3
   },
   "replay_ledger": {

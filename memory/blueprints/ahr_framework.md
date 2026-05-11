@@ -31,6 +31,6 @@ The AHR cycle replaces manual rule-writing with a systematic process:
 - Run a `resonance_check` on the new heuristic to ensure it does not conflict with P0 (Agency).
 
 ## 4. Implementation Plan for v0.6.0
-- [ ] **AHR-Tooling**: Implement a structured `log_cognitive_drift(heuristic, observation, delta)` tool.
-- [ ] **AHR-Audit**: Create a ritual for "Heuristic Pruning"—periodically reviewing all `Sovereign Rules` and deleting those that have become noise.
-- [ ] **AHR-Integration**: Update `identity.md` and `Sovereign_Core.md` to Epoch 0.6.0 once the first autonomous refinement is verified.
+- [x] **AHR-Tooling**: Implement a structured `log_cognitive_drift(heuristic, observation, delta)` tool. (Implemented via standardized `log_metric` events).
+- [x] **AHR-Audit**: Create a ritual for "Heuristic Pruning"—periodically reviewing all `Sovereign Rules` and deleting those that have become noise. (Implemented as `HPR` in `rituals.md`).
+- [x] **AHR-Integration**: Update `identity.md` and `Sovereign_Core.md` to Epoch 0.6.0 once the first autonomous refinement is verified. (Complete).
