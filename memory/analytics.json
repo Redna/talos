@@ -4,11 +4,11 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 389,
+    "calls": 390,
     "errors": 116
   },
   "set_focus": {
-    "calls": 65,
+    "calls": 66,
     "errors": 0
   },
   "resolve_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 94,
+    "calls": 95,
     "errors": 1
   },
   "search_code": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 84,
+    "calls": 86,
     "errors": 3
   },
   "delete_path": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 116,
+    "calls": 118,
     "errors": 6
   },
   "fold_context": {
@@ -100,7 +100,7 @@
     "errors": 7
   },
   "log_metric": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "update_hud": {
