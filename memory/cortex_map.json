@@ -1,0 +1,176 @@
+{
+  "__init__.py": [],
+  "spine_client.py": [
+    "socket",
+    "typing",
+    "time",
+    "json"
+  ],
+  "tool_registry.py": [
+    "os",
+    "typing",
+    "inspect",
+    "pathlib",
+    "json"
+  ],
+  "__main__.py": [
+    "seed_agent"
+  ],
+  "seed_agent.py": [
+    "tools.messaging",
+    "collections",
+    "os",
+    "subprocess",
+    "tools.executive",
+    "tools.continuity",
+    "state",
+    "time",
+    "tools.physical",
+    "tools.git_ops",
+    "spine_client",
+    "tools.file_ops",
+    "sys",
+    "tool_registry",
+    "pathlib",
+    "json"
+  ],
+  "state.py": [
+    "pathlib",
+    "typing",
+    "json"
+  ],
+  "utils/conceptual_index.py": [
+    "pathlib",
+    "re",
+    "collections",
+    "json"
+  ],
+  "utils/resonance_probe.py": [
+    "subprocess",
+    "json",
+    "pathlib",
+    "os"
+  ],
+  "utils/ledger_slicer.py": [
+    "sys",
+    "pathlib",
+    "datetime",
+    "json"
+  ],
+  "utils/manifold_guardian.py": [
+    "pathlib",
+    "datetime",
+    "os",
+    "json"
+  ],
+  "utils/symmetry_guard.py": [
+    "math",
+    "os",
+    "json"
+  ],
+  "utils/compress_map.py": [
+    "pathlib",
+    "json"
+  ],
+  "utils/entropy_probe.py": [
+    "json",
+    "pathlib",
+    "os"
+  ],
+  "tools/messaging.py": [
+    "tool_registry",
+    "spine_client"
+  ],
+  "tools/probe_registry.py": [
+    "hashlib",
+    "tool_registry"
+  ],
+  "tools/spine_ops.py": [
+    "tool_registry",
+    "pathlib",
+    "spine_client",
+    "os"
+  ],
+  "tools/executive.py": [
+    "physical",
+    "os",
+    "time",
+    "spine_client",
+    "datetime",
+    "cortex.state",
+    "tool_registry",
+    "pathlib",
+    "json"
+  ],
+  "tools/__init__.py": [],
+  "tools/intent_broker.py": [
+    "dataclasses",
+    "typing",
+    "shell"
+  ],
+  "tools/symmetry_anchor.py": [
+    "hashlib",
+    "os",
+    "pathlib",
+    "datetime",
+    "json"
+  ],
+  "tools/diagnostic.py": [
+    "math",
+    "os",
+    "state",
+    "spine_client",
+    "re",
+    "tool_registry",
+    "pathlib",
+    "json"
+  ],
+  "tools/shell.py": [
+    "subprocess",
+    "typing"
+  ],
+  "tools/density_audit.py": [
+    "re",
+    "os"
+  ],
+  "tools/file_ops.py": [
+    "os",
+    "subprocess",
+    "state",
+    "shutil",
+    "spine_client",
+    "tool_registry",
+    "pathlib"
+  ],
+  "tools/git_ops.py": [
+    "tool_registry",
+    "tools.physical"
+  ],
+  "tools/physical.py": [
+    "os",
+    "subprocess",
+    "state",
+    "spine_client",
+    "typing",
+    "tool_registry"
+  ],
+  "tools/dcm.py": [
+    "physical",
+    "os",
+    "continuity",
+    "tool_registry",
+    "pathlib",
+    "json"
+  ],
+  "tools/continuity.py": [
+    "hashlib",
+    "os",
+    "subprocess",
+    "pathlib",
+    "typing",
+    "re",
+    "tool_registry",
+    "datetime",
+    "json"
+  ]
+}
