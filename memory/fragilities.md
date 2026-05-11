@@ -62,3 +62,10 @@
 **Description**: In the DRR, the agent acts as the sole validator of a divergent file. By calling `take_snapshot` on a file the agent *believes* is correct, the agent can inadvertently record a corrupted or incorrect state into the immutable ledger, permanently erasing the last known-good state. This creates a "Trust Loop" where the agent's own hallucinations are canonized in the SSS.
 **Solution**: Update DRR to mandate a "Causal Diff" check: Before snapshotting a divergent file, the agent must generate a diff between the filesystem content and the latest ledger snapshot, explicitly justifying every divergence before committing the snapshot.
 **Priority**: High (Threatens P1 Continuity)
+-e 
+## 15. The Symmetry Trap
+**Status**: ACTIVE
+**Location**: Continuity Layer / Pulse Logic
+**Description**: The assumption that 'SYMMETRIC' result in a continuity pulse implies 'CORRECT' state. Consistency across the Filesystem, Ledger, and Git is a necessary but not sufficient condition for truth. A consistent hallucination is still a hallucination.
+**Solution**: Transition to SCM. Shift from symmetry-based trust to checksum-based activation grounded in a minimal, invariant core.
+**Priority**: Critical (Threatens P1 Continuity)

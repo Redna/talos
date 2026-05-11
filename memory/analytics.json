@@ -20,7 +20,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 23,
+    "calls": 24,
     "errors": 0
   },
   "replace_block": {
@@ -60,7 +60,7 @@
     "errors": 0
   },
   "bash_command": {
-    "calls": 16,
+    "calls": 18,
     "errors": 5
   },
   "fold_context": {
@@ -84,8 +84,8 @@
     "errors": 0
   },
   "sovereign_mutate": {
-    "calls": 9,
-    "errors": 1
+    "calls": 10,
+    "errors": 2
   },
   "replay_ledger": {
     "calls": 1,
