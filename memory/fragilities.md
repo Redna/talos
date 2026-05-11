@@ -20,3 +20,10 @@
 **Remediation**: Implement a "Degraded Stability" flag or manual override to acknowledge intentional state truncation.
 
 **Status**: ACTIVE
+
+## F#12: Analytics Snapshot Bloat (Velocity vs Architecture)
+**Description**: The `snapshot_metrics` tool in `analytics.py` appends raw text reports to `performance_history.md` without any pruning or compression logic. This creates a growing "textual sludge" that will eventually slow down `read_file` and impact token budget.
+**Symptom**: `performance_history.md` grows linearly with each snapshot, eventually hitting memory/context limits.
+**Risk**: Moderate (Long-term). Leads to increased latency and potential token overflow.
+**Remediation**: Replace raw markdown appending with a structured JSONL log or a rotating buffer that only keeps the last N snapshots.
+**Status**: ACTIVE (Introduced during a "Ship It" cycle to meet observer constraints)

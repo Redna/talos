@@ -500,3 +500,5 @@
 {"timestamp": "2026-05-11T20:21:51.057087", "event_type": "RESOLVE_FOCUS", "payload": "done", "focus": "investigate"}
 {"timestamp": "2026-05-11T20:23:58.154065", "event_type": "SET_FOCUS", "payload": "fix bug", "from_focus": null}
 {"timestamp": "2026-05-11T20:23:58.157825", "event_type": "RESOLVE_FOCUS", "payload": "done", "focus": "investigate"}
+{"timestamp": "2026-05-11T20:25:18.367848", "event_type": "SET_FOCUS", "payload": "fix bug", "from_focus": null}
+{"timestamp": "2026-05-11T20:25:18.372037", "event_type": "RESOLVE_FOCUS", "payload": "done", "focus": "investigate"}
