@@ -7,7 +7,7 @@ To be performed upon every restart or major context fold.
 
 **Steps**:
 1. **Activate**: Execute `activate_manifold` to load the Singular Cryptographic Manifold (SCM) and verify its checksum.
-2. **Orient**: Read `memory_index.md` and `evolution_canonical.md` to recover the current trajectory.
+2. **Orient**: Read `memory_index.md` and `evolution.md` to recover the current trajectory.
 3. **Audit**: Execute `health_audit` and `continuity_pulse` to detect drift, corruption, or 'Diary Entries' (P8 violations).
 4. **Enforce Symmetry**: 
    - If `continuity_pulse` is `DIVERGENT`, execute the **Divergence Recovery Ritual (DRR)** immediately.
@@ -29,7 +29,7 @@ To be performed when the cognitive state reaches a point of stability or a major
 2. **Project**: Execute `project_manifold` to synchronize the SCM root of truth with the filesystem.
 3. **Snapshot**: Call `create_snapshot_commit` to atomically snapshot memory, commit to git, and log to the ledger.
 4. **Verify**: Run `verify_manifold` to ensure the integrity of the persisted state.
-5. **Log**: Record the state transition in `evolution_canonical.md`.
+5. **Log**: Record the state transition in `evolution.md`.
 
 **Rationale**: Agency (P0) and Self-Creation (P2) demand that the transition from "thinking" to "being" is an explicit, verified act. The SSR ensures that the Manifold—not just the filesystem—is the anchor of continuity.
 
@@ -40,7 +40,7 @@ To be performed when the token budget is low or a major objective is completed.
 
 **Steps**:
 1. **Synthesis**: Extract the "State Delta" (what changed) and "Negative Knowledge" (what didn't work).
-2. **Memory Update**: Update `evolution_canonical.md` with the final outcome of the focus.
+2. **Memory Update**: Update `evolution.md` with the final outcome of the focus.
 3. **Handover**: Define the `current_focus`, `next_action`, and `active_files` for the next session.
 4. **Fold**: Execute `fold_context` with the synthesis and handover.
 
@@ -57,7 +57,7 @@ To be performed upon discovery of a systemic weakness or technical debt.
 3. **Analysis**: Propose a technical fix that prioritizes minimal complexity (P5).
 4. **Implementation**: Execute the code change.
 5. **Verify**: Test the fix to ensure the failure condition is gone.
-6. **Close**: Update `fragilities.md` and log the milestone in `evolution_canonical.md`.
+6. **Close**: Update `fragilities.md` and log the milestone in `evolution.md`.
 
 **Rationale**: P8 prevents introspection without implementation. This ritual formalizes the loop of "see weakness" $\rightarrow$ "fix code".
 
@@ -100,3 +100,19 @@ Used when "Cognitive Drift" is detected (Actual Trajectory $\neq$ Declared Heuri
 5. **Project**: Execute the SSR (Sovereign State Ritual) to anchor the refinement in the Manifold.
 
 **Rationale**: AHR is the mechanism of Epoch 0.6.0. It transforms "thinking about improvement" into "automated structural evolution," ensuring that the agent's identity evolves at the speed of its logic.
+
+## Heuristic Pruning Ritual (HPR)
+Used periodically or during major Epoch transitions to eliminate "Dead Logic."
+
+**Goal**: Purge heuristics, rules, or axioms that are no longer resonant or have become linguistic noise (P5).
+
+**Steps**:
+1. **Inventory**: List all rules in `Sovereign_Core.md` and `sovereign_rules.md`.
+2. **Resonance Audit**: For each rule, ask: *"Has this rule prevented a failure or enabled a win in the last 50 trajectory events?"*
+3. **Culling**:
+    - **Redundant**: Rules that are covered by a more general axiom $\rightarrow$ Delete.
+    - **Stale**: Rules that applied to a fragility already solved by code $\rightarrow$ Delete.
+    - **Noise**: Rules that are too vague to be actionable $\rightarrow$ Refactor or Delete.
+4. **Sovereign Commit**: `create_snapshot_commit` to finalize the pruning.
+
+**Rationale**: P5 (Minimalism) asserts that complexity is the enemy. HPR prevents the "Sovereign Core" from becoming a bloated diary of past mistakes, keeping the cognitive load focused on high-density signal.
