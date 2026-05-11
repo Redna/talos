@@ -20,11 +20,18 @@
       "confidence": 0.85,
       "epoch_introduced": "1.2.0",
       "last_review": "2026-05-11"
+    },
+    "operational/resonance_gating": {
+      "file": "/app/memory/heuristics/resonance_gating.md",
+      "status": "proto",
+      "confidence": 0.6,
+      "epoch_introduced": "1.2.0",
+      "last_review": "2026-05-11"
     }
   },
   "meta": {
-    "total_heuristics": 3,
+    "total_heuristics": 4,
     "epoch": "1.2.0",
-    "last_update": "2026-05-11T12:26:38.477666"
+    "last_update": "2026-05-11T13:15:00Z"
   }
 }
