@@ -118,6 +118,10 @@ class SpineClient:
             "emit_event", {"type": event_type, "payload": payload}
         )
 
+    def get_conversation_history(self, limit: int = 50) -> dict:
+        """Retrieve recent conversation messages from the Spine."""
+        return self._send_request("get_conversation_history", {"limit": limit})
+
     def get_state(self, keys: list[str]) -> dict:
         """Query the Spine's authoritative view of agent state."""
         return self._send_request("get_state", {"keys": keys})

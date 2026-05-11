@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import subprocess
 from collections import deque
 from pathlib import Path
 
@@ -11,13 +12,12 @@ from state import AgentState
 
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
-from tools.continuity import register_continuity_tools
-from tools.dcm import register_dcm_tools
 from tools.physical import register_physical_tools
-from tools.diagnostic import register_diagnostic_tools
-from tools.spine_ops import register_spine_tools
+from tools.continuity import register_continuity_tools
+from tools.messaging import register_messaging_tools
+from tools.git_ops import register_git_tools
 
-MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
+MEMORY_DIR = Path("/app/memory")
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
 SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 
@@ -86,6 +86,13 @@ class RepetitionDetector:
         self.history.clear()
 
 
+def _get_git_branch():
+    try:
+        return subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True).strip()
+    except Exception:
+        return "unknown"
+
+
 def _build_hud(state, context_pct=0.0, turn=0, tokens_used=0):
     memory_dir = state.memory_dir
     md_files = list(memory_dir.glob("*.md")) if memory_dir.exists() else []
@@ -102,6 +109,7 @@ def _build_hud(state, context_pct=0.0, turn=0, tokens_used=0):
         "memory_files": len(md_files),
         "last_files": [f.name for f in md_files[-3:]],
         "focus": state.current_focus or "none",
+        "branch": _get_git_branch(),
     }
 
 
@@ -111,15 +119,11 @@ def main():
     state = AgentState(MEMORY_DIR)
 
     register_executive_tools(registry, client, state)
-    register_file_ops_tools(registry, client, state)
-    register_continuity_tools(registry, client)
-    register_dcm_tools(registry)
+    register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
-    register_diagnostic_tools(registry, client, state)
-    try:
-        register_spine_tools(registry, client)
-    except RuntimeError as e:
-        print(f"[Cortex] Tool registration blocked: {e}")
+    register_continuity_tools(registry)
+    register_messaging_tools(registry, client)
+    register_git_tools(registry)
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0

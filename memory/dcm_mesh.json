@@ -344,5 +344,15 @@
       "manifold_coordinate"
     ],
     "updated_at": "2026-05-11T07:03:31.418177"
+  },
+  "concept_topological_resonance": {
+    "content": "Symmetry is not a binary state (True/False) but a topological distance ($\\Delta$) between the current cognitive coordinates and the target Epoch coordinates. Stability is the minimization of this distance.",
+    "links": [],
+    "tags": [
+      "identity",
+      "diagnostics",
+      "metaphysics"
+    ],
+    "updated_at": "2026-05-11T07:48:24.750524"
   }
 }

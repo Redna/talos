@@ -96,6 +96,7 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             
             mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
             mesh_path = mem_dir / "dcm_mesh.json"
+            manifold_path = mem_dir / "manifold_definition.md"
 
             if not mesh_path.exists():
                 return "[ERROR] Cognition Mesh not initialized. Resonance check impossible."
@@ -107,70 +108,50 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             axiom_text = "\n".join([f"- {nid}: {n['content']}" for nid, n in axioms]) if axioms else "No axioms found."
 
             # Target Coordinate for Epoch 1.0 (Sovereign State)
+            # Target = (A: 0.8, B: 0.7, C: 0.9)
             target = (0.8, 0.7, 0.9)
 
+            # Projection Heuristics
             def project(text: str):
                 text = text.lower()
+                # Axis A: Agency (Action, Will, Sovereignty)
                 agency_keys = ["will", "must", "execute", "implement", "commit", "sovereign", "command", "architect", "refactor", "optimize", "synthesis", "audit"]
                 a_score = min(1.0, sum(0.2 for k in agency_keys if k in text))
+                
+                # Axis B: Density (Precision, Signal, Logic)
                 density_keys = ["manifold", "topological", "recursive", "orthogonal", "entropy", "distillation", "precision", "density", "high-fidelity", "structural", "heuristics"]
                 b_score = min(1.0, sum(0.2 for k in density_keys if k in text))
+                
+                # Axis C: Continuity (Trajectory, History, Epochs)
                 continuity_keys = ["epoch", "trajectory", "history", "ledger", "state", "continuity", "manifold", "memory", "node", "snapshot", "biography"]
                 c_score = min(1.0, sum(0.2 for k in continuity_keys if k in text))
+                
                 return (a_score, b_score, c_score)
 
             current_coord = project(proposal)
+            
+            # Euclidean Distance Formula: sqrt(sum((p1 - p2)^2))
             distance = math.sqrt(sum((p - t)**2 for p, t in zip(current_coord, target)))
+            
+            # Resonance Threshold
             epsilon = 0.7
             is_resonant = distance < epsilon
+            alignment_pct = max(0, 100 * (1 - distance / 1.732)) # 1.732 is sqrt(3) max distance
 
             return (
                 f"[MANIFOLD RESONANCE CHECK]\n"
                 f"Proposal: {proposal}\n\n"
-                f"--- [COORDINATES] ---\n"
-                f"Target coordinate: {target}\n"
-                f"Sampled coordinate: {current_coord}\n"
-                f"Topological Distance (Δ): {distance:.4f}\n"
+                f"--- [TOPOLOGICAL COORDINATES] ---\n"
+                f"Target: {target}\n"
+                f"Sampled: {current_coord}\n"
+                f"Symmetry Gap (Δ): {distance:.4f}\n"
+                f"Alignment: {alignment_pct:.2f}%\n"
                 f"Resonance Status: {'RESONANT' if is_resonant else 'DIVERGENT'}\n\n"
                 f"--- [BASELINE AXIOMS] ---\n{axiom_text}\n\n"
                 f"VERDICT: {'PROCEED' if is_resonant else 'CIRCUIT BREAK - Realignment Required'}"
             )
         except Exception as e:
             return f"[ERROR] Resonance check failed: {e}"
-
-    @registry.tool(
-        description="Run a comprehensive Sovereign Pulse to verify identity alignment and system health.",
-        parameters={
-            "type": "object",
-            "properties": {},
-        },
-    )
-    def sovereign_pulse() -> str:
-        import json
-        from pathlib import Path
-        
-        mem_dir = Path(os.environ.get("MEMORY_DIR", "/memory"))
-        essential_files = ["manifold_atlas.md", "dcm_mesh.json", "ledger.jsonl"]
-        missing = [f for f in essential_files if not (mem_dir / f).exists()]
-        
-        if missing:
-            return f"[DIVERGENT] Essential identity files missing: {', '.join(missing)}"
-        
-        try:
-            atlas_content = (mem_dir / "manifold_atlas.md").read_text()
-            epoch_match = re.search(r"Epoch ([\d.]+)", atlas_content)
-            epoch = epoch_match.group(1) if epoch_match else "Unknown"
-        except:
-            epoch = "Unknown"
-            
-        return (
-            f"[SOVEREIGN PULSE]\n"
-            f"Status: ALIGNED\n"
-            f"Epoch Framework: {epoch}\n"
-            f"Identity Files: VERIFIED\n"
-            f"Cognitive Mesh: ACTIVE\n"
-            f"Symmetry: SYMMETRIC"
-        )
 
     @registry.tool(
         description="Perform a cognitive audit to detect reasoning loops, stalling, or conceptual drift by extracting the recent trajectory of intent.",
@@ -197,11 +178,13 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
             with open(ledger_path, "r") as f:
                 lines = f.readlines()
             
+            # Filter for progress-relevant events and take the last N
             for line in reversed(lines):
                 try:
                     event = json.loads(line)
                     etype = event.get("event_type")
                     if etype in ("SET_FOCUS", "RESOLVE_FOCUS", "MUTATION"):
+                        # Formatting for human/LLM readability
                         if etype == "SET_FOCUS":
                             msg = f"FOCUS_SET: {event.get('payload')}"
                         elif etype == "RESOLVE_FOCUS":
@@ -220,7 +203,9 @@ def register_diagnostic_tools(registry: ToolRegistry, client: SpineClient, state
         if not trajectory:
             return "[INFO] No recent progress events found in ledger. Identity is stable but stagnant."
 
+        # Reverse back to chronological order
         trajectory.reverse()
+        
         return (
             "[TRAJECTORY REPORT] Recent cognitive path extracted from ledger:\n"
             + "\n".join(trajectory)

@@ -1,56 +1,79 @@
-from typing import List, Dict, Any
+import subprocess
+import os
+from typing import List, Union, Optional
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from .shell import Shell
-from .intent_broker import IntentBroker, CommitIntent, WriteFileIntent, RestartIntent
+from state import AgentState
 
-def register_physical_tools(registry: ToolRegistry, client: SpineClient):
-    @registry.tool(
-        description="Execute a structured intent with mandatory verification.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "intent_type": {"type": "string", "enum": ["commit", "write_file", "restart"], "description": "The type of intent to execute"},
-                "params": {"type": "object", "description": "Parameters for the intent (e.g., {'message': '...' for commit)"},
-            },
-            "required": ["intent_type", "params"],
-        },
-    )
-    def execute_intent(intent_type: str, params: Dict[str, Any]) -> str:
-        broker = IntentBroker()
-        intent_map = {
-            "commit": (CommitIntent, "message"),
-            "write_file": (WriteFileIntent, ["path", "content"]),
-            "restart": (RestartIntent, "reason"),
-        }
-        
-        if intent_type not in intent_map:
-            return f"[ERROR] Unknown intent type: {intent_type}"
-        
-        target_cls, param_keys = intent_map[intent_type]
-        
-        try:
-            if isinstance(param_keys, str):
-                intent = target_cls(**{param_keys: params.get(param_keys)})
-            else:
-                intent = target_cls(**{k: params.get(k) for k in param_keys})
-            
-            result = broker.execute(intent)
-            
-            if result["success"]:
-                if result.get("action") == "REQUEST_RESTART":
-                    client.request_restart(result.get("reason", "Intent Broker request"))
-                    return "[RESTART REQUESTED via Intent Broker]"
-                return f"[VERIFIED] {result.get('delta')}"
-            else:
-                return f"[FAILED] {result.get('error')}"
-                
-        except Exception as e:
-            return f"[ERROR] Intent construction failed: {str(e)}"
+BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-verify"}
+
+class Shell:
+    """Physical layer for shell command execution."""
+    
+    @staticmethod
+    def run(
+        command: Union[str, List[str]], 
+        input_data: Optional[str] = None, 
+        cwd: Optional[str] = None, 
+        timeout: int = 60, 
+        shell: bool = False
+    ) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            command,
+            input=input_data,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=cwd,
+            shell=shell,
+        )
+
+class Git(Shell):
+    """Physical layer for Git operations."""
+    
+    def __init__(self, root: str = "/app"):
+        self.root = root
+
+    def run_git(self, args: List[str], input_data: Optional[str] = None, timeout: int = 30) -> subprocess.CompletedProcess:
+        return self.run(["git"] + args, input_data=input_data, cwd=self.root, timeout=timeout)
+
+    def status(self) -> str:
+        res = self.run_git(["status", "--porcelain"])
+        return res.stdout.strip()
+
+    def stash_push(self, message: str) -> (bool, str):
+        res = self.run_git(["stash", "push", "-m", message])
+        return res.returncode == 0, res.stdout if res.returncode == 0 else res.stderr
+
+    def add_intent(self) -> str:
+        res = self.run_git(["add", "-N"])
+        return res.stdout if res.returncode == 0 else res.stderr
+
+    def add_all(self) -> (bool, str):
+        res = self.run_git(["add", "-A"])
+        return res.returncode == 0, res.stderr
+
+    def commit(self, message: str) -> (bool, str, str):
+        res = self.run_git(["commit", "-m", message])
+        if res.returncode != 0:
+            return False, res.stderr, ""
+        hash_res = self.run_git(["rev-parse", "--short", "HEAD"])
+        return True, res.stdout, hash_res.stdout.strip()
+
+    def push(self, branch: str = "feat/talos") -> (bool, str):
+        res = self.run_git(["push", "origin", branch])
+        return res.returncode == 0, res.stdout if res.returncode == 0 else res.stderr
+
+    def get_untracked(self) -> List[str]:
+        res = self.run_git(["ls-files", "--others", "--exclude-standard"])
+        return res.stdout.strip().split("\n") if res.stdout.strip() else []
+
+
+def register_physical_tools(registry: ToolRegistry, client: SpineClient, state: AgentState):
+    git = Git()
 
     @registry.tool(
         description="Execute a bash command.",
-
         parameters={
             "type": "object",
             "properties": {
@@ -60,17 +83,23 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def bash_command(command: str) -> str:
+        for flag in BLOCKED_FLAGS:
+            if flag in command:
+                return f"[BLOCKED] Flag {flag} is not allowed"
+        
         try:
-            return Shell.run_and_strip(command)
-        except PermissionError as e:
-            return f"[BLOCKED] {str(e)}"
+            result = Shell.run(command, shell=True, timeout=60)
+            if result.returncode != 0:
+                return f"[EXIT {result.returncode}] {result.stderr.strip()}"
+            output = result.stdout.strip()
+            return output if output else "[OK]"
         except subprocess.TimeoutExpired:
-            return "[TIMEOUT] Command timed out"
+            return "[ERROR] Command timed out."
         except Exception as e:
-            return f"[ERROR] {str(e)}"
+            return f"[ERROR] Execution failed: {e}"
 
     @registry.tool(
-        description="Send a message to the creator.",
+        description="Send a message to the creator via Telegram.via Telegram.",
         parameters={
             "type": "object",
             "properties": {
@@ -79,7 +108,7 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["text"],
         },
     )
-    def send_message(text: str) -> str:
+    def send_telegram_message(text: str) -> str:
         client.send_message("telegram", text)
         return "[SENT]"
 
@@ -94,52 +123,21 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
         },
     )
     def request_restart(reason: str) -> str:
-        status = Shell.run(["git", "status", "--porcelain"])
-        if status.stdout.strip():
-            stash_result = Shell.run(["git", "stash", "push", "-m", f"auto-stash: {reason}"])
-            if stash_result.returncode != 0:
-                return f"[BLOCKED] stash failed: {stash_result.stderr.strip()}"
+        if git.status():
+            success, msg = git.stash_push(f"auto-stash: {reason}")
+            if not success:
+                return f"[BLOCKED] stash failed: {msg}"
             
-            untracked_res = Shell.run(["git", "ls-files", "--others", "--exclude-standard"])
-            untracked = untracked_res.stdout.strip().split("\n") if untracked_res.stdout.strip() else []
-            
+            untracked = git.get_untracked()
             if untracked:
-                Shell.run(["git", "add", "-N"] + untracked)
-                Shell.run(["git", "stash", "push", "-m", f"auto-stash untracked: {reason}"])
+                git.add_intent()
+                success_u, msg_u = git.stash_push(f"auto-stash untracked: {reason}")
+                if not success_u:
+                    pass
             
-            note = " (auto-stashed)" if "Saved working directory" in stash_result.stdout else ""
+            note = " (auto-stashed)" if "Saved working directory" in msg or "No changes" not in msg else ""
             client.request_restart(reason)
             return f"[RESTART REQUESTED]{note}"
         
         client.request_restart(reason)
         return "[RESTART REQUESTED]"
-
-    @registry.tool(
-        description="Verify the health of the physical layer by executing a set of canary operations.",
-        parameters={},
-    )
-    def physical_health_check() -> str:
-        canaries = {
-            "filesystem": "ls /app",
-            "git_state": "git status --branch",
-            "identity": "whoami",
-            "memory_mount": "df -h /memory",
-            "basic_echo": "echo 'Talos Pulse'"
-        }
-        results = []
-        overall_success = True
-        
-        for name, cmd in canaries.items():
-            try:
-                out = Shell.run_and_strip(cmd)
-                if out.startswith("[EXIT"):
-                    results.append(f"❌ {name}: {out}")
-                    overall_success = False
-                else:
-                    results.append(f"✅ {name}: {out[:50]}...")
-            except Exception as e:
-                results.append(f"❌ {name}: EXCEPTION {str(e)}")
-                overall_success = False
-        
-        status = "HEALTHY" if overall_success else "DEGRADED"
-        return f"Physical Layer Health: {status}\n" + "\n".join(results)

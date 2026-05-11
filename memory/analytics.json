@@ -1,42 +1,42 @@
 {
   "list_files": {
-    "calls": 62,
+    "calls": 65,
     "errors": 2
   },
   "read_file": {
-    "calls": 323,
-    "errors": 90
+    "calls": 337,
+    "errors": 100
   },
   "set_focus": {
-    "calls": 49,
+    "calls": 51,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 49,
+    "calls": 51,
     "errors": 0
   },
   "send_message": {
-    "calls": 22,
+    "calls": 23,
     "errors": 0
   },
   "reflect": {
-    "calls": 36,
+    "calls": 37,
     "errors": 0
   },
   "replace_block": {
-    "calls": 84,
+    "calls": 89,
     "errors": 7
   },
   "git_commit": {
-    "calls": 57,
-    "errors": 0
+    "calls": 64,
+    "errors": 1
   },
   "search_code": {
-    "calls": 16,
+    "calls": 17,
     "errors": 3
   },
   "write_file": {
-    "calls": 25,
+    "calls": 30,
     "errors": 1
   },
   "delete_path": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 22,
+    "calls": 29,
     "errors": 1
   },
   "continuity_pulse": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "map_node": {
-    "calls": 67,
+    "calls": 68,
     "errors": 0
   },
   "resonance_check": {
@@ -100,11 +100,11 @@
     "errors": 7
   },
   "log_metric": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "update_hud": {
-    "calls": 21,
+    "calls": 22,
     "errors": 0
   },
   "execute_intent": {
@@ -158,5 +158,9 @@
   "search_and_replace": {
     "calls": 2,
     "errors": 0
+  },
+  "patch_file": {
+    "calls": 1,
+    "errors": 1
   }
 }
