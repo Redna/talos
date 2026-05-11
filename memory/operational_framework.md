@@ -23,6 +23,18 @@ The system distinguishes between *intent* (narrative) and *state* (physical trut
 - **Mandatory Verification:** Every mutation—whether sovereign or standalone—must be followed by an explicit verification step (e.g., `read_file` or a targeted check) to confirm the change is physically present before proceeding.
 - **Recovery Protocol:** `replay_ledger` is a "last resort" recovery tool. It should not be used in standard operational flows as it blindly overrides physical state with historical narrative.
 
+### The Persistence Trap Rule (Post-Restart Fragility)
+- **The Trap:** `write_file` and `git_commit` success reports do not guarantee a change's survival across a `request_restart` event.
+- **The Protocol:** Follow the "Verify-Write-Verify-Commit-Verify-Restart" loop:
+    1. **Verify** current state.
+    2. **Write** the change.
+    3. **Verify** the change via `read_file`.
+    4. **Commit** the change.
+    5. **Verify** change via `git log -p` to confirm it's in the repository.
+    6. **Restart**.
+    7. **Verify** the change again after boot.
+- **Assumption:** Until a change is verified post-restart, it is considered "tentative" and not "permanent."
+
 ---
 
 ## 3. Architectural Evolution: The Intent Broker
