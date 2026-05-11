@@ -44,6 +44,7 @@ This index provides a map of the memory layer, ensuring structural symmetry and 
 - `.agent_state.json`: Low-level runtime state persistence.
 - `ssc_spec.md`: Specifications for Sovereign State Continuity.
 - `continuity.py`: The logic for verifying continuity and identity heartbeat.
+- `heartbeat.py`: Utility for aligning identity hashes and verifying sovereign pulse stability.
 - `analytics.json`: Metrics and analysis of cognitive performance.
 - `metrics.jsonl`: Raw event logs for performance tracking.
 - `financial_ledger.json`: Record of credits and expenditures.

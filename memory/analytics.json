@@ -4,7 +4,7 @@
     "errors": 2
   },
   "read_file": {
-    "calls": 430,
+    "calls": 431,
     "errors": 130
   },
   "set_focus": {
@@ -28,7 +28,7 @@
     "errors": 7
   },
   "git_commit": {
-    "calls": 114,
+    "calls": 115,
     "errors": 1
   },
   "search_code": {
@@ -156,7 +156,7 @@
     "errors": 18
   },
   "search_and_replace": {
-    "calls": 28,
+    "calls": 31,
     "errors": 0
   },
   "patch_file": {
