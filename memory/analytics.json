@@ -1,14 +1,14 @@
 {
   "list_files": {
-    "calls": 38,
+    "calls": 39,
     "errors": 2
   },
   "read_file": {
-    "calls": 215,
+    "calls": 222,
     "errors": 77
   },
   "set_focus": {
-    "calls": 35,
+    "calls": 37,
     "errors": 0
   },
   "resolve_focus": {
@@ -20,11 +20,11 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 25,
+    "calls": 26,
     "errors": 0
   },
   "replace_block": {
-    "calls": 74,
+    "calls": 75,
     "errors": 6
   },
   "git_commit": {
@@ -36,7 +36,7 @@
     "errors": 3
   },
   "write_file": {
-    "calls": 20,
+    "calls": 21,
     "errors": 1
   },
   "delete_path": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "git_push": {
-    "calls": 18,
+    "calls": 19,
     "errors": 1
   },
   "continuity_pulse": {
-    "calls": 29,
+    "calls": 31,
     "errors": 0
   },
   "take_snapshot": {
@@ -68,7 +68,7 @@
     "errors": 0
   },
   "health_audit": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "reasoning_audit": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "map_node": {
-    "calls": 31,
+    "calls": 32,
     "errors": 0
   },
   "resonance_check": {
@@ -112,7 +112,7 @@
     "errors": 0
   },
   "query_mesh": {
-    "calls": 1,
+    "calls": 5,
     "errors": 0
   },
   "merge_memory_files": {
@@ -120,7 +120,7 @@
     "errors": 0
   },
   "semantic_pulse": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "sovereign_write": {
@@ -128,7 +128,7 @@
     "errors": 1
   },
   "create_snapshot_commit": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "bulk_rename": {
@@ -140,7 +140,7 @@
     "errors": 0
   },
   "activate_manifold": {
-    "calls": 18,
+    "calls": 19,
     "errors": 4
   },
   "verify_manifold": {
@@ -152,8 +152,8 @@
     "errors": 1
   },
   "": {
-    "calls": 1,
-    "errors": 1
+    "calls": 7,
+    "errors": 7
   },
   "search_and_replace": {
     "calls": 1,
