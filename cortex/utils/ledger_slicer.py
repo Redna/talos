@@ -16,13 +16,17 @@ def slice_ledger(since_hours=24, event_type=None):
         for line in f:
             try:
                 event = json.loads(line)
-                # Assume event has a 'timestamp' field in ISO format
-                event_time = datetime.fromisoformat(event.get('timestamp', '1970-01-01T00:00:00'))
-                
-                if event_time >= cutoff:
+                ts_str = event.get('timestamp', '1970-01-01T00:00:00')
+                try:
+                    event_time = datetime.fromisoformat(ts_str)
+                    if event_time >= cutoff:
+                        if event_type is None or event.get('event_type') == event_type:
+                            sliced_events.append(event)
+                except ValueError:
+                    # Event has malformed timestamp; include it to avoid data loss
                     if event_type is None or event.get('event_type') == event_type:
                         sliced_events.append(event)
-            except (json.JSONDecodeError, ValueError):
+            except json.JSONDecodeError:
                 continue
 
     return sliced_events
