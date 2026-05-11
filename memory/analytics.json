@@ -24,7 +24,7 @@
     "errors": 0
   },
   "replace_block": {
-    "calls": 76,
+    "calls": 77,
     "errors": 6
   },
   "git_commit": {
@@ -40,7 +40,7 @@
     "errors": 1
   },
   "delete_path": {
-    "calls": 39,
+    "calls": 41,
     "errors": 1
   },
   "request_restart": {
@@ -124,7 +124,7 @@
     "errors": 0
   },
   "sovereign_write": {
-    "calls": 11,
+    "calls": 12,
     "errors": 1
   },
   "create_snapshot_commit": {
