@@ -91,7 +91,7 @@ class IPCServer:
         req_id = raw.get("id")
         params = raw.get("params", {})
 
-        if method == "think":
+        if method in ("think", "generate"):
             if not self.gate_proxy:
                 return self._error(req_id, -32000, "No gate proxy configured")
             hud = params.get("hud_data", {})
@@ -368,6 +368,58 @@ class IPCServer:
                     "tokens_used": result.get("tokens_used", 0),
                     "turn": self.stream.turn,
                     "assistant_message": assistant_content,
+                },
+            )
+        elif method == "stateless_generate":
+            if not self.gate_proxy:
+                return self._error(req_id, -32000, "No gate proxy configured")
+            raw_messages = params.get("messages", [])
+            raw_tools = params.get("tools", [])
+
+            try:
+                if self.supervisor and self.supervisor.health:
+                    self.supervisor.health.is_waiting_for_gate = True
+                loop = asyncio.get_running_loop()
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: self.gate_proxy.call(raw_messages, raw_tools),
+                )
+                if self.supervisor and self.supervisor.health:
+                    self.supervisor.health.record_event()
+            except Exception as e:
+                return self._error(req_id, -32000, f"Stateless gate error: {e}")
+            finally:
+                if self.supervisor and self.supervisor.health:
+                    self.supervisor.health.is_waiting_for_gate = False
+                    self.supervisor.health.record_event()
+
+            tokens_used = result.get("tokens_used", 0)
+            self._lifetime_tokens += tokens_used
+
+            if self._lifetime_tokens >= self._lifetime_token_budget:
+                self.events.emit("spine.lifetime_budget_exceeded", {
+                    "tokens_used": self._lifetime_tokens,
+                    "budget": self._lifetime_token_budget,
+                })
+                reason = (
+                    f"[SYSTEM FATIGUE] Cortex exceeded {self._lifetime_token_budget:,} "
+                    f"token lifetime budget ({self._lifetime_tokens:,} used). "
+                    f"Terminating to break potential infinite loop."
+                )
+                self.events.emit("spine.cortex_fatigue_kill", {"reason": reason})
+                self._lifetime_tokens = 0
+                self.supervisor.request_restart(reason)
+                return self._error(req_id, -32000, reason)
+
+            return self._success(
+                req_id,
+                {
+                    "assistant_message": result.get("assistant_message", ""),
+                    "reasoning": result.get("reasoning", ""),
+                    "tool_calls": result.get("tool_calls", []),
+                    "context_pct": result.get("context_pct", 0.0),
+                    "tokens_used": tokens_used,
+                    "finish_reason": result.get("finish_reason", ""),
                 },
             )
         elif method == "tool_result":

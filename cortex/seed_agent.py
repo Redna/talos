@@ -110,6 +110,9 @@ def main():
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
 
+    from plugins.delegation import register_delegation_tools
+    register_delegation_tools(registry, client)
+
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0
     turn = 0
@@ -130,7 +133,7 @@ def main():
             hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
 
             try:
-                response = client.think(
+                response = client.generate(
                     focus=state.current_focus or "No focus set",
                     tools=registry.get_schemas(),
                     hud_data=hud_data,

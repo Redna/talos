@@ -73,15 +73,26 @@ class SpineClient:
             raise SpineError(response["error"]["code"], response["error"]["message"])
         return response.get("result", {})
 
-    def think(self, focus: str, tools: list[dict], hud_data: dict) -> dict:
-        """Call the LLM with current stream and tool definitions."""
+    def generate(self, focus: str, tools: list[dict], hud_data: dict) -> dict:
+        """State-accumulating loop pass (formerly think)."""
         return self._send_request(
-            "think",
+            "generate",
             {
                 "focus": focus,
                 "tools": tools,
                 "hud_data": hud_data,
             },
+        )
+
+    def think(self, focus: str, tools: list[dict], hud_data: dict) -> dict:
+        """Backward-compat alias for generate()."""
+        return self.generate(focus, tools, hud_data)
+
+    def stateless_generate(self, messages: list[dict], tools: list[dict]) -> dict:
+        """Raw decoupled pass-through generation (formerly stateless_think)."""
+        return self._send_request(
+            "stateless_generate",
+            {"messages": messages, "tools": tools},
         )
 
     def tool_result(self, tool_call_id: str, output: str, success: bool) -> dict:

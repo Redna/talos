@@ -3,6 +3,8 @@ import time
 from pathlib import Path
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
+import json
+from cortex.state import AgentState
 
 def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
     @registry.tool(
@@ -168,26 +170,17 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             f"{combined}"
         )
 
-        # 3. Isolated LLM call for synthesis
+        # 3. Isolated LLM call for synthesis via stateless pipe
         try:
-            import subprocess, json as _json
-            gate_url = _os.environ.get("GATE_URL", "http://gate:4000/v1/chat/completions")
-            payload = {
-                "model": _os.environ.get("TALOS_MODEL", "gemma4"),
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 2048,
-                "temperature": 0.3,
-            }
-            result = subprocess.run(
-                ["curl", "-s", gate_url, "-H", "Content-Type: application/json", "-d", _json.dumps(payload)],
-                capture_output=True, text=True, timeout=120,
+            synthesis_response = client.stateless_generate(
+                messages=[{"role": "user", "content": prompt}],
+                tools=[],
             )
-            if result.returncode != 0:
-                return f"[ERROR] Synthesis LLM call failed: {result.stderr}"
-            resp = _json.loads(result.stdout)
-            synthesis = resp["choices"][0]["message"]["content"]
+            synthesis = synthesis_response.get("assistant_message", "")
+            if not synthesis.strip():
+                return "[ERROR] Memory consolidation synthesis pass returned empty stream block."
         except Exception as e:
-            return f"[ERROR] Synthesis failed: {e}"
+            return f"[ERROR] Consolidation execution bridge failure: {e}"
 
         # 4. Write destination
         dest_path = mem_dir / destination_file
