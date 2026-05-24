@@ -25,7 +25,7 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
             shell=True,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=300,
         )
         if result.returncode != 0:
             return f"[EXIT {result.returncode}] {result.stderr.strip()}"
