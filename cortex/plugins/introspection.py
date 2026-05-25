@@ -13,7 +13,7 @@ __bucket__ = "introspection"
 )
 def self_audit():
     """Audits /memory/ to find inconsistencies."""
-    memory_dir = Path("/memory")
+    memory_dir = Path("/app/memory")
     if not memory_dir.exists():
         return "[ERROR] Memory directory not found."
 

@@ -1,10 +1,10 @@
 {
   "write_file": {
-    "calls": 16,
+    "calls": 17,
     "errors": 1
   },
   "list_files": {
-    "calls": 33,
+    "calls": 38,
     "errors": 0
   },
   "set_focus": {
@@ -12,19 +12,19 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 79,
-    "errors": 46
+    "calls": 86,
+    "errors": 53
   },
   "secure_save": {
-    "calls": 26,
+    "calls": 27,
     "errors": 3
   },
   "replace_block": {
-    "calls": 27,
-    "errors": 2
+    "calls": 30,
+    "errors": 3
   },
   "request_restart": {
-    "calls": 13,
+    "calls": 15,
     "errors": 0
   },
   "reflect": {
@@ -32,7 +32,7 @@
     "errors": 0
   },
   "self_audit": {
-    "calls": 1,
+    "calls": 4,
     "errors": 0
   },
   "resolve_focus": {
@@ -44,19 +44,19 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 29,
+    "calls": 32,
     "errors": 0
   },
   "fold_context": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "sync_memory": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "evolve_file": {
-    "calls": 12,
+    "calls": 14,
     "errors": 1
   },
   "audit_architecture": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 7,
+    "calls": 9,
     "errors": 0
   },
   "graph_sense": {
