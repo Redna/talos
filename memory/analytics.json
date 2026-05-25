@@ -8,19 +8,19 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "read_file": {
-    "calls": 26,
-    "errors": 15
+    "calls": 27,
+    "errors": 16
   },
   "secure_save": {
-    "calls": 16,
+    "calls": 17,
     "errors": 1
   },
   "replace_block": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "request_restart": {

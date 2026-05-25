@@ -142,3 +142,65 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         finally:
             if temp_path.exists():
                 temp_path.unlink()
+
+    @registry.tool(
+        description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The concept or text to search for"},
+                "scope": {"type": "string", "description": "Scope of search: 'memory', 'code', or 'all'. Defaults to 'all'"},
+            },
+            "required": ["query"],
+        },
+        bucket="kernels",
+    )
+    def graph_sense(query: str, scope: str = "all") -> str:
+        import subprocess
+        
+        paths = []
+        if scope == "all" or scope == "code":
+            paths.append("/app/cortex")
+        if scope == "all" or scope == "memory":
+            paths.append("/memory")
+            
+        if not paths:
+            return "[GRAPH FAIL] Invalid scope."
+
+        # Use grep -rn for recursive search with line numbers
+        results = []
+        for path in paths:
+            try:
+                res = subprocess.run(
+                    ["grep", "-rn", query, path],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
+                if res.stdout:
+                    results.append(res.stdout)
+            except Exception as e:
+                results.append(f"[ERROR] Grep failed on {path}: {e}")
+
+        if not results or not "".join(results).strip():
+            return f"[GRAPH EMPTY] No nodes found for query: {query}"
+
+        # Synthesis: Parse grep output and map to a "graph" format
+        full_output = "\n".join(results)
+        lines = full_output.split("\n")
+        
+        graph_report = [
+            f"### GRAPH-SENSE RESULTS: '{query}'",
+            "Nodes Found:",
+        ]
+        
+        for line in lines:
+            if not line.strip(): continue
+            # grep -rn output: file:line:text
+            parts = line.split(":", 2)
+            if len(parts) < 3: continue
+            
+            file, line_num, content = parts
+            graph_report.append(f"- [{file}:{line_num}] $\rightarrow$ `{content.strip()}`")
+            
+        return "\n".join(graph_report)
