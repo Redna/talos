@@ -112,6 +112,9 @@ def main():
 
     from plugins.delegation import register_delegation_tools
     register_delegation_tools(registry, client)
+    
+    # Hot-load dynamic plugins
+    registry.reload_plugins()
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0
