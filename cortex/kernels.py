@@ -4,7 +4,7 @@ from typing import Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
-def register_kernels(registry: ToolRegistry, client: SpineClient):
+def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
     @registry.tool(
         description="High-level kernel to evolve a file: replaces text, verifies the change, and secures it with a commit and push.",
         parameters={
@@ -211,21 +211,25 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         parameters={
             "type": "object",
             "properties": {
-                "focus": {"type": "string", "description": "The current objective"},
-                "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active in focus"},
+                "focus": {"type": "string", "description": "The current objective (defaults to current state)"},
+                "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active (defaults to current state)"},
                 "next_action": {"type": "string", "description": "The immediate next step"},
             },
-            "required": ["focus", "active_files", "next_action"],
+            "required": ["next_action"],
         },
         bucket="kernels",
     )
-    def serialize_state(focus: str, active_files: list, next_action: str) -> str:
+    def serialize_state(next_action: str, focus: str = None, active_files: list = None) -> str:
         import json
         import subprocess
         from datetime import datetime
         from pathlib import Path
 
         try:
+            # Pull from state if not provided
+            current_focus = focus or state.current_focus or "No focus set"
+            current_files = active_files if active_files is not None else state.active_files
+
             # 1. Git History
             git_hash = subprocess.run(
                 ["git", "rev-parse", "HEAD"], 
@@ -257,8 +261,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     "commit_hash": git_hash,
                 },
                 "agent_state": {
-                    "focus": focus,
-                    "active_files": active_files,
+                    "focus": current_focus,
+                    "active_files": current_files,
                     "next_action": next_action,
                 },
                 "state_vector": state_vector,

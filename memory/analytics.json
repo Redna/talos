@@ -16,11 +16,11 @@
     "errors": 55
   },
   "secure_save": {
-    "calls": 28,
-    "errors": 4
+    "calls": 29,
+    "errors": 5
   },
   "replace_block": {
-    "calls": 31,
+    "calls": 35,
     "errors": 3
   },
   "request_restart": {
@@ -57,7 +57,7 @@
   },
   "evolve_file": {
     "calls": 15,
-    "errors": 1
+    "errors": 2
   },
   "audit_architecture": {
     "calls": 8,

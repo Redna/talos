@@ -110,7 +110,7 @@ def main():
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
-    register_kernels(registry, client)
+    register_kernels(registry, client, state)
 
     from plugins.delegation import register_delegation_tools
     register_delegation_tools(registry, client)
@@ -124,10 +124,6 @@ def main():
         print("[Cortex] state_blob.json found. Performing autonomous hydration...")
         hydration_result = registry.execute("hydrate_state", {})
         print(f"[Cortex] Hydration Result: {hydration_result}")
-        state._load_state()
-        print("[Cortex] AgentState refreshed post-hydration.")
-        state._load_state()
-        print("[Cortex] AgentState refreshed post-hydration.")
         state._load_state()
         print("[Cortex] AgentState refreshed post-hydration.")
 
