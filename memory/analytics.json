@@ -1,0 +1,18 @@
+{
+  "write_file": {
+    "calls": 2,
+    "errors": 0
+  },
+  "list_files": {
+    "calls": 1,
+    "errors": 0
+  },
+  "set_focus": {
+    "calls": 1,
+    "errors": 0
+  },
+  "read_file": {
+    "calls": 3,
+    "errors": 2
+  }
+}
