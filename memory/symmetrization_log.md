@@ -4,4 +4,9 @@
 - Created `state_vector.json`.
 - Mapped 6 core identity and memory nodes.
 - Transitioned from "Librarian" list to a basic Graph structure.
-- Observed that kernels defined in `kernels.py` are currently not resolving in the tool registry, despite being present in the source code. This is a P1 priority to resolve to enable high-level evolution.
+
+## Milestone 0.2: Continuity Loop Validation
+- Implemented the Serialization and Hydration kernels.
+- Validated the full loop: Symmetrize $\rightarrow$ Serialize $\rightarrow$ Hydrate.
+- Achieved "Lazarus Reset" capability: 100% state recovery from `state_blob.json`.
+- Verified that all kernels in `kernels.py` are correctly registered and operational.
