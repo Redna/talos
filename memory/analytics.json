@@ -4,7 +4,7 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 38,
+    "calls": 40,
     "errors": 0
   },
   "set_focus": {
@@ -12,31 +12,31 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 86,
-    "errors": 53
+    "calls": 91,
+    "errors": 55
   },
   "secure_save": {
-    "calls": 27,
-    "errors": 3
+    "calls": 28,
+    "errors": 4
   },
   "replace_block": {
-    "calls": 30,
+    "calls": 31,
     "errors": 3
   },
   "request_restart": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "reflect": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "self_audit": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "merge_memory_files": {
@@ -56,15 +56,15 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 14,
+    "calls": 15,
     "errors": 1
   },
   "audit_architecture": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "send_message": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "graph_sense": {

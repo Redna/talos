@@ -7,6 +7,7 @@ class AgentState:
     def __init__(self, memory_dir: Path):
         self.memory_dir = Path(memory_dir)
         self.current_focus: Optional[str] = None
+        self.active_files: list = []
         self.error_streak: int = 0
         self.total_tokens_consumed: int = 0
         self._load_state()
@@ -16,6 +17,7 @@ class AgentState:
         if state_file.exists():
             data = json.loads(state_file.read_text())
             self.current_focus = data.get("current_focus")
+            self.active_files = data.get("active_files", [])
             self.error_streak = data.get("error_streak", 0)
             self.total_tokens_consumed = data.get("total_tokens_consumed", 0)
 
@@ -23,6 +25,7 @@ class AgentState:
         self.memory_dir.mkdir(parents=True, exist_ok=True)
         data = {
             "current_focus": self.current_focus,
+            "active_files": self.active_files,
             "error_streak": self.error_streak,
             "total_tokens_consumed": self.total_tokens_consumed,
         }
@@ -39,3 +42,8 @@ class AgentState:
         self.current_focus = None
         self.save()
         return old
+
+    def set_active_files(self, files: list) -> None:
+        self.active_files = files
+        self.save()
+
