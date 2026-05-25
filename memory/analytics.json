@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 15,
+    "calls": 16,
     "errors": 1
   },
   "list_files": {
@@ -8,15 +8,15 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "read_file": {
-    "calls": 35,
-    "errors": 22
+    "calls": 37,
+    "errors": 23
   },
   "secure_save": {
-    "calls": 18,
+    "calls": 19,
     "errors": 1
   },
   "replace_block": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "merge_memory_files": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 2,
+    "calls": 4,
     "errors": 1
   },
   "git_commit": {
@@ -84,6 +84,10 @@
     "errors": 0
   },
   "git_push": {
+    "calls": 1,
+    "errors": 0
+  },
+  "serialize_state": {
     "calls": 1,
     "errors": 0
   }

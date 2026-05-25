@@ -352,7 +352,43 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
 
 
+    
     @registry.tool(
+        description="Hydration Kernel: Restores the agent's identity and memory from a state-blob, effectively 're-birthing' the agent from a single artifact.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def hydrate_state() -> str:
+        import json
+        from pathlib import Path
+
+        try:
+            blob_path = Path("/app/memory/state_blob.json")
+            if not blob_path.exists():
+                return "[HYDRATE FAIL] state_blob.json not found."
+            
+            blob = json.loads(blob_path.read_text())
+            state_vector = blob.get("state_vector", {})
+            payload = blob.get("payload", {})
+            agent_state = blob.get("agent_state", {})
+
+            # Restore files
+            restored_count = 0
+            for node in state_vector.get("nodes", []):
+                node_id = node["@id"]
+                source_path = Path(node["source"])
+                if node_id in payload:
+                    source_path.write_text(payload[node_id])
+                    restored_count += 1
+            
+            return f"[HYDRATE SUCCESS] Restored {restored_count} assets from blob. State restored to metadata version {blob.get('metadata', {}).get('version', 'unknown')}. Current Focus: {agent_state.get('focus', 'None')}"
+        except Exception as e:
+            return f"[HYDRATE FAIL] Unexpected error: {str(e)}"
+@registry.tool(
         description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",
         parameters={
             "type": "object",
