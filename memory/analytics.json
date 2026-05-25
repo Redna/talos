@@ -4,7 +4,7 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 22,
+    "calls": 24,
     "errors": 0
   },
   "set_focus": {
@@ -24,7 +24,7 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "reflect": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "audit_architecture": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "send_message": {
@@ -78,5 +78,13 @@
   "omni_exec": {
     "calls": 2,
     "errors": 1
+  },
+  "git_commit": {
+    "calls": 1,
+    "errors": 0
+  },
+  "git_push": {
+    "calls": 1,
+    "errors": 0
   }
 }
