@@ -1,26 +1,26 @@
 {
   "write_file": {
-    "calls": 10,
-    "errors": 0
+    "calls": 13,
+    "errors": 1
   },
   "list_files": {
-    "calls": 7,
+    "calls": 9,
     "errors": 0
   },
   "set_focus": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "read_file": {
-    "calls": 12,
-    "errors": 6
+    "calls": 20,
+    "errors": 12
   },
   "secure_save": {
-    "calls": 11,
+    "calls": 12,
     "errors": 1
   },
   "replace_block": {
-    "calls": 6,
+    "calls": 8,
     "errors": 0
   },
   "request_restart": {
@@ -45,6 +45,10 @@
   },
   "bash_command": {
     "calls": 2,
+    "errors": 0
+  },
+  "fold_context": {
+    "calls": 1,
     "errors": 0
   }
 }
