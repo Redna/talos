@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 13,
+    "calls": 15,
     "errors": 0
   },
   "fold_context": {
@@ -80,7 +80,7 @@
     "errors": 2
   },
   "git_commit": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "git_push": {
