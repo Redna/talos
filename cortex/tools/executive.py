@@ -146,7 +146,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
     )
     def merge_memory_files(source_files: list, destination_file: str, synthesis_focus: str) -> str:
         import os as _os
-        mem_dir = Path(_os.environ.get("MEMORY_DIR", "/memory"))
+        mem_dir = Path("/memory")
 
         # 1. Read all source files
         contents = {}
