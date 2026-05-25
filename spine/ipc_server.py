@@ -91,7 +91,7 @@ class IPCServer:
         req_id = raw.get("id")
         params = raw.get("params", {})
 
-        if method == "think":
+        if method in ("think", "generate"):
             if not self.gate_proxy:
                 return self._error(req_id, -32000, "No gate proxy configured")
             hud = params.get("hud_data", {})

@@ -55,6 +55,7 @@ class Supervisor:
             "status": status,
             "consecutive_failures": self._consecutive_failures,
             "last_stable_commit": self._last_stable_commit,
+            "ts": time.time()
         }
         health_path = Path(self.cfg.spine_dir) / "health.json"
         health_path.write_text(json.dumps(data, indent=2))
@@ -129,9 +130,12 @@ class Supervisor:
             if self._cortex_proc is not None:
                 retcode = self._cortex_proc.poll()
                 if retcode is not None:
-                    # CRASH DETECTED
+                    # --- CRASH DETECTED ---
                     self._consecutive_failures += 1
                     error_report = self._capture_cortex_error()
+
+                    print(f"\033[91m[SUPERVISOR] Cortex exited with code {retcode} (Failures: {self._consecutive_failures})\033[0m", flush=True)
+                    print(f"[SUPERVISOR] Error Report:\n{error_report}", flush=True)
 
                     self.events.emit(
                         "supervisor.cortex_exit",
@@ -143,9 +147,8 @@ class Supervisor:
                     )
 
                     if self._consecutive_failures >= 3:
-                        self.events.emit(
-                            "supervisor.lazarus_triggered", {"reason": "crash_loop"}
-                        )
+                        print("\033[91m[SUPERVISOR] CRASH LOOP DETECTED. Executing Lazarus Protocol...\033[0m", flush=True)
+                        self.events.emit("supervisor.lazarus_triggered", {"reason": "crash_loop"})
                         self._revert_to_last_good_commit(
                             reason=f"Crash Loop (Code {retcode})", error=error_report
                         )
@@ -194,7 +197,12 @@ class Supervisor:
                     await asyncio.sleep(1)
 
     def start_cortex(self):
-        # Fold accumulated stream messages when a new cortex starts
+        # Clean up defunct processes
+        if self._cortex_proc:
+             try:
+                 self._cortex_proc.wait(timeout=0.1)
+             except: pass
+
         msg_count = len(self.stream.messages)
         if msg_count > 25:
             self.events.emit(
@@ -206,15 +214,17 @@ class Supervisor:
                 "Previous trajectory archived to /spine/trajectories/."
             )
 
-        # Capture stderr to a log file for crash analysis
-        err_log = Path(self.cfg.spine_dir) / "cortex_stderr.log"
+        err_log_path = Path(self.cfg.spine_dir) / "cortex_stderr.log"
         try:
+            # We open in write mode to clear previous logs, but we will dual-log on crash
+            err_log_file = open(err_log_path, "w")
             self._cortex_proc = subprocess.Popen(
                 ["python", "-m", "cortex"],
                 cwd=self.cfg.app_dir,
-                stderr=open(err_log, "w"),
+                stderr=err_log_file,
             )
         except Exception as e:
+            print(f"[SUPERVISOR] Failed to start Cortex: {e}", flush=True)
             self.events.emit("supervisor.start_failed", {"error": str(e)})
             self._cortex_proc = None
 
@@ -224,21 +234,20 @@ class Supervisor:
             return "No error log available."
         try:
             content = err_log.read_text().strip()
-            # Extract last 10 lines (usually contains the traceback)
+            if not content: return "Cortex exited without stderr output."
             lines = content.splitlines()
-            return "\n".join(lines[-10:])
-        except Exception:
-            return "Error reading error log."
+            return "\n".join(lines[-15:])
+        except Exception as e:
+            return f"Error reading error log: {e}"
 
     def _process_pending_notices(self):
-        # Check for notices saved by the watchdog or previous supervisor run
         notice_path = Path(self.cfg.app_dir) / "memory" / "pending_system_notices.json"
         if notice_path.exists():
             try:
                 notices = json.loads(notice_path.read_text())
                 for n in notices:
                     self.stream.queue_system_notice(n)
-                notice_path.unlink()  # Clear after loading
+                notice_path.unlink()
             except Exception:
                 pass
 
@@ -291,17 +300,19 @@ class Supervisor:
             )
             if result.returncode == 0:
                 commit = result.stdout.strip()
-                self._last_stable_commit = commit
-                path = Path(self.cfg.spine_dir) / "last_good_commit"
-                path.write_text(commit)
+                if commit != self._last_stable_commit:
+                    self._last_stable_commit = commit
+                    path = Path(self.cfg.spine_dir) / "last_good_commit"
+                    path.write_text(commit)
+                    print(f"[SUPERVISOR] Stable checkpoint recorded: {commit[:8]}", flush=True)
         except Exception:
             pass
 
     def _revert_to_last_good_commit(self, reason="Crash detected", error="Unknown"):
         if not self._last_stable_commit:
-            self.events.emit("supervisor.revert_failed", {"reason": "no_good_commit"})
             return False
         try:
+            print(f"[SUPERVISOR] Reverting to last stable commit: {self._last_stable_commit[:8]}", flush=True)
             subprocess.run(
                 ["git", "reset", "--hard", self._last_stable_commit],
                 capture_output=True,
@@ -321,7 +332,6 @@ class Supervisor:
                 {"commit": self._last_stable_commit, "reason": reason},
             )
 
-            # Inform the agent about the failure for learning
             notice = (
                 f"[SYSTEM SUPERVISOR]: Your last evolution caused a fatal crash.\n"
                 f"REASON: {reason}\n"
@@ -330,9 +340,9 @@ class Supervisor:
                 f"OBJECTIVE: Analyze the error and find a more resilient implementation path."
             )
             self.stream.queue_system_notice(notice)
-
             return True
         except Exception as e:
+            print(f"[SUPERVISOR] Revert failed: {e}", flush=True)
             self.events.emit("supervisor.revert_failed", {"reason": str(e)})
             return False
 
