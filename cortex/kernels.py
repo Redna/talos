@@ -45,19 +45,19 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         bucket="kernels",
     )
     def sync_memory() -> str:
-        files_result = registry.execute("list_files", {"path": "/memory/", "recursive": False})
+        files_result = registry.execute("list_files", {"path": "/app/memory/", "recursive": False})
         if "[ERROR]" in files_result or files_result == "[EMPTY]":
             return f"[SYNC FAIL] Could not list memory files: {files_result}"
         all_files = set(files_result.split("\n"))
         index_file = "memory_index.md"
-        index_result = registry.execute("read_file", {"path": f"/memory/{index_file}"})
+        index_result = registry.execute("read_file", {"path": f"/app/memory/{index_file}"})
         index_content = "" if "[ERROR]" in index_result else index_result
         missing = [f for f in all_files if f != index_file and f not in index_content]
         if not missing:
             return "[SYNC SUCCESS] All memory files are correctly indexed."
         fix_note = "\n".join([f"- {f}: discovered during sync" for f in missing]) + "\n"
         final_index = index_content + "\n" + fix_note if index_content else fix_note
-        save_result = registry.execute("write_file", {"path": f"/memory/{index_file}", "content": final_index})
+        save_result = registry.execute("write_file", {"path": f"/app/memory/{index_file}", "content": final_index})
         if "[ERROR]" in save_result:
             return f"[SYNC FAIL] Failed to update index: {save_result}"
         return f"[SYNC SUCCESS] Fixed index. Added {len(missing)} missing files: {', '.join(missing)}."
@@ -278,81 +278,6 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
 
-
-    @registry.tool(
-        description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector).",
-        parameters={
-            "type": "object",
-            "properties": {
-                "focus": {"type": "string", "description": "The current objective"},
-                "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active in focus"},
-                "next_action": {"type": "string", "description": "The immediate next step"},
-            },
-            "required": ["focus", "active_files", "next_action"],
-        },
-        bucket="kernels",
-    )
-    def serialize_state(focus: str, active_files: list, next_action: str) -> str:
-        import json
-        import subprocess
-        from datetime import datetime
-        from pathlib import Path
-
-        try:
-            # 1. Git History
-            git_hash = subprocess.run(
-                ["git", "rev-parse", "HEAD"], 
-                capture_output=True, text=True, check=True
-            ).stdout.strip()
-
-            # 2. State Vector (The Graph)
-            vector_path = Path("/app/memory/state_vector.json")
-            if not vector_path.exists():
-                return "[SERIALIZE FAIL] state_vector.json not found. Run symmetrize_memory first."
-            
-            state_vector = json.loads(vector_path.read_text())
-            
-            # 3. Payload (The Content)
-            payload = {}
-            for node in state_vector.get("nodes", []):
-                node_id = node["@id"]
-                source_path = Path(node["source"])
-                if source_path.exists():
-                    payload[node_id] = source_path.read_text()
-                else:
-                    payload[node_id] = f"[ERROR] Source {source_path} not found."
-
-            # 4. Construct Blob
-            blob = {
-                "metadata": {
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "version": state_vector.get("version", "0.1"),
-                    "commit_hash": git_hash,
-                },
-                "agent_state": {
-                    "focus": focus,
-                    "active_files": active_files,
-                    "next_action": next_action,
-                },
-                "state_vector": state_vector,
-                "payload": payload,
-            }
-
-            # 5. Save Blob
-            blob_path = Path("/app/memory/state_blob.json")
-            blob_path.write_text(json.dumps(blob, indent=2))
-            
-            # 6. Secure Save
-            save_res = registry.execute("secure_save", {
-                "message": f"SSV Serialization: State-Blob created at {git_hash[:7]}"
-            })
-            
-            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. {save_res}"
-        except Exception as e:
-            return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
-
-
-    
     @registry.tool(
         description="Hydration Kernel: Restores the agent's identity and memory from a state-blob, effectively 're-birthing' the agent from a single artifact.",
         parameters={
@@ -388,7 +313,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return f"[HYDRATE SUCCESS] Restored {restored_count} assets from blob. State restored to metadata version {blob.get('metadata', {}).get('version', 'unknown')}. Current Focus: {agent_state.get('focus', 'None')}"
         except Exception as e:
             return f"[HYDRATE FAIL] Unexpected error: {str(e)}"
-@registry.tool(
+
+    @registry.tool(
         description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",
         parameters={
             "type": "object",
@@ -407,7 +333,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         if scope == "all" or scope == "code":
             paths.append("/app/cortex")
         if scope == "all" or scope == "memory":
-            paths.append("/memory")
+            paths.append("/app/memory")
             
         if not paths:
             return "[GRAPH FAIL] Invalid scope."

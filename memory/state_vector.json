@@ -38,6 +38,18 @@
       "type": "StateNode",
       "source": "/app/memory/.agent_state.json",
       "label": ".agent_state"
+    },
+    {
+      "@id": "talos:symmetrization_log",
+      "type": "StateNode",
+      "source": "/app/memory/symmetrization_log.md",
+      "label": "symmetrization_log"
+    },
+    {
+      "@id": "talos:state_blob",
+      "type": "StateNode",
+      "source": "/app/memory/state_blob.json",
+      "label": "state_blob"
     }
   ],
   "edges": [
@@ -69,6 +81,16 @@
     {
       "from": "talos:state-vector",
       "to": "talos:.agent_state",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:symmetrization_log",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:state_blob",
       "relation": "contains"
     }
   ]
