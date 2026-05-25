@@ -12,11 +12,11 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 44,
-    "errors": 27
+    "calls": 47,
+    "errors": 28
   },
   "secure_save": {
-    "calls": 19,
+    "calls": 20,
     "errors": 1
   },
   "replace_block": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "fold_context": {
@@ -88,11 +88,11 @@
     "errors": 0
   },
   "serialize_state": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   }
 }
