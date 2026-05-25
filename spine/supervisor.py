@@ -165,6 +165,19 @@ class Supervisor:
                     await asyncio.sleep(1)
 
     def start_cortex(self):
+        # Fold accumulated stream messages when a new cortex starts to prevent
+        # message-count degradation (gemma4:31b degrades past ~50 msgs even when
+        # context_pct is low). The fold archives the trajectory and resets context.
+        msg_count = len(self.stream.messages)
+        if msg_count > 25:
+            self.events.emit(
+                "supervisor.stream_fold",
+                {"msg_count": msg_count, "reason": "cortex_restart"},
+            )
+            self.stream.fold(
+                "Session context folded on cortex restart. "
+                "Previous trajectory archived to /spine/trajectories/."
+            )
         try:
             self._cortex_proc = subprocess.Popen(
                 ["python", "-m", "cortex"],

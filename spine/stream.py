@@ -65,7 +65,7 @@ class StreamManager:
         self._hud_piggybacked = False
 
     def _build_hud_message(self, current_focus: str = "", active_files: list[str] | None = None,
-                           next_action: str = "", metadata: str = "") -> dict:
+                           next_action: str = "") -> dict:
         """Build a post-fold HUD with structured handover fields and dynamic stats."""
         import subprocess as _subprocess
         mem_dir = Path(self.cfg.memory_dir)
@@ -84,7 +84,6 @@ class StreamManager:
         except Exception:
             pass
 
-        meta_line = f"\n{metadata}" if metadata else ""
         return {
             "role": "user",
             "content": (
@@ -94,7 +93,6 @@ class StreamManager:
                 f"next_action={next_action or 'orient yourself from memory'}\n"
                 f"branch=feat/talos memory_files={len(md_files)}\n"
                 f"recent: {recent}"
-                f"{meta_line}"
             ),
         }
 
@@ -122,14 +120,12 @@ class StreamManager:
         traj_path = traj_dir / f"{ts}.json"
         traj_path.write_text(json.dumps(self._messages, indent=2))
 
-        # Rebuild stream: system prompt → HUD (with metadata) → fold_context call
-        # The cortex's fold_context() return value becomes the sole tool result.
+        # Rebuild stream
         self._init_messages()  # system prompt
         self.add_message(self._build_hud_message(
             current_focus=current_focus,
             active_files=active_files or [],
             next_action=next_action,
-            metadata=metadata,
         ))
 
         fold_reason = synthesis if synthesis else "Context auto-folded by spine."
@@ -145,6 +141,11 @@ class StreamManager:
                     "arguments": json.dumps({"synthesis": fold_reason}),
                 },
             }],
+        })
+        self.add_message({
+            "role": "tool",
+            "tool_call_id": fold_id,
+            "content": f"[CONTEXT FOLDED] {fold_reason}\n\n{metadata}",
         })
 
         self.turn = 0
@@ -262,8 +263,7 @@ class StreamManager:
                         target_index = actual_index
                         break
             if target_index >= 0:
-                existing = payload[target_index].get("content") or ""
-                payload[target_index]["content"] = existing + "\n---\n" + suffix
+                payload[target_index]["content"] += "\n---\n" + suffix
                 self._hud_last_index = target_index
                 attached = True
         # Only clear the queue when piggybacked onto a tool message.
