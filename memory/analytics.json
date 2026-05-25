@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 19,
+    "calls": 20,
     "errors": 1
   },
   "list_files": {
@@ -16,7 +16,7 @@
     "errors": 59
   },
   "secure_save": {
-    "calls": 34,
+    "calls": 35,
     "errors": 7
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 27,
+    "calls": 28,
     "errors": 0
   },
   "self_audit": {
