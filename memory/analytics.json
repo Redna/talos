@@ -16,19 +16,19 @@
     "errors": 55
   },
   "secure_save": {
-    "calls": 29,
-    "errors": 5
+    "calls": 30,
+    "errors": 6
   },
   "replace_block": {
     "calls": 35,
     "errors": 3
   },
   "request_restart": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "reflect": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "self_audit": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "graph_sense": {
