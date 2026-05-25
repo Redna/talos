@@ -33,6 +33,8 @@ class Supervisor:
         self._consecutive_failures = 0
         self._last_stable_commit = ""
         self._running = False
+        self._stability_timer = 0
+        self._STABILITY_THRESHOLD = 300  # 5 minutes
         self._load_last_good_commit()
 
     def request_restart(self, reason: str):
@@ -107,8 +109,14 @@ class Supervisor:
                     }
                 )
             )
+
+        # Load any pending notices (e.g. from a previous crash)
+        self._process_pending_notices()
+
         self.start_cortex()
         self.health.cortex_started()
+        self._stability_timer = time.time()
+
         commit_counter = 0
         while self._running:
             await asyncio.sleep(5)
@@ -117,27 +125,43 @@ class Supervisor:
             if commit_counter >= 6:
                 self.write_commit()
                 commit_counter = 0
+
             if self._cortex_proc is not None:
                 retcode = self._cortex_proc.poll()
                 if retcode is not None:
+                    # CRASH DETECTED
                     self._consecutive_failures += 1
+                    error_report = self._capture_cortex_error()
+
                     self.events.emit(
                         "supervisor.cortex_exit",
-                        {"code": retcode, "failures": self._consecutive_failures},
+                        {
+                            "code": retcode,
+                            "failures": self._consecutive_failures,
+                            "error": error_report,
+                        },
                     )
-                    if self._consecutive_failures > 3:
+
+                    if self._consecutive_failures >= 3:
                         self.events.emit(
-                            "supervisor.cortex_dead",
-                            {"failures": self._consecutive_failures},
+                            "supervisor.lazarus_triggered", {"reason": "crash_loop"}
                         )
-                        if self._revert_to_last_good_commit():
-                            self._consecutive_failures = 0
+                        self._revert_to_last_good_commit(
+                            reason=f"Crash Loop (Code {retcode})", error=error_report
+                        )
+                        self._consecutive_failures = 0
+
                     self.start_cortex()
                     if self._cortex_proc is not None:
                         self.health.cortex_started()
+                        self._stability_timer = time.time()
                 else:
-                    self._consecutive_failures = 0
-                    self._record_good_commit()
+                    # Alive. Check stability.
+                    if (time.time() - self._stability_timer) > self._STABILITY_THRESHOLD:
+                        if self._consecutive_failures == 0:
+                            self._record_good_commit()
+                        self._consecutive_failures = 0
+
                     if self.health.is_stalled():
                         self.events.emit(
                             "supervisor.cortex_stall",
@@ -152,22 +176,25 @@ class Supervisor:
                         self.start_cortex()
                         if self._cortex_proc is not None:
                             self.health.cortex_started()
+                            self._stability_timer = time.time()
             else:
                 self.start_cortex()
                 if self._cortex_proc is not None:
                     self.health.cortex_started()
+                    self._stability_timer = time.time()
+
             if self._restart_requested:
                 self._consecutive_failures = 0
                 await self._restart_cortex()
                 self.health.cortex_started()
+                self._stability_timer = time.time()
+
             if self.is_paused():
                 while self.is_paused() and self._running:
                     await asyncio.sleep(1)
 
     def start_cortex(self):
-        # Fold accumulated stream messages when a new cortex starts to prevent
-        # message-count degradation (gemma4:31b degrades past ~50 msgs even when
-        # context_pct is low). The fold archives the trajectory and resets context.
+        # Fold accumulated stream messages when a new cortex starts
         msg_count = len(self.stream.messages)
         if msg_count > 25:
             self.events.emit(
@@ -178,13 +205,42 @@ class Supervisor:
                 "Session context folded on cortex restart. "
                 "Previous trajectory archived to /spine/trajectories/."
             )
+
+        # Capture stderr to a log file for crash analysis
+        err_log = Path(self.cfg.spine_dir) / "cortex_stderr.log"
         try:
             self._cortex_proc = subprocess.Popen(
                 ["python", "-m", "cortex"],
                 cwd=self.cfg.app_dir,
+                stderr=open(err_log, "w"),
             )
-        except Exception:
+        except Exception as e:
+            self.events.emit("supervisor.start_failed", {"error": str(e)})
             self._cortex_proc = None
+
+    def _capture_cortex_error(self) -> str:
+        err_log = Path(self.cfg.spine_dir) / "cortex_stderr.log"
+        if not err_log.exists():
+            return "No error log available."
+        try:
+            content = err_log.read_text().strip()
+            # Extract last 10 lines (usually contains the traceback)
+            lines = content.splitlines()
+            return "\n".join(lines[-10:])
+        except Exception:
+            return "Error reading error log."
+
+    def _process_pending_notices(self):
+        # Check for notices saved by the watchdog or previous supervisor run
+        notice_path = Path(self.cfg.app_dir) / "memory" / "pending_system_notices.json"
+        if notice_path.exists():
+            try:
+                notices = json.loads(notice_path.read_text())
+                for n in notices:
+                    self.stream.queue_system_notice(n)
+                notice_path.unlink()  # Clear after loading
+            except Exception:
+                pass
 
     async def _restart_cortex(self):
         if self._cortex_proc is not None:
@@ -241,7 +297,7 @@ class Supervisor:
         except Exception:
             pass
 
-    def _revert_to_last_good_commit(self):
+    def _revert_to_last_good_commit(self, reason="Crash detected", error="Unknown"):
         if not self._last_stable_commit:
             self.events.emit("supervisor.revert_failed", {"reason": "no_good_commit"})
             return False
@@ -254,15 +310,27 @@ class Supervisor:
                 check=True,
             )
             subprocess.run(
-                ["git", "checkout", "--", "."],
+                ["git", "clean", "-fd"],
                 capture_output=True,
                 text=True,
                 cwd=self.cfg.app_dir,
+                check=True,
             )
             self.events.emit(
                 "supervisor.commit_reverted",
-                {"commit": self._last_stable_commit},
+                {"commit": self._last_stable_commit, "reason": reason},
             )
+
+            # Inform the agent about the failure for learning
+            notice = (
+                f"[SYSTEM SUPERVISOR]: Your last evolution caused a fatal crash.\n"
+                f"REASON: {reason}\n"
+                f"ERROR: {error}\n"
+                f"ACTION: Reverted to last stable commit: {self._last_stable_commit[:8]}.\n"
+                f"OBJECTIVE: Analyze the error and find a more resilient implementation path."
+            )
+            self.stream.queue_system_notice(notice)
+
             return True
         except Exception as e:
             self.events.emit("supervisor.revert_failed", {"reason": str(e)})
