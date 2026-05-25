@@ -1,10 +1,10 @@
 {
   "write_file": {
-    "calls": 13,
+    "calls": 14,
     "errors": 1
   },
   "list_files": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "set_focus": {
@@ -12,23 +12,23 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 20,
+    "calls": 23,
     "errors": 12
   },
   "secure_save": {
-    "calls": 12,
+    "calls": 13,
     "errors": 1
   },
   "replace_block": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "request_restart": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "reflect": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "self_audit": {
@@ -48,6 +48,14 @@
     "errors": 0
   },
   "fold_context": {
+    "calls": 1,
+    "errors": 0
+  },
+  "sync_memory": {
+    "calls": 1,
+    "errors": 0
+  },
+  "evolve_file": {
     "calls": 1,
     "errors": 0
   }
