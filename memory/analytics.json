@@ -1,22 +1,22 @@
 {
   "write_file": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "list_files": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "set_focus": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "read_file": {
-    "calls": 6,
+    "calls": 8,
     "errors": 5
   },
   "secure_save": {
-    "calls": 4,
+    "calls": 5,
     "errors": 1
   },
   "replace_block": {
