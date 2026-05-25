@@ -4,7 +4,7 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 14,
+    "calls": 16,
     "errors": 0
   },
   "set_focus": {
@@ -12,23 +12,23 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 27,
-    "errors": 16
+    "calls": 28,
+    "errors": 17
   },
   "secure_save": {
     "calls": 17,
     "errors": 1
   },
   "replace_block": {
-    "calls": 12,
+    "calls": 14,
     "errors": 0
   },
   "request_restart": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "reflect": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "self_audit": {
@@ -60,11 +60,11 @@
     "errors": 0
   },
   "audit_architecture": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "send_message": {

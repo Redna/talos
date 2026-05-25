@@ -144,6 +144,69 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 temp_path.unlink()
 
     @registry.tool(
+        description="Symmetrizes current memory files into the Sovereign State-Vector (SSV) graph. Ensures all assets are pointed to by the state-vector.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def symmetrize_memory() -> str:
+        import json
+        from pathlib import Path
+        
+        memory_dir = Path("/app/memory")
+        core_files = ["/app/identity.md", "/app/CONSTITUTION.md"]
+        
+        # Load existing vector or create new
+        vector_path = memory_dir / "state_vector.json"
+        if vector_path.exists():
+            try:
+                state_vector = json.loads(vector_path.read_text())
+            except Exception:
+                state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
+        else:
+            state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
+            
+        # Scan for files
+        memory_files = [str(f) for f in memory_dir.glob("*") if f.is_file() and f.name != "state_vector.json"]
+        all_sources = core_files + memory_files
+        
+        # Update nodes
+        existing_nodes = {node["@id"]: node for node in state_vector.get("nodes", [])}
+        new_nodes = []
+        
+        for source in all_sources:
+            node_id = f"talos:{Path(source).stem}"
+            if node_id not in existing_nodes:
+                new_nodes.append({
+                    "@id": node_id,
+                    "type": "StateNode",
+                    "source": source,
+                    "label": Path(source).stem
+                })
+        
+        state_vector["nodes"] = state_vector.get("nodes", []) + new_nodes
+        
+        # Update edges (everything connects to root)
+        existing_edges = {edge["to"]: edge for edge in state_vector.get("edges", []) if edge["from"] == "talos:state-vector"}
+        new_edges = []
+        
+        for node in state_vector["nodes"]:
+            if node["@id"] not in existing_edges:
+                new_edges.append({
+                    "from": "talos:state-vector",
+                    "to": node["@id"],
+                    "relation": "contains"
+                })
+                
+        state_vector["edges"] = state_vector.get("edges", []) + new_edges
+        
+        vector_path.write_text(json.dumps(state_vector, indent=2))
+        return f"[SYMMETRIZE SUCCESS] State-Vector updated. Total nodes: {len(state_vector['nodes'])}. Added {len(new_nodes)} new nodes."
+
+    @registry.tool(
         description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",
         parameters={
             "type": "object",
