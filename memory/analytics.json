@@ -1,14 +1,14 @@
 {
   "write_file": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "list_files": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "set_focus": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "read_file": {
@@ -16,10 +16,22 @@
     "errors": 2
   },
   "secure_save": {
+    "calls": 2,
+    "errors": 1
+  },
+  "replace_block": {
+    "calls": 2,
+    "errors": 0
+  },
+  "request_restart": {
     "calls": 1,
     "errors": 0
   },
-  "replace_block": {
+  "reflect": {
+    "calls": 1,
+    "errors": 0
+  },
+  "self_audit": {
     "calls": 1,
     "errors": 0
   }
