@@ -1,10 +1,10 @@
 {
   "write_file": {
-    "calls": 14,
+    "calls": 15,
     "errors": 1
   },
   "list_files": {
-    "calls": 12,
+    "calls": 14,
     "errors": 0
   },
   "set_focus": {
@@ -16,7 +16,7 @@
     "errors": 15
   },
   "secure_save": {
-    "calls": 15,
+    "calls": 16,
     "errors": 1
   },
   "replace_block": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "reflect": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "self_audit": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "merge_memory_files": {
@@ -60,10 +60,14 @@
     "errors": 0
   },
   "audit_architecture": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "audit_plugins": {
+    "calls": 2,
+    "errors": 0
+  },
+  "send_message": {
     "calls": 1,
     "errors": 0
   }
