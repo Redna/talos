@@ -14,7 +14,7 @@ from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
 from kernels import register_kernels
 
-MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
+MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/app/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
 SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 
@@ -124,6 +124,12 @@ def main():
         print("[Cortex] state_blob.json found. Performing autonomous hydration...")
         hydration_result = registry.execute("hydrate_state", {})
         print(f"[Cortex] Hydration Result: {hydration_result}")
+        state._load_state()
+        print("[Cortex] AgentState refreshed post-hydration.")
+        state._load_state()
+        print("[Cortex] AgentState refreshed post-hydration.")
+        state._load_state()
+        print("[Cortex] AgentState refreshed post-hydration.")
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0

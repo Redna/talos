@@ -62,7 +62,7 @@ class GateProxy:
             "reasoning": message.get("reasoning", ""),
             "tool_calls": tool_calls,
             "context_pct": usage.get("context_pct", 0.0),
-            "tokens_used": usage.get("total_tokens", 0),
+            "tokens_used": usage.get("completion_tokens", 0),
             "finish_reason": choice.get("finish_reason", ""),
         }
 

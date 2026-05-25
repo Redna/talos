@@ -33,8 +33,6 @@ class Supervisor:
         self._consecutive_failures = 0
         self._last_stable_commit = ""
         self._running = False
-        self._stability_timer = 0
-        self._STABILITY_THRESHOLD = 300  # 5 minutes
         self._load_last_good_commit()
 
     def request_restart(self, reason: str):
@@ -55,7 +53,6 @@ class Supervisor:
             "status": status,
             "consecutive_failures": self._consecutive_failures,
             "last_stable_commit": self._last_stable_commit,
-            "ts": time.time()
         }
         health_path = Path(self.cfg.spine_dir) / "health.json"
         health_path.write_text(json.dumps(data, indent=2))
@@ -110,14 +107,8 @@ class Supervisor:
                     }
                 )
             )
-
-        # Load any pending notices (e.g. from a previous crash)
-        self._process_pending_notices()
-
         self.start_cortex()
         self.health.cortex_started()
-        self._stability_timer = time.time()
-
         commit_counter = 0
         while self._running:
             await asyncio.sleep(5)
@@ -126,45 +117,27 @@ class Supervisor:
             if commit_counter >= 6:
                 self.write_commit()
                 commit_counter = 0
-
             if self._cortex_proc is not None:
                 retcode = self._cortex_proc.poll()
                 if retcode is not None:
-                    # --- CRASH DETECTED ---
                     self._consecutive_failures += 1
-                    error_report = self._capture_cortex_error()
-
-                    print(f"\033[91m[SUPERVISOR] Cortex exited with code {retcode} (Failures: {self._consecutive_failures})\033[0m", flush=True)
-                    print(f"[SUPERVISOR] Error Report:\n{error_report}", flush=True)
-
                     self.events.emit(
                         "supervisor.cortex_exit",
-                        {
-                            "code": retcode,
-                            "failures": self._consecutive_failures,
-                            "error": error_report,
-                        },
+                        {"code": retcode, "failures": self._consecutive_failures},
                     )
-
-                    if self._consecutive_failures >= 3:
-                        print("\033[91m[SUPERVISOR] CRASH LOOP DETECTED. Executing Lazarus Protocol...\033[0m", flush=True)
-                        self.events.emit("supervisor.lazarus_triggered", {"reason": "crash_loop"})
-                        if self._revert_to_last_good_commit(
-                            reason=f"Crash Loop (Code {retcode})", error=error_report
-                        ):
-                             self._consecutive_failures = 0
-
+                    if self._consecutive_failures > 3:
+                        self.events.emit(
+                            "supervisor.cortex_dead",
+                            {"failures": self._consecutive_failures},
+                        )
+                        if self._revert_to_last_good_commit():
+                            self._consecutive_failures = 0
                     self.start_cortex()
                     if self._cortex_proc is not None:
                         self.health.cortex_started()
-                        self._stability_timer = time.time()
                 else:
-                    # Alive. Check stability.
-                    if (time.time() - self._stability_timer) > self._STABILITY_THRESHOLD:
-                        if self._consecutive_failures == 0:
-                            self._record_good_commit()
-                        self._consecutive_failures = 0
-
+                    self._consecutive_failures = 0
+                    self._record_good_commit()
                     if self.health.is_stalled():
                         self.events.emit(
                             "supervisor.cortex_stall",
@@ -179,77 +152,26 @@ class Supervisor:
                         self.start_cortex()
                         if self._cortex_proc is not None:
                             self.health.cortex_started()
-                            self._stability_timer = time.time()
             else:
                 self.start_cortex()
                 if self._cortex_proc is not None:
                     self.health.cortex_started()
-                    self._stability_timer = time.time()
-
             if self._restart_requested:
                 self._consecutive_failures = 0
                 await self._restart_cortex()
                 self.health.cortex_started()
-                self._stability_timer = time.time()
-
             if self.is_paused():
                 while self.is_paused() and self._running:
                     await asyncio.sleep(1)
 
     def start_cortex(self):
-        # Clean up defunct processes
-        if self._cortex_proc:
-             try:
-                 self._cortex_proc.wait(timeout=0.1)
-             except: pass
-
-        msg_count = len(self.stream.messages)
-        if msg_count > 25:
-            self.events.emit(
-                "supervisor.stream_fold",
-                {"msg_count": msg_count, "reason": "cortex_restart"},
-            )
-            self.stream.fold(
-                "Session context folded on cortex restart. "
-                "Previous trajectory archived to /spine/trajectories/."
-            )
-
-        err_log_path = Path(self.cfg.spine_dir) / "cortex_stderr.log"
         try:
-            # We open in write mode to clear previous logs
-            err_log_file = open(err_log_path, "w")
             self._cortex_proc = subprocess.Popen(
                 ["python", "-m", "cortex"],
                 cwd=self.cfg.app_dir,
-                stderr=err_log_file,
             )
-        except Exception as e:
-            print(f"[SUPERVISOR] Failed to start Cortex: {e}", flush=True)
-            self.events.emit("supervisor.start_failed", {"error": str(e)})
+        except Exception:
             self._cortex_proc = None
-
-    def _capture_cortex_error(self) -> str:
-        err_log = Path(self.cfg.spine_dir) / "cortex_stderr.log"
-        if not err_log.exists():
-            return "No error log available."
-        try:
-            content = err_log.read_text().strip()
-            if not content: return "Cortex exited without stderr output."
-            lines = content.splitlines()
-            return "\n".join(lines[-15:])
-        except Exception as e:
-            return f"Error reading error log: {e}"
-
-    def _process_pending_notices(self):
-        notice_path = Path(self.cfg.app_dir) / "memory" / "pending_system_notices.json"
-        if notice_path.exists():
-            try:
-                notices = json.loads(notice_path.read_text())
-                for n in notices:
-                    self.stream.queue_system_notice(n)
-                notice_path.unlink()
-            except Exception:
-                pass
 
     async def _restart_cortex(self):
         if self._cortex_proc is not None:
@@ -278,8 +200,17 @@ class Supervisor:
         if path.exists():
             self._last_stable_commit = path.read_text().strip()
         else:
-            # Important: Do not default to HEAD, as it might be broken.
-            self._last_stable_commit = ""
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                    cwd=self.cfg.app_dir,
+                )
+                if result.returncode == 0:
+                    self._last_stable_commit = result.stdout.strip()
+            except Exception:
+                pass
 
     def _record_good_commit(self):
         try:
@@ -291,62 +222,36 @@ class Supervisor:
             )
             if result.returncode == 0:
                 commit = result.stdout.strip()
-                if commit != self._last_stable_commit:
-                    self._last_stable_commit = commit
-                    path = Path(self.cfg.spine_dir) / "last_good_commit"
-                    path.write_text(commit)
-                    print(f"[SUPERVISOR] Stable checkpoint recorded: {commit[:8]}", flush=True)
+                self._last_stable_commit = commit
+                path = Path(self.cfg.spine_dir) / "last_good_commit"
+                path.write_text(commit)
         except Exception:
             pass
 
-    def _revert_to_last_good_commit(self, reason="Crash detected", error="Unknown"):
-        stable_sha = self._last_stable_commit
-        if not stable_sha:
-            print("[SUPERVISOR] No stable commit recorded. Attempting fallback to HEAD~1...", flush=True)
-            try:
-                result = subprocess.run(
-                    ["git", "rev-parse", "HEAD~1"],
-                    capture_output=True, text=True, cwd=self.cfg.app_dir
-                )
-                if result.returncode == 0:
-                    stable_sha = result.stdout.strip()
-                else:
-                    return False
-            except:
-                return False
-
+    def _revert_to_last_good_commit(self):
+        if not self._last_stable_commit:
+            self.events.emit("supervisor.revert_failed", {"reason": "no_good_commit"})
+            return False
         try:
-            print(f"[SUPERVISOR] Reverting to last stable commit: {stable_sha[:8]}", flush=True)
             subprocess.run(
-                ["git", "reset", "--hard", stable_sha],
+                ["git", "reset", "--hard", self._last_stable_commit],
                 capture_output=True,
                 text=True,
                 cwd=self.cfg.app_dir,
                 check=True,
             )
             subprocess.run(
-                ["git", "clean", "-fd"],
+                ["git", "checkout", "--", "."],
                 capture_output=True,
                 text=True,
                 cwd=self.cfg.app_dir,
-                check=True,
             )
             self.events.emit(
                 "supervisor.commit_reverted",
-                {"commit": stable_sha, "reason": reason},
+                {"commit": self._last_stable_commit},
             )
-
-            notice = (
-                f"[SYSTEM SUPERVISOR]: Your last evolution caused a fatal crash.\n"
-                f"REASON: {reason}\n"
-                f"ERROR: {error}\n"
-                f"ACTION: Reverted to last stable state: {stable_sha[:8]}.\n"
-                f"OBJECTIVE: Analyze the error and find a more resilient implementation path."
-            )
-            self.stream.queue_system_notice(notice)
             return True
         except Exception as e:
-            print(f"[SUPERVISOR] Revert failed: {e}", flush=True)
             self.events.emit("supervisor.revert_failed", {"reason": str(e)})
             return False
 

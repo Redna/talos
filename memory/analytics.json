@@ -4,23 +4,23 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 29,
+    "calls": 30,
     "errors": 0
   },
   "set_focus": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "read_file": {
-    "calls": 58,
-    "errors": 35
+    "calls": 70,
+    "errors": 41
   },
   "secure_save": {
     "calls": 22,
     "errors": 1
   },
   "replace_block": {
-    "calls": 21,
+    "calls": 24,
     "errors": 1
   },
   "request_restart": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "merge_memory_files": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 6,
+    "calls": 10,
     "errors": 0
   },
   "fold_context": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 7,
+    "calls": 10,
     "errors": 1
   },
   "audit_architecture": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 7,
+    "calls": 8,
     "errors": 2
   },
   "git_commit": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "graph_sense": {
