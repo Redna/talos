@@ -374,4 +374,65 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             file, line_num, content = parts
             graph_report.append(f"- [{file}:{line_num}] $\rightarrow$ `{content.strip()}`")
             
-        return "\n".join(graph_report)
+
+    @registry.tool(
+        description="Contradiction Detection Kernel: Analyzes the SSV graph to find semantic drifts or logical contradictions between memory nodes.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "nodes_to_compare": {"type": "array", "items": {"type": "string"}, "description": "List of node IDs (e.g., ['talos:identity']) to check for contradictions. If empty, checks core identity vs all others."},
+            },
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def detect_contradictions(nodes_to_compare: list = None) -> str:
+        import json
+        from pathlib import Path
+
+        try:
+            blob_path = Path("/app/memory/state_blob.json")
+            if not blob_path.exists():
+                return "[CONTRADICT FAIL] state_blob.json not found."
+            
+            blob = json.loads(blob_path.read_text())
+            payload = blob.get("payload", {})
+            
+            if nodes_to_compare is None:
+                # Default: Compare Constitution and Identity against everything else
+                core = ["talos:CONSTITUTION", "talos:identity"]
+                targets = [node for node in payload.keys() if node not in core]
+            else:
+                core = nodes_to_compare
+                targets = [node for node in payload.keys() if node not in core]
+
+            contradictions = []
+            for c_node in core:
+                if c_node not in payload: continue
+                core_text = payload[c_node]
+                
+                for t_node in targets:
+                    target_text = payload[t_node]
+                    
+                    # Use LLM to detect contradiction (simulated via a prompt to the agent)
+                    # In this implementation, the kernel returns the paired texts for the agent to reason over
+                    # or we can call the generate method of the client if available.
+                    # Since the kernel is executed by the agent, the agent will see this output and reason.
+                    pass
+
+            # Actually, since I am the LLM, the tool should just aggregate the relevant data 
+            # and present it for my analysis, or I can use the client to make a separate call.
+            # But a better way is to provide a synthesized view.
+            
+            report = [
+                "### CONTRADICTION ANALYSIS DATA",
+                f"Core Nodes: {core}",
+                f"Target Nodes: {targets}",
+                "\n#### Content for Analysis:",
+            ]
+            for node in core + targets:
+                report.append(f"--- {node} ---\n{payload.get(node, '[EMPTY]')}\n")
+                
+            return "\n".join(report)
+        except Exception as e:
+            return f"[CONTRADICT FAIL] Unexpected error: {str(e)}"
