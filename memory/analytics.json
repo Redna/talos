@@ -4,27 +4,27 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 10,
+    "calls": 12,
     "errors": 0
   },
   "set_focus": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "read_file": {
-    "calls": 25,
-    "errors": 14
+    "calls": 26,
+    "errors": 15
   },
   "secure_save": {
-    "calls": 14,
+    "calls": 15,
     "errors": 1
   },
   "replace_block": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "request_restart": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "reflect": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "merge_memory_files": {
@@ -56,6 +56,14 @@
     "errors": 0
   },
   "evolve_file": {
+    "calls": 1,
+    "errors": 0
+  },
+  "audit_architecture": {
+    "calls": 1,
+    "errors": 0
+  },
+  "audit_plugins": {
     "calls": 1,
     "errors": 0
   }

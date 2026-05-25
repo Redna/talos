@@ -76,7 +76,6 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         plugin_audit = registry.execute("audit_plugins", {})
         
         # 2. Get tool list
-        # We can use a simple bash command to list files and compare with registry
         core_files = registry.execute("list_files", {"path": "/app/cortex/", "recursive": False})
         plugin_files = registry.execute("list_files", {"path": "/app/cortex/plugins/", "recursive": False})
         
@@ -91,9 +90,55 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             "\n#### Registered Tool Summary:",
         ]
         
-        # Group tools by bucket
         buckets = registry._buckets
         for bucket, tools in buckets.items():
             report.append(f"- {bucket}: {', '.join(tools)}")
             
         return "\n".join(report)
+
+    @registry.tool(
+        description="The OmniExec kernel: synthesizes and executes a Python script to solve complex problems in a single step. Handles file lifecycle and execution.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "code": {"type": "string", "description": "The Python code to execute"},
+                "filename": {"type": "string", "description": "Temporary filename (defaults to omni_temp.py)"},
+            },
+            "required": ["code"],
+        },
+        bucket="kernels",
+    )
+    def omni_exec(code: str, filename: str = "omni_temp.py") -> str:
+        import subprocess
+        
+        temp_path = Path(f"/tmp/{filename}")
+        
+        # 1. Materialize
+        try:
+            temp_path.write_text(code)
+        except Exception as e:
+            return f"[OMNI FAIL] Failed to write script: {e}"
+        
+        # 2. Execute
+        try:
+            result = subprocess.run(
+                ["python3", str(temp_path)],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            
+            output = result.stdout.strip()
+            error = result.stderr.strip()
+            
+            if result.returncode != 0:
+                return f"[OMNI ERROR] Exit Code {result.returncode}\nSTDOUT: {output}\nSTDERR: {error}"
+            
+            return f"[OMNI SUCCESS]\nOUTPUT:\n{output}"
+        except subprocess.TimeoutExpired:
+            return "[OMNI FAIL] Execution timed out after 300s."
+        except Exception as e:
+            return f"[OMNI FAIL] Execution error: {e}"
+        finally:
+            if temp_path.exists():
+                temp_path.unlink()
