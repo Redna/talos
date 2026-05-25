@@ -4,7 +4,7 @@
     "errors": 0
   },
   "list_files": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "set_focus": {
@@ -12,11 +12,11 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 10,
+    "calls": 11,
     "errors": 6
   },
   "secure_save": {
-    "calls": 9,
+    "calls": 10,
     "errors": 1
   },
   "replace_block": {
@@ -24,11 +24,11 @@
     "errors": 0
   },
   "request_restart": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "reflect": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "self_audit": {
@@ -40,7 +40,7 @@
     "errors": 0
   },
   "merge_memory_files": {
-    "calls": 4,
+    "calls": 5,
     "errors": 4
   },
   "bash_command": {
