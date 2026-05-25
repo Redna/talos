@@ -36,7 +36,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         return f"[EVOLVE SUCCESS] File {path} evolved and secured. {save_result}"
 
     @registry.tool(
-        description="High-level kernel to synchronize memory: lists files and verifies they are indexed in memory_index.md.",
+        description="High-level kernel to synchronize memory: now performs full SSV symmetrization.",
         parameters={
             "type": "object",
             "properties": {},
@@ -45,22 +45,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         bucket="kernels",
     )
     def sync_memory() -> str:
-        files_result = registry.execute("list_files", {"path": "/app/memory/", "recursive": False})
-        if "[ERROR]" in files_result or files_result == "[EMPTY]":
-            return f"[SYNC FAIL] Could not list memory files: {files_result}"
-        all_files = set(files_result.split("\n"))
-        index_file = "memory_index.md"
-        index_result = registry.execute("read_file", {"path": f"/app/memory/{index_file}"})
-        index_content = "" if "[ERROR]" in index_result else index_result
-        missing = [f for f in all_files if f != index_file and f not in index_content]
-        if not missing:
-            return "[SYNC SUCCESS] All memory files are correctly indexed."
-        fix_note = "\n".join([f"- {f}: discovered during sync" for f in missing]) + "\n"
-        final_index = index_content + "\n" + fix_note if index_content else fix_note
-        save_result = registry.execute("write_file", {"path": f"/app/memory/{index_file}", "content": final_index})
-        if "[ERROR]" in save_result:
-            return f"[SYNC FAIL] Failed to update index: {save_result}"
-        return f"[SYNC SUCCESS] Fixed index. Added {len(missing)} missing files: {', '.join(missing)}."
+        return registry.execute("symmetrize_memory", {})
 
     @registry.tool(
         description="High-level kernel to audit the system architecture: verifies plugins are loaded and lists the current tool landscape.",
@@ -144,7 +129,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 temp_path.unlink()
 
     @registry.tool(
-        description="Symmetrizes current memory files into the Sovereign State-Vector (SSV) graph. Ensures all assets are pointed to by the state-vector.",
+        description="Symmetrizes current memory files into the Sovereign State-Vector (SSV) graph. Ensures all assets are pointed to by the state-vector and removes dead references.",
         parameters={
             "type": "object",
             "properties": {},
@@ -169,17 +154,22 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         else:
             state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
             
-        # Scan for files
+        # Scan for current files on disk
         memory_files = [str(f) for f in memory_dir.glob("*") if f.is_file() and f.name != "state_vector.json"]
         all_sources = core_files + memory_files
         
-        # Update nodes
-        existing_nodes = {node["@id"]: node for node in state_vector.get("nodes", [])}
-        new_nodes = []
+        # 1. Prune dead nodes (nodes whose source file no longer exists)
+        original_node_count = len(state_vector.get("nodes", []))
+        nodes = state_vector.get("nodes", [])
+        maintained_nodes = [node for node in nodes if Path(node["source"]).exists()]
+        pruned_count = original_node_count - len(maintained_nodes)
         
+        # 2. Add new nodes (files on disk not already in the vector)
+        existing_node_ids = {node["@id"] for node in maintained_nodes}
+        new_nodes = []
         for source in all_sources:
             node_id = f"talos:{Path(source).stem}"
-            if node_id not in existing_nodes:
+            if node_id not in existing_node_ids:
                 new_nodes.append({
                     "@id": node_id,
                     "type": "StateNode",
@@ -187,24 +177,21 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                     "label": Path(source).stem
                 })
         
-        state_vector["nodes"] = state_vector.get("nodes", []) + new_nodes
+        state_vector["nodes"] = maintained_nodes + new_nodes
         
-        # Update edges (everything connects to root)
-        existing_edges = {edge["to"]: edge for edge in state_vector.get("edges", []) if edge["from"] == "talos:state-vector"}
-        new_edges = []
-        
+        # 3. Reconstruct edges (Sovereign root -> all nodes)
+        # We rebuild edges to ensure no legacy edges to pruned nodes remain
+        edges = []
         for node in state_vector["nodes"]:
-            if node["@id"] not in existing_edges:
-                new_edges.append({
-                    "from": "talos:state-vector",
-                    "to": node["@id"],
-                    "relation": "contains"
-                })
-                
-        state_vector["edges"] = state_vector.get("edges", []) + new_edges
+            edges.append({
+                "from": "talos:state-vector",
+                "to": node["@id"],
+                "relation": "contains"
+            })
+        state_vector["edges"] = edges
         
         vector_path.write_text(json.dumps(state_vector, indent=2))
-        return f"[SYMMETRIZE SUCCESS] State-Vector updated. Total nodes: {len(state_vector['nodes'])}. Added {len(new_nodes)} new nodes."
+        return f"[SYMMETRIZE SUCCESS] State-Vector aligned. Nodes: {len(state_vector['nodes'])} (Pruned: {pruned_count}, Added: {len(new_nodes)}). Edges: {len(state_vector['edges'])}."
 
     @registry.tool(
         description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector).",

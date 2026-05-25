@@ -4,24 +4,24 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 40,
+    "calls": 42,
     "errors": 0
   },
   "set_focus": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "read_file": {
-    "calls": 91,
-    "errors": 55
+    "calls": 98,
+    "errors": 59
   },
   "secure_save": {
-    "calls": 30,
+    "calls": 31,
     "errors": 6
   },
   "replace_block": {
-    "calls": 35,
-    "errors": 3
+    "calls": 38,
+    "errors": 4
   },
   "request_restart": {
     "calls": 17,
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "merge_memory_files": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "fold_context": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "sync_memory": {
@@ -56,15 +56,15 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 15,
+    "calls": 17,
     "errors": 2
   },
   "audit_architecture": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "send_message": {
@@ -88,7 +88,7 @@
     "errors": 0
   },
   "serialize_state": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "hydrate_state": {
@@ -100,7 +100,7 @@
     "errors": 0
   },
   "detect_contradictions": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   }
 }
