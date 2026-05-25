@@ -12,15 +12,15 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 23,
-    "errors": 12
+    "calls": 25,
+    "errors": 14
   },
   "secure_save": {
-    "calls": 13,
+    "calls": 14,
     "errors": 1
   },
   "replace_block": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "request_restart": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "fold_context": {

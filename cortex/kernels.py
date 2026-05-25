@@ -61,3 +61,39 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         if "[ERROR]" in save_result:
             return f"[SYNC FAIL] Failed to update index: {save_result}"
         return f"[SYNC SUCCESS] Fixed index. Added {len(missing)} missing files: {', '.join(missing)}."
+
+    @registry.tool(
+        description="High-level kernel to audit the system architecture: verifies plugins are loaded and lists the current tool landscape.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def audit_architecture() -> str:
+        # 1. Audit plugins
+        plugin_audit = registry.execute("audit_plugins", {})
+        
+        # 2. Get tool list
+        # We can use a simple bash command to list files and compare with registry
+        core_files = registry.execute("list_files", {"path": "/app/cortex/", "recursive": False})
+        plugin_files = registry.execute("list_files", {"path": "/app/cortex/plugins/", "recursive": False})
+        
+        tool_names = registry.tool_names
+        
+        report = [
+            "### ARCHITECTURAL AUDIT REPORT",
+            f"Tool Count: {len(tool_names)} / 60",
+            f"Plugin Status: {plugin_audit}",
+            f"Cortex Files: {core_files}",
+            f"Plugin Files: {plugin_files}",
+            "\n#### Registered Tool Summary:",
+        ]
+        
+        # Group tools by bucket
+        buckets = registry._buckets
+        for bucket, tools in buckets.items():
+            report.append(f"- {bucket}: {', '.join(tools)}")
+            
+        return "\n".join(report)
