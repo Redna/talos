@@ -28,10 +28,27 @@ def self_audit():
         except Exception as e:
             contents[f.name] = f"Error reading file: {e}"
 
-    # We return the concatenated contents. 
-    # The agent (Talos) will perform the actual synthesis in the reasoning loop.
     report = "--- MEMORY AUDIT DATA ---\n"
     for name, text in contents.items():
         report += f"\nFILE: {name}\n{text}\n{'-'*20}\n"
     
     return report
+
+@tool(
+    description="Lists all plugin files on disk to verify they are intended to be loaded.",
+    parameters={
+        "type": "object",
+        "properties": {},
+    },
+)
+def audit_plugins():
+    """Lists plugin files on disk."""
+    plugins_dir = Path("/app/cortex/plugins")
+    if not plugins_dir.exists():
+        return "[ERROR] Plugins directory not found."
+    
+    files = list(plugins_dir.glob("*.py"))
+    # Filter out __init__.py
+    plugin_files = [f.name for f in files if not f.name.startswith("__")]
+    
+    return f"Plugins found on disk: {', '.join(plugin_files) if plugin_files else 'none'}"

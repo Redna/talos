@@ -114,7 +114,8 @@ def main():
     register_delegation_tools(registry, client)
     
     # Hot-load dynamic plugins
-    registry.reload_plugins()
+    reload_result = registry.reload_plugins()
+    print(f"[Cortex] Plugin Reload: {reload_result}")
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0
