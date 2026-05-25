@@ -4,39 +4,39 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 42,
+    "calls": 43,
     "errors": 0
   },
   "set_focus": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "read_file": {
-    "calls": 98,
+    "calls": 99,
     "errors": 59
   },
   "secure_save": {
-    "calls": 31,
-    "errors": 6
+    "calls": 32,
+    "errors": 7
   },
   "replace_block": {
     "calls": 38,
     "errors": 4
   },
   "request_restart": {
-    "calls": 17,
+    "calls": 18,
     "errors": 0
   },
   "reflect": {
-    "calls": 14,
+    "calls": 25,
     "errors": 0
   },
   "self_audit": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 12,
+    "calls": 14,
     "errors": 0
   },
   "merge_memory_files": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 32,
+    "calls": 34,
     "errors": 0
   },
   "fold_context": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 2,
+    "calls": 4,
     "errors": 0
   },
   "evolve_file": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 3,
+    "calls": 5,
     "errors": 0
   },
   "omni_exec": {
@@ -92,11 +92,11 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "graph_sense": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "detect_contradictions": {
