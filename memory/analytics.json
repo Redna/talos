@@ -4,27 +4,27 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 16,
+    "calls": 22,
     "errors": 0
   },
   "set_focus": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "read_file": {
-    "calls": 28,
-    "errors": 17
+    "calls": 35,
+    "errors": 22
   },
   "secure_save": {
-    "calls": 17,
+    "calls": 18,
     "errors": 1
   },
   "replace_block": {
-    "calls": 14,
+    "calls": 16,
     "errors": 0
   },
   "request_restart": {
-    "calls": 7,
+    "calls": 9,
     "errors": 0
   },
   "reflect": {
@@ -48,7 +48,7 @@
     "errors": 0
   },
   "fold_context": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "sync_memory": {
@@ -56,19 +56,27 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 1,
+    "calls": 3,
     "errors": 0
   },
   "audit_architecture": {
-    "calls": 3,
+    "calls": 6,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 3,
+    "calls": 6,
     "errors": 0
   },
   "send_message": {
     "calls": 1,
     "errors": 0
+  },
+  "symmetrize_memory": {
+    "calls": 1,
+    "errors": 0
+  },
+  "omni_exec": {
+    "calls": 2,
+    "errors": 1
   }
 }

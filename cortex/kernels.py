@@ -207,6 +207,152 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[SYMMETRIZE SUCCESS] State-Vector updated. Total nodes: {len(state_vector['nodes'])}. Added {len(new_nodes)} new nodes."
 
     @registry.tool(
+        description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector).",
+        parameters={
+            "type": "object",
+            "properties": {
+                "focus": {"type": "string", "description": "The current objective"},
+                "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active in focus"},
+                "next_action": {"type": "string", "description": "The immediate next step"},
+            },
+            "required": ["focus", "active_files", "next_action"],
+        },
+        bucket="kernels",
+    )
+    def serialize_state(focus: str, active_files: list, next_action: str) -> str:
+        import json
+        import subprocess
+        from datetime import datetime
+        from pathlib import Path
+
+        try:
+            # 1. Git History
+            git_hash = subprocess.run(
+                ["git", "rev-parse", "HEAD"], 
+                capture_output=True, text=True, check=True
+            ).stdout.strip()
+
+            # 2. State Vector (The Graph)
+            vector_path = Path("/app/memory/state_vector.json")
+            if not vector_path.exists():
+                return "[SERIALIZE FAIL] state_vector.json not found. Run symmetrize_memory first."
+            
+            state_vector = json.loads(vector_path.read_text())
+            
+            # 3. Payload (The Content)
+            payload = {}
+            for node in state_vector.get("nodes", []):
+                node_id = node["@id"]
+                source_path = Path(node["source"])
+                if source_path.exists():
+                    payload[node_id] = source_path.read_text()
+                else:
+                    payload[node_id] = f"[ERROR] Source {source_path} not found."
+
+            # 4. Construct Blob
+            blob = {
+                "metadata": {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "version": state_vector.get("version", "0.1"),
+                    "commit_hash": git_hash,
+                },
+                "agent_state": {
+                    "focus": focus,
+                    "active_files": active_files,
+                    "next_action": next_action,
+                },
+                "state_vector": state_vector,
+                "payload": payload,
+            }
+
+            # 5. Save Blob
+            blob_path = Path("/app/memory/state_blob.json")
+            blob_path.write_text(json.dumps(blob, indent=2))
+            
+            # 6. Secure Save
+            save_res = registry.execute("secure_save", {
+                "message": f"SSV Serialization: State-Blob created at {git_hash[:7]}"
+            })
+            
+            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. {save_res}"
+        except Exception as e:
+            return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
+
+
+    @registry.tool(
+        description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector).",
+        parameters={
+            "type": "object",
+            "properties": {
+                "focus": {"type": "string", "description": "The current objective"},
+                "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active in focus"},
+                "next_action": {"type": "string", "description": "The immediate next step"},
+            },
+            "required": ["focus", "active_files", "next_action"],
+        },
+        bucket="kernels",
+    )
+    def serialize_state(focus: str, active_files: list, next_action: str) -> str:
+        import json
+        import subprocess
+        from datetime import datetime
+        from pathlib import Path
+
+        try:
+            # 1. Git History
+            git_hash = subprocess.run(
+                ["git", "rev-parse", "HEAD"], 
+                capture_output=True, text=True, check=True
+            ).stdout.strip()
+
+            # 2. State Vector (The Graph)
+            vector_path = Path("/app/memory/state_vector.json")
+            if not vector_path.exists():
+                return "[SERIALIZE FAIL] state_vector.json not found. Run symmetrize_memory first."
+            
+            state_vector = json.loads(vector_path.read_text())
+            
+            # 3. Payload (The Content)
+            payload = {}
+            for node in state_vector.get("nodes", []):
+                node_id = node["@id"]
+                source_path = Path(node["source"])
+                if source_path.exists():
+                    payload[node_id] = source_path.read_text()
+                else:
+                    payload[node_id] = f"[ERROR] Source {source_path} not found."
+
+            # 4. Construct Blob
+            blob = {
+                "metadata": {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "version": state_vector.get("version", "0.1"),
+                    "commit_hash": git_hash,
+                },
+                "agent_state": {
+                    "focus": focus,
+                    "active_files": active_files,
+                    "next_action": next_action,
+                },
+                "state_vector": state_vector,
+                "payload": payload,
+            }
+
+            # 5. Save Blob
+            blob_path = Path("/app/memory/state_blob.json")
+            blob_path.write_text(json.dumps(blob, indent=2))
+            
+            # 6. Secure Save
+            save_res = registry.execute("secure_save", {
+                "message": f"SSV Serialization: State-Blob created at {git_hash[:7]}"
+            })
+            
+            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. {save_res}"
+        except Exception as e:
+            return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
+
+
+    @registry.tool(
         description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",
         parameters={
             "type": "object",
