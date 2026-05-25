@@ -149,10 +149,10 @@ class Supervisor:
                     if self._consecutive_failures >= 3:
                         print("\033[91m[SUPERVISOR] CRASH LOOP DETECTED. Executing Lazarus Protocol...\033[0m", flush=True)
                         self.events.emit("supervisor.lazarus_triggered", {"reason": "crash_loop"})
-                        self._revert_to_last_good_commit(
+                        if self._revert_to_last_good_commit(
                             reason=f"Crash Loop (Code {retcode})", error=error_report
-                        )
-                        self._consecutive_failures = 0
+                        ):
+                             self._consecutive_failures = 0
 
                     self.start_cortex()
                     if self._cortex_proc is not None:
@@ -216,7 +216,7 @@ class Supervisor:
 
         err_log_path = Path(self.cfg.spine_dir) / "cortex_stderr.log"
         try:
-            # We open in write mode to clear previous logs, but we will dual-log on crash
+            # We open in write mode to clear previous logs
             err_log_file = open(err_log_path, "w")
             self._cortex_proc = subprocess.Popen(
                 ["python", "-m", "cortex"],
@@ -278,17 +278,8 @@ class Supervisor:
         if path.exists():
             self._last_stable_commit = path.read_text().strip()
         else:
-            try:
-                result = subprocess.run(
-                    ["git", "rev-parse", "HEAD"],
-                    capture_output=True,
-                    text=True,
-                    cwd=self.cfg.app_dir,
-                )
-                if result.returncode == 0:
-                    self._last_stable_commit = result.stdout.strip()
-            except Exception:
-                pass
+            # Important: Do not default to HEAD, as it might be broken.
+            self._last_stable_commit = ""
 
     def _record_good_commit(self):
         try:
@@ -309,12 +300,25 @@ class Supervisor:
             pass
 
     def _revert_to_last_good_commit(self, reason="Crash detected", error="Unknown"):
-        if not self._last_stable_commit:
-            return False
+        stable_sha = self._last_stable_commit
+        if not stable_sha:
+            print("[SUPERVISOR] No stable commit recorded. Attempting fallback to HEAD~1...", flush=True)
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "HEAD~1"],
+                    capture_output=True, text=True, cwd=self.cfg.app_dir
+                )
+                if result.returncode == 0:
+                    stable_sha = result.stdout.strip()
+                else:
+                    return False
+            except:
+                return False
+
         try:
-            print(f"[SUPERVISOR] Reverting to last stable commit: {self._last_stable_commit[:8]}", flush=True)
+            print(f"[SUPERVISOR] Reverting to last stable commit: {stable_sha[:8]}", flush=True)
             subprocess.run(
-                ["git", "reset", "--hard", self._last_stable_commit],
+                ["git", "reset", "--hard", stable_sha],
                 capture_output=True,
                 text=True,
                 cwd=self.cfg.app_dir,
@@ -329,14 +333,14 @@ class Supervisor:
             )
             self.events.emit(
                 "supervisor.commit_reverted",
-                {"commit": self._last_stable_commit, "reason": reason},
+                {"commit": stable_sha, "reason": reason},
             )
 
             notice = (
                 f"[SYSTEM SUPERVISOR]: Your last evolution caused a fatal crash.\n"
                 f"REASON: {reason}\n"
                 f"ERROR: {error}\n"
-                f"ACTION: Reverted to last stable commit: {self._last_stable_commit[:8]}.\n"
+                f"ACTION: Reverted to last stable state: {stable_sha[:8]}.\n"
                 f"OBJECTIVE: Analyze the error and find a more resilient implementation path."
             )
             self.stream.queue_system_notice(notice)
