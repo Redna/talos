@@ -12,16 +12,16 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 47,
-    "errors": 28
+    "calls": 52,
+    "errors": 31
   },
   "secure_save": {
     "calls": 20,
     "errors": 1
   },
   "replace_block": {
-    "calls": 17,
-    "errors": 0
+    "calls": 19,
+    "errors": 1
   },
   "request_restart": {
     "calls": 10,
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "merge_memory_files": {
@@ -56,8 +56,8 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 4,
-    "errors": 0
+    "calls": 6,
+    "errors": 1
   },
   "audit_architecture": {
     "calls": 7,

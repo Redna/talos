@@ -119,6 +119,12 @@ def main():
     reload_result = registry.reload_plugins()
     print(f"[Cortex] Plugin Reload: {reload_result}")
 
+    # Automated SSV Hydration
+    if (MEMORY_DIR / "state_blob.json").exists():
+        print("[Cortex] state_blob.json found. Performing autonomous hydration...")
+        hydration_result = registry.execute("hydrate_state", {})
+        print(f"[Cortex] Hydration Result: {hydration_result}")
+
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0
     turn = 0
