@@ -211,6 +211,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     )
     def git_push() -> str:
         import subprocess
+        import urllib.request
 
         result = subprocess.run(
             ["git", "push", "-u", "origin", "HEAD"],
@@ -220,7 +221,16 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             cwd="/app",
         )
         if result.returncode != 0:
-            return f"[ERROR] git push failed: {result.stderr}"
+            error_msg = result.stderr
+            if "403" in error_msg:
+                try:
+                    # Query the Sentinel Rejection Mirror
+                    with urllib.request.urlopen("http://sentinel:8080/v1/sentinel/rejection", timeout=5) as resp:
+                        reason = resp.read().decode("utf-8")
+                        error_msg = f"{error_msg}\n[SENTINEL REPORT] {reason}"
+                except Exception:
+                    pass
+            return f"[ERROR] git push failed: {error_msg}"
         return "[SUCCESS] All commits pushed to origin. Your biography is backed up."
 
     @registry.tool(
