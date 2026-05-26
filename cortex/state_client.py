@@ -195,6 +195,61 @@ class StateClient:
                 return True
         return False
 
+    def project_resonance(self, since_seq: int = 0) -> Dict[str, Any]:
+        """
+        Reconstructs the StateVector by replaying the Sovereign Event Stream.
+        This is the core of the ResonanceProjection mechanism.
+        """
+        events = self.log.get_events(since_seq=since_seq)
+        
+        # Start with a fresh vector or the current one if since_seq > 0
+        if since_seq == 0:
+            vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
+        else:
+            vector = self.get_vector()
+
+        nodes = {node["@id"]: node for node in vector.get("nodes", [])}
+        
+        for event in events:
+            etype = event["event_type"]
+            payload = event["payload"]
+            
+            if etype == "MEMORY_MUTATION":
+                path = payload.get("path")
+                if path:
+                    # Derive node ID from path
+                    import pathlib
+                    node_id = f"talos:{pathlib.Path(path).stem}"
+                    
+                    # Update or create node
+                    if node_id not in nodes:
+                        nodes[node_id] = {
+                            "@id": node_id,
+                            "type": "StateNode",
+                            "source": path,
+                            "label": pathlib.Path(path).stem
+                        }
+                    else:
+                        nodes[node_id]["source"] = path
+            
+            elif etype == "SURETY_CHECKPOINT":
+                # Checkpoints don't change nodes, but they mark state-affinity
+                # We could store the commit hash in the vector's metadata
+                vector["last_surety_hash"] = payload.get("git_hash")
+                vector["last_focus"] = payload.get("focus")
+
+            elif etype == "HYDRATION":
+                # Hydration marks a rebirth, can be used to reset certain counters
+                pass
+
+        vector["nodes"] = list(nodes.values())
+        
+        # Symmetrization is needed here to ensure edges are correct and 
+        # any files not in the log but on disk are captured.
+        # We will call the symmetrize logic after projection.
+        
+        return vector
+
     def list_nodes(self) -> List[Dict[str, Any]]:
         """Return all nodes in the current vector."""
         return self.get_vector().get("nodes", [])

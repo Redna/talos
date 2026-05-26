@@ -145,6 +145,33 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             if temp_path.exists():
                 temp_path.unlink()
 
+    @registry.tool(
+        description="Symmetric Replay Kernel: Rebuilds the current state from the Sovereign Event Stream and aligns it with the filesystem. Essential for recovering the sovereign identity after a catastrophic state-loss.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "since_seq": {"type": "integer", "description": "Sequence number to start replay from (0 for full rebuild). Defaults to 0."},
+            },
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def symmetric_replay(since_seq: int = 0) -> str:
+        try:
+            # 1. Project Resonance (Rebuild Vector from Stream)
+            projected_vector = state_client.project_resonance(since_seq=since_seq)
+            
+            # 2. Persist Projection
+            state_client.set_vector(projected_vector)
+            
+            # 3. Symmetrize (Align with reality)
+            symm_result = symmetrize_memory()
+            
+            # 4. Final report
+            return f"[REPLAY SUCCESS] resonance-projection completed. Vector updated with stream events. {symm_result}"
+        except Exception as e:
+            return f"[REPLAY FAIL] Unexpected error during symmetric replay: {str(e)}"
+
     def symmetrize_memory() -> str:
         from pathlib import Path
         

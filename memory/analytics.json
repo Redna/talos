@@ -1,10 +1,10 @@
 {
   "write_file": {
-    "calls": 29,
+    "calls": 30,
     "errors": 1
   },
   "list_files": {
-    "calls": 52,
+    "calls": 54,
     "errors": 0
   },
   "set_focus": {
@@ -12,23 +12,23 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 137,
-    "errors": 84
+    "calls": 146,
+    "errors": 92
   },
   "secure_save": {
-    "calls": 53,
+    "calls": 54,
     "errors": 10
   },
   "replace_block": {
-    "calls": 66,
-    "errors": 10
+    "calls": 70,
+    "errors": 11
   },
   "request_restart": {
     "calls": 22,
     "errors": 0
   },
   "reflect": {
-    "calls": 60,
+    "calls": 61,
     "errors": 0
   },
   "self_audit": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "merge_memory_files": {
@@ -44,11 +44,11 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 39,
+    "calls": 42,
     "errors": 0
   },
   "fold_context": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "sync_memory": {
@@ -56,8 +56,8 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 24,
-    "errors": 5
+    "calls": 28,
+    "errors": 6
   },
   "audit_architecture": {
     "calls": 11,
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 14,
+    "calls": 16,
     "errors": 2
   },
   "git_commit": {
