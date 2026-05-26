@@ -45,7 +45,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         bucket="kernels",
     )
     def sync_memory() -> str:
-        return registry.execute("symmetrize_memory", {})
+        return symmetrize_memory()
 
     @registry.tool(
         description="High-level kernel to audit the system architecture: verifies plugins are loaded and lists the current tool landscape.",
@@ -128,15 +128,6 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             if temp_path.exists():
                 temp_path.unlink()
 
-    @registry.tool(
-        description="Symmetrizes current memory files into the Sovereign State-Vector (SSV) graph. Ensures all assets are pointed to by the state-vector and removes dead references.",
-        parameters={
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
-        bucket="kernels",
-    )
     def symmetrize_memory() -> str:
         import json
         from pathlib import Path
