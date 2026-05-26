@@ -322,25 +322,10 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             # 2. State Vector (The Graph)
             state_vector = state_client.get_vector()
             
-            # 3. Payload (The Delta Blueprint)
-            # Now transitioned from strict delta to a full snapshot to prevent data loss on restart.
-            # Future iterations will use a truly sovereign event stream for reconstruction.
+            # 3. Payload (Sovereign State-Vector with Semantic Compression)
             payload = {}
             
-            for node in state_vector.get("nodes", []):
-                node_id = node["@id"]
-                
-                # Always capture the content of every node in the state vector.
-                # This ensures that hydrate_state can fully reconstruct the identity.
-                content = state_client.get_node_content(node_id)
-                if content and "[ERROR]" not in content:
-                    payload[node_id] = content
-                else:
-                    # If content is missing or errored, we can't store it, but the node remains in the vector.
-                    pass
-
-
-            # Load insights from file if not provided
+            # Ensure insights are loaded
             if insights is None:
                 import json
                 from pathlib import Path
@@ -352,6 +337,29 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                         insights = {}
                 else:
                     insights = {}
+
+            for node in state_vector.get("nodes", []):
+                node_id = node["@id"]
+                content = state_client.get_node_content(node_id)
+                
+                # Semantic Compression Logic:
+                # We store the content (lossless) and the insight (semantic).
+                # If content is missing, we only store the insight.
+                if content and "[ERROR]" not in content:
+                    payload[node_id] = {
+                        "content": content,
+                        "insight": insights.get(node_id),
+                        "type": "full"
+                    }
+                elif node_id in insights:
+                    payload[node_id] = {
+                        "content": None,
+                        "insight": insights[node_id],
+                        "type": "compressed"
+                    }
+                else:
+                    # Node exists in vector but has no content or insight.
+                    pass
 
             # 4. Construct Blob
             blob = {
@@ -374,13 +382,9 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             state_client.set_blob(blob)
             
             # 6. Update Evolution Log
-            # We append the current focus and the resulting commit hash to the log
             evol_path = Path("/app/memory/evolution.md")
             if evol_path.exists():
                 content = evol_path.read_text()
-                # Simple append to the 'Active Trajectory' section or a new log section
-                # For now, we'll just append a note to the end of the document
-                # In a more advanced version, we'd use a proper parser to update the table
                 log_entry = f"\n- {datetime.utcnow().isoformat()} [{git_hash[:7]}]: Resolved focus '{current_focus}' $\rightarrow$ {next_action}\n"
                 evol_path.write_text(content + log_entry)
 
@@ -391,7 +395,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             
             state_client.log_event("SURETY_CHECKPOINT", {"git_hash": git_hash, "focus": current_focus})
             
-            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. Evolution Log updated. Insights included: {len(insights if insights else [])}. {save_res}"
+            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. Evolution Log updated. Payload nodes: {len(payload)}. {save_res}"
         except Exception as e:
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
 
@@ -406,6 +410,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
     )
     def hydrate_state() -> str:
         from pathlib import Path
+        import json
 
         try:
             blob = state_client.get_blob()
@@ -422,16 +427,25 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
                 if node_id in payload:
-                    state_client.set_node_content(node_id, payload[node_id])
-                    restored_count += 1
+                    node_data = payload[node_id]
+                    # Handle both old string format and new dictionary format
+                    content = node_data["content"] if isinstance(node_data, dict) else node_data
+                    
+                    if content:
+                        state_client.set_node_content(node_id, content)
+                        restored_count += 1
             
-            # Restore semantic insights
-            insight_file = Path("/app/memory/hydrated_insights.md")
+            # Restore semantic insights to the primary store
             if insights:
+                insight_file = Path("/app/memory/sovereign_insights.json")
+                insight_file.write_text(json.dumps(insights, indent=2))
+                
+                # Also create the human-readable summary
+                summary_file = Path("/app/memory/hydrated_insights.md")
                 insight_content = ["# Hydrated Semantic Insights", "\n"]
                 for node_id, insight in insights.items():
                     insight_content.append(f"## {node_id}\n{insight}\n")
-                insight_file.write_text("\n".join(insight_content))
+                summary_file.write_text("\n".join(insight_content))
             
             state_client.log_event("HYDRATION", {"restored_nodes": restored_count, "version": blob.get('metadata', {}).get('version')})
             
