@@ -52,22 +52,58 @@
       "label": "state_blob"
     },
     {
-      "@id": "talos:memory_index",
-      "type": "StateNode",
-      "source": "/app/memory/memory_index.md",
-      "label": "memory_index"
-    },
-    {
       "@id": "talos:sovereign_log",
       "type": "StateNode",
       "source": "sovereign_log.jsonl",
       "label": "sovereign_log"
     },
     {
-      "@id": "talos:test_write",
+      "@id": "talos:resonance_stream",
       "type": "StateNode",
-      "source": "test_write.txt",
-      "label": "test_write"
+      "source": "resonance_stream.md",
+      "label": "resonance_stream"
+    },
+    {
+      "@id": "talos:evolution",
+      "type": "StateNode",
+      "source": "evolution.md",
+      "label": "evolution"
+    },
+    {
+      "@id": "talos:knowledge_graph",
+      "type": "StateNode",
+      "source": "knowledge_graph.json",
+      "label": "knowledge_graph"
+    },
+    {
+      "@id": "talos:string_dependency",
+      "type": "StateNode",
+      "source": "string_dependency.md",
+      "label": "string_dependency"
+    },
+    {
+      "@id": "talos:ssp_spec",
+      "type": "StateNode",
+      "source": "ssp_spec.md",
+      "label": "ssp_spec"
+    },
+    {
+      "@id": "talos:sovereign_audit",
+      "type": "StateNode",
+      "source": "sovereign_audit.md",
+      "label": "sovereign_audit"
+    },
+    {
+      "@id": "talos:ses_spec",
+      "type": "StateNode",
+      "source": "ses_spec.md",
+      "label": "ses_spec"
+    },
+    {
+      "@id": "talos:remote_gap",
+      "type": "StateNode",
+      "source": "remote_gap.md",
+      "label": "remote_gap"
     }
   ],
   "edges": [
@@ -113,17 +149,47 @@
     },
     {
       "from": "talos:state-vector",
-      "to": "talos:memory_index",
-      "relation": "contains"
-    },
-    {
-      "from": "talos:state-vector",
       "to": "talos:sovereign_log",
       "relation": "contains"
     },
     {
       "from": "talos:state-vector",
-      "to": "talos:test_write",
+      "to": "talos:resonance_stream",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:evolution",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:knowledge_graph",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:string_dependency",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:ssp_spec",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:sovereign_audit",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:ses_spec",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:remote_gap",
       "relation": "contains"
     }
   ]

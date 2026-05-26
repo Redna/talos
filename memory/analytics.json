@@ -4,23 +4,23 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 55,
+    "calls": 61,
     "errors": 0
   },
   "set_focus": {
-    "calls": 30,
+    "calls": 34,
     "errors": 0
   },
   "read_file": {
-    "calls": 169,
-    "errors": 94
+    "calls": 180,
+    "errors": 97
   },
   "secure_save": {
-    "calls": 62,
+    "calls": 63,
     "errors": 10
   },
   "replace_block": {
-    "calls": 76,
+    "calls": 78,
     "errors": 11
   },
   "request_restart": {
@@ -32,11 +32,11 @@
     "errors": 0
   },
   "self_audit": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 22,
+    "calls": 23,
     "errors": 0
   },
   "merge_memory_files": {
@@ -44,11 +44,11 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 65,
+    "calls": 68,
     "errors": 1
   },
   "fold_context": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "sync_memory": {
@@ -60,11 +60,11 @@
     "errors": 6
   },
   "audit_architecture": {
-    "calls": 11,
+    "calls": 13,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 11,
+    "calls": 13,
     "errors": 0
   },
   "send_message": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 16,
+    "calls": 17,
     "errors": 2
   },
   "git_commit": {
@@ -96,7 +96,7 @@
     "errors": 0
   },
   "graph_sense": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "detect_contradictions": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "symmetric_replay": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "delegate_task": {

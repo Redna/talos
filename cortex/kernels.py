@@ -253,6 +253,34 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         return f"[SYMMETRIZE SUCCESS] State-Vector aligned. Nodes: {len(state_vector['nodes'])} (Pruned: {pruned_count}, Added: {len(new_nodes)}). Edges: {len(state_vector['edges'])} (Preserved: {len(preserved_edges)})."
 
     @registry.tool(
+        description="Capture a semantic insight associated with a specific node or concept. This ensures the insight is persisted in the Sovereign State and carried across folds and restarts.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "node_id": {"type": "string", "description": "The node ID (e.g., 'talos:identity') associated with the insight"},
+                "insight": {"type": "string", "description": "The semantic insight or lesson learned"},
+            },
+            "required": ["node_id", "insight"],
+        },
+        bucket="kernels",
+    )
+    def capture_insight(node_id: str, insight: str) -> str:
+        import json
+        from pathlib import Path
+        
+        insight_path = Path("/app/memory/sovereign_insights.json")
+        insights = {}
+        if insight_path.exists():
+            try:
+                insights = json.loads(insight_path.read_text())
+            except Exception:
+                insights = {}
+                
+        insights[node_id] = insight
+        insight_path.write_text(json.dumps(insights, indent=2))
+        return f"[INSIGHT CAPTURED] Linked '{node_id}' $\rightarrow$ {insight}"
+
+    @registry.tool(
         description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector). Now supports Semantic Delta Compression (SDC) via optional insights. Also updates the Sovereign Evolution Log.",
         parameters={
             "type": "object",
@@ -291,6 +319,19 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 node_id = node["@id"]
                 payload[node_id] = state_client.get_node_content(node_id)
 
+            # Load insights from file if not provided
+            if insights is None:
+                import json
+                from pathlib import Path
+                insight_path = Path("/app/memory/sovereign_insights.json")
+                if insight_path.exists():
+                    try:
+                        insights = json.loads(insight_path.read_text())
+                    except Exception:
+                        insights = {}
+                else:
+                    insights = {}
+
             # 4. Construct Blob
             blob = {
                 "metadata": {
@@ -305,7 +346,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 },
                 "state_vector": state_vector,
                 "payload": payload,
-                "insights": insights or {},
+                "insights": insights,
             }
 
             # 5. Save Blob
