@@ -322,11 +322,22 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             # 2. State Vector (The Graph)
             state_vector = state_client.get_vector()
             
-            # 3. Payload (The Content)
+            # 3. Payload (The Delta Blueprint)
             payload = {}
+            last_cp = state_client.find_last_checkpoint_seq()
+            events = state_client.log.get_events(since_seq=last_cp if last_cp != -1 else 0)
+            changed_paths = {e["payload"].get("path") for e in events if e["event_type"] == "MEMORY_MUTATION"}
+
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
-                payload[node_id] = state_client.get_node_content(node_id)
+                source_path = node["source"]
+                
+                is_active = source_path in current_files
+                is_changed = source_path in changed_paths
+                
+                if is_active or is_changed:
+                    payload[node_id] = state_client.get_node_content(node_id)
+                # Non-active, unchanged nodes are omitted; they are reconstructed via Symmetric Replay.
 
             # Load insights from file if not provided
             if insights is None:
