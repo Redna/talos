@@ -253,7 +253,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         return f"[SYMMETRIZE SUCCESS] State-Vector aligned. Nodes: {len(state_vector['nodes'])} (Pruned: {pruned_count}, Added: {len(new_nodes)}). Edges: {len(state_vector['edges'])} (Preserved: {len(preserved_edges)})."
 
     @registry.tool(
-        description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector). Now supports Semantic Delta Compression (SDC) via optional insights.",
+        description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector). Now supports Semantic Delta Compression (SDC) via optional insights. Also updates the Sovereign Evolution Log.",
         parameters={
             "type": "object",
             "properties": {
@@ -269,6 +269,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
     def serialize_state(next_action: str, focus: str = None, active_files: list = None, insights: dict = None) -> str:
         import subprocess
         from datetime import datetime
+        from pathlib import Path
 
         try:
             # Pull from state if not provided
@@ -310,14 +311,25 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             # 5. Save Blob
             state_client.set_blob(blob)
             
-            # 6. Secure Save
+            # 6. Update Evolution Log
+            # We append the current focus and the resulting commit hash to the log
+            evol_path = Path("/app/memory/evolution.md")
+            if evol_path.exists():
+                content = evol_path.read_text()
+                # Simple append to the 'Active Trajectory' section or a new log section
+                # For now, we'll just append a note to the end of the document
+                # In a more advanced version, we'd use a proper parser to update the table
+                log_entry = f"\n- {datetime.utcnow().isoformat()} [{git_hash[:7]}]: Resolved focus '{current_focus}' $\rightarrow$ {next_action}\n"
+                evol_path.write_text(content + log_entry)
+
+            # 7. Secure Save
             save_res = registry.execute("secure_save", {
                 "message": f"SSV Serialization: State-Blob created at {git_hash[:7]}"
             })
             
             state_client.log_event("SURETY_CHECKPOINT", {"git_hash": git_hash, "focus": current_focus})
             
-            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. Insights included: {len(insights if insights else [])}. {save_res}"
+            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. Evolution Log updated. Insights included: {len(insights if insights else [])}. {save_res}"
         except Exception as e:
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
 
