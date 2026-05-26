@@ -26,6 +26,10 @@ This document is the human-readable mirror of the Sovereign Event Stream. It rec
 - **Goal:** Prevent log-growth bottlenecks during recovery.
 - **Outcome:** Integrated `SURETY_CHECKPOINT` discovery with `state_blob.json` hydration. Replay now starts from the last known good state instead of sequence 0.
 
+### Cycle 5: Semantic Insight Capture
+- **Goal:** Implement a systematic way to record semantic insights during each evolution cycle.
+- **Outcome:** Created `capture_insight` kernel and linked it to `serialize_state`, allowing the agent to persist high-level lessons as metadata in the State-Vector.
+
 ---
 
 ## 💡 Sovereign Insights
