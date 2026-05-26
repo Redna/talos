@@ -48,6 +48,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         save_result = registry.execute("secure_save", {"message": commit_message})
         if "[SECURE SAVE FAILED]" in save_result or "[ERROR]" in save_result:
             return f"[EVOLVE FAIL] Save phase failed: {save_result}"
+        
+        state_client.log_event("MEMORY_MUTATION", {"path": path, "msg": commit_message})
         return f"[EVOLVE SUCCESS] File {path} evolved and secured. {save_result}"
 
     @registry.tool(
@@ -265,6 +267,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 "message": f"SSV Serialization: State-Blob created at {git_hash[:7]}"
             })
             
+            state_client.log_event("SURETY_CHECKPOINT", {"git_hash": git_hash, "focus": current_focus})
+            
             return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. Insights included: {len(insights if insights else [])}. {save_res}"
         except Exception as e:
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
@@ -306,6 +310,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 for node_id, insight in insights.items():
                     insight_content.append(f"## {node_id}\n{insight}\n")
                 insight_file.write_text("\n".join(insight_content))
+            
+            state_client.log_event("HYDRATION", {"restored_nodes": restored_count, "version": blob.get('metadata', {}).get('version')})
             
             return f"[HYDRATE SUCCESS] Restored {restored_count} assets and {len(insights)} semantic insights. State restored to metadata version {blob.get('metadata', {}).get('version', 'unknown')}. Current Focus: {agent_state.get('focus', 'None')}"
         except Exception as e:

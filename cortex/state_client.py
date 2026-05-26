@@ -81,6 +81,50 @@ class RemoteStore(BaseStore):
             pass
         return []
 
+class EventLog:
+    """
+    Handles the immutable, append-only log of cognitive events.
+    """
+    def __init__(self, store: BaseStore, log_key: str = "sovereign_log.jsonl"):
+        self.store = store
+        self.log_key = log_key
+
+    def append(self, event_type: str, payload: Any) -> int:
+        import datetime
+        import hashlib
+        import json
+
+        # Retrieve current log to get sequence and prev_hash
+        log_data = self.store.get(self.log_key) or ""
+        lines = log_data.splitlines()
+        
+        seq = len(lines)
+        prev_hash = ""
+        if lines:
+            last_event = json.loads(lines[-1])
+            # Simulating a hash for the chain
+            prev_hash = hashlib.sha256(lines[-1].encode()).hexdigest()
+
+        event = {
+            "seq": seq,
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "event_type": event_type,
+            "payload": payload,
+            "prev_hash": prev_hash,
+        }
+        
+        event_json = json.dumps(event)
+        self.store.set(self.log_key, log_data + event_json + "\n")
+        return seq
+
+    def get_events(self, since_seq: int = 0) -> List[Dict[str, Any]]:
+        log_data = self.store.get(self.log_key) or ""
+        lines = log_data.splitlines()
+        events = []
+        for i in range(since_seq, len(lines)):
+            events.append(json.loads(lines[i]))
+        return events
+
 class StateClient:
     """
     The StateClient is the abstraction layer between the Cortex's reasoning 
@@ -90,6 +134,11 @@ class StateClient:
         self.store = store
         self.vector_key = "state_vector.json"
         self.blob_key = "state_blob.json"
+        self.log = EventLog(store)
+
+    def log_event(self, event_type: str, payload: Any) -> int:
+        """Record a cognitive transition in the Sovereign Event Stream."""
+        return self.log.append(event_type, payload)
 
     def get_vector(self) -> Dict[str, Any]:
         """Retrieve the current state vector (graph)."""
