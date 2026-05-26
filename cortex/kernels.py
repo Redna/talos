@@ -6,8 +6,21 @@ from spine_client import SpineClient
 from state_client import StateClient, LocalStore
 
 def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
-    state_client = StateClient(store=LocalStore())
+    # Determine store type from environment or config
+    import os
+    use_remote = os.environ.get("TALOS_REMOTE_STATE", "false").lower() == "true"
+    
+    if use_remote:
+        from state_client import RemoteStore
+        store = RemoteStore(endpoint=os.environ.get("NSS_ENDPOINT", "http://nss-bridge.local"))
+    else:
+        from state_client import LocalStore
+        store = LocalStore()
+
+    state_client = StateClient(store=store)
+    
     @registry.tool(
+
         description="High-level kernel to evolve a file: replaces text, verifies the change, and secures it with a commit and push.",
         parameters={
             "type": "object",
@@ -136,8 +149,9 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         # Load existing vector or create new
         state_vector = state_client.get_vector()
             
-        # Scan for current files on disk
-        memory_files = [str(f) for f in state_client.memory_dir.glob("*") if f.is_file() and f.name != "state_vector.json"]
+        # Scan for current files in store
+        memory_files = state_client.store.list()
+        memory_files = [f for f in memory_files if f != "state_vector.json"]
         core_files = ["/app/identity.md", "/app/CONSTITUTION.md"]
         all_sources = core_files + memory_files
         

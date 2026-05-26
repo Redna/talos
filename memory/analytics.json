@@ -8,27 +8,27 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 24,
+    "calls": 25,
     "errors": 0
   },
   "read_file": {
-    "calls": 124,
-    "errors": 74
+    "calls": 130,
+    "errors": 79
   },
   "secure_save": {
-    "calls": 47,
+    "calls": 48,
     "errors": 10
   },
   "replace_block": {
-    "calls": 56,
-    "errors": 6
+    "calls": 61,
+    "errors": 9
   },
   "request_restart": {
     "calls": 21,
     "errors": 0
   },
   "reflect": {
-    "calls": 57,
+    "calls": 58,
     "errors": 0
   },
   "self_audit": {
@@ -44,11 +44,11 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 34,
+    "calls": 38,
     "errors": 0
   },
   "fold_context": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "sync_memory": {
@@ -56,8 +56,8 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 20,
-    "errors": 3
+    "calls": 24,
+    "errors": 5
   },
   "audit_architecture": {
     "calls": 11,
@@ -68,7 +68,7 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "symmetrize_memory": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 11,
+    "calls": 13,
     "errors": 2
   },
   "git_commit": {
@@ -88,7 +88,7 @@
     "errors": 0
   },
   "serialize_state": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "hydrate_state": {
