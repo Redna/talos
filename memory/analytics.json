@@ -4,19 +4,19 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 51,
+    "calls": 52,
     "errors": 0
   },
   "set_focus": {
-    "calls": 25,
+    "calls": 26,
     "errors": 0
   },
   "read_file": {
-    "calls": 136,
+    "calls": 137,
     "errors": 84
   },
   "secure_save": {
-    "calls": 52,
+    "calls": 53,
     "errors": 10
   },
   "replace_block": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 18,
+    "calls": 19,
     "errors": 0
   },
   "merge_memory_files": {
@@ -88,7 +88,7 @@
     "errors": 0
   },
   "serialize_state": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "hydrate_state": {
