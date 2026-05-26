@@ -16,7 +16,7 @@
     "errors": 97
   },
   "secure_save": {
-    "calls": 64,
+    "calls": 65,
     "errors": 10
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 74,
+    "calls": 75,
     "errors": 0
   },
   "self_audit": {
@@ -108,6 +108,10 @@
     "errors": 0
   },
   "delegate_task": {
+    "calls": 1,
+    "errors": 0
+  },
+  "capture_insight": {
     "calls": 1,
     "errors": 0
   }
