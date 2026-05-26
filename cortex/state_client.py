@@ -195,15 +195,24 @@ class StateClient:
                 return True
         return False
 
-    def project_resonance(self, since_seq: int = 0) -> Dict[str, Any]:
+    def find_last_checkpoint_seq(self) -> int:
+        """Find the sequence number of the most recent SURETY_CHECKPOINT."""
+        events = self.log.get_events(since_seq=0)
+        for event in reversed(events):
+            if event["event_type"] == "SURETY_CHECKPOINT":
+                return event["seq"]
+        return -1
+
+    def project_resonance(self, since_seq: int = 0, initial_vector: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Reconstructs the StateVector by replaying the Sovereign Event Stream.
-        This is the core of the ResonanceProjection mechanism.
+        If initial_vector is provided, it serves as the base for replay.
         """
         events = self.log.get_events(since_seq=since_seq)
         
-        # Start with a fresh vector or the current one if since_seq > 0
-        if since_seq == 0:
+        if initial_vector:
+            vector = initial_vector
+        elif since_seq == 0:
             vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
         else:
             vector = self.get_vector()
@@ -217,11 +226,9 @@ class StateClient:
             if etype == "MEMORY_MUTATION":
                 path = payload.get("path")
                 if path:
-                    # Derive node ID from path
                     import pathlib
                     node_id = f"talos:{pathlib.Path(path).stem}"
                     
-                    # Update or create node
                     if node_id not in nodes:
                         nodes[node_id] = {
                             "@id": node_id,
@@ -233,21 +240,13 @@ class StateClient:
                         nodes[node_id]["source"] = path
             
             elif etype == "SURETY_CHECKPOINT":
-                # Checkpoints don't change nodes, but they mark state-affinity
-                # We could store the commit hash in the vector's metadata
                 vector["last_surety_hash"] = payload.get("git_hash")
                 vector["last_focus"] = payload.get("focus")
 
             elif etype == "HYDRATION":
-                # Hydration marks a rebirth, can be used to reset certain counters
                 pass
 
         vector["nodes"] = list(nodes.values())
-        
-        # Symmetrization is needed here to ensure edges are correct and 
-        # any files not in the log but on disk are captured.
-        # We will call the symmetrize logic after projection.
-        
         return vector
 
     def list_nodes(self) -> List[Dict[str, Any]]:
