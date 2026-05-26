@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
-from state_client import StateClient
+from state_client import StateClient, LocalStore
 
 def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
-    state_client = StateClient()
+    state_client = StateClient(store=LocalStore())
     @registry.tool(
         description="High-level kernel to evolve a file: replaces text, verifies the change, and secures it with a commit and push.",
         parameters={

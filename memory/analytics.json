@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 25,
+    "calls": 26,
     "errors": 1
   },
   "list_files": {
@@ -8,19 +8,19 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 22,
+    "calls": 23,
     "errors": 0
   },
   "read_file": {
-    "calls": 120,
-    "errors": 70
+    "calls": 122,
+    "errors": 72
   },
   "secure_save": {
-    "calls": 44,
-    "errors": 9
+    "calls": 45,
+    "errors": 10
   },
   "replace_block": {
-    "calls": 53,
+    "calls": 55,
     "errors": 6
   },
   "request_restart": {
@@ -48,11 +48,11 @@
     "errors": 0
   },
   "fold_context": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "sync_memory": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "evolve_file": {
