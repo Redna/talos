@@ -16,7 +16,7 @@
     "errors": 72
   },
   "secure_save": {
-    "calls": 45,
+    "calls": 46,
     "errors": 10
   },
   "replace_block": {
@@ -88,7 +88,7 @@
     "errors": 0
   },
   "serialize_state": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "hydrate_state": {
