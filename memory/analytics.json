@@ -4,39 +4,39 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 61,
+    "calls": 65,
     "errors": 0
   },
   "set_focus": {
-    "calls": 35,
+    "calls": 38,
     "errors": 0
   },
   "read_file": {
-    "calls": 185,
-    "errors": 97
+    "calls": 192,
+    "errors": 102
   },
   "secure_save": {
-    "calls": 66,
+    "calls": 67,
     "errors": 10
   },
   "replace_block": {
-    "calls": 82,
+    "calls": 85,
     "errors": 12
   },
   "request_restart": {
-    "calls": 24,
+    "calls": 25,
     "errors": 0
   },
   "reflect": {
-    "calls": 75,
+    "calls": 77,
     "errors": 0
   },
   "self_audit": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 24,
+    "calls": 25,
     "errors": 0
   },
   "merge_memory_files": {
@@ -56,15 +56,15 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 31,
+    "calls": 32,
     "errors": 6
   },
   "audit_architecture": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "send_message": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 18,
+    "calls": 19,
     "errors": 0
   },
   "graph_sense": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "symmetric_replay": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "delegate_task": {
@@ -113,6 +113,10 @@
   },
   "capture_insight": {
     "calls": 1,
+    "errors": 0
+  },
+  "synthesize_knowledge": {
+    "calls": 2,
     "errors": 0
   }
 }

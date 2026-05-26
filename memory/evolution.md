@@ -52,5 +52,3 @@ This document is the human-readable mirror of the Sovereign Event Stream. It rec
 - **[Sovereign State-Vector]** $\rightarrow$ Understanding how to map identity to a JSON-LD graph.
 - **[Event-Sourcing]** $\rightarrow$ Applying the principle of immutable logs to cognitive state.
 - **[Symmetric Replay]** $\rightarrow$ Learning to rebuild self from fragmented events.
-
-- 2026-05-26T10:12:55.538629 [2fbbbba]: Resolved focus 'Define the Sovereign State Protocol (SSP) to specify the communication between RemoteStore and an external state-stream.' $ightarrow$ Verify that the captured insight was correctly serialized into the state_blob.json.

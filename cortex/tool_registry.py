@@ -244,6 +244,12 @@ class ToolRegistry:
         """Retrieve a tool function by name."""
         return self._tools.get(name)
 
+    def __getitem__(self, name: str) -> Callable:
+        """Functional access to tools. Raises KeyError if tool not found."""
+        if name not in self._tools:
+            raise KeyError(f"Tool '{name}' is not registered in the registry.")
+        return self._tools[name]
+
     @property
     def tool_names(self) -> list[str]:
         return list(self._tools.keys())

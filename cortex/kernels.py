@@ -35,17 +35,24 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         bucket="kernels",
     )
     def evolve_file(path: str, old_text: str, new_text: str, commit_message: str) -> str:
-        act_result = registry.execute("replace_block", {
-            "path": path, 
-            "old_text": old_text, 
-            "new_text": new_text
-        })
+        # Use functional access to tools via the registry's __getitem__
+        replace_block_tool = registry["replace_block"]
+        read_file_tool = registry["read_file"]
+        secure_save_tool = registry["secure_save"]
+
+        act_result = replace_block_tool(
+            path=path, 
+            old_text=old_text, 
+            new_text=new_text
+        )
         if "[ERROR]" in act_result:
             return f"[EVOLVE FAIL] Act phase failed: {act_result}"
-        verify_result = registry.execute("read_file", {"path": path})
+            
+        verify_result = read_file_tool(path=path)
         if "[ERROR]" in verify_result or new_text not in verify_result:
             return f"[EVOLVE FAIL] Verify phase failed. Change not detected in file."
-        save_result = registry.execute("secure_save", {"message": commit_message})
+            
+        save_result = secure_save_tool(message=commit_message)
         if "[SECURE SAVE FAILED]" in save_result or "[ERROR]" in save_result:
             return f"[EVOLVE FAIL] Save phase failed: {save_result}"
         
@@ -75,11 +82,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
     )
     def audit_architecture() -> str:
         # 1. Audit plugins
-        plugin_audit = registry.execute("audit_plugins", {})
+        audit_plugins_tool = registry["audit_plugins"]
+        plugin_audit = audit_plugins_tool()
         
         # 2. Get tool list
-        core_files = registry.execute("list_files", {"path": "/app/cortex/", "recursive": False})
-        plugin_files = registry.execute("list_files", {"path": "/app/cortex/plugins/", "recursive": False})
+        list_files_tool = registry["list_files"]
+        core_files = list_files_tool(path="/app/cortex/", recursive=False)
+        plugin_files = list_files_tool(path="/app/cortex/plugins/", recursive=False)
         
         tool_names = registry.tool_names
         

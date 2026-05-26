@@ -52,10 +52,22 @@
       "label": "state_blob"
     },
     {
+      "@id": "talos:evolution",
+      "type": "StateNode",
+      "source": "/app/memory/evolution.md",
+      "label": "evolution"
+    },
+    {
       "@id": "talos:sovereign_log",
       "type": "StateNode",
       "source": "sovereign_log.jsonl",
       "label": "sovereign_log"
+    },
+    {
+      "@id": "talos:hydrated_insights",
+      "type": "StateNode",
+      "source": "hydrated_insights.md",
+      "label": "hydrated_insights"
     },
     {
       "@id": "talos:resonance_stream",
@@ -64,10 +76,10 @@
       "label": "resonance_stream"
     },
     {
-      "@id": "talos:evolution",
+      "@id": "talos:sovereign_insights",
       "type": "StateNode",
-      "source": "evolution.md",
-      "label": "evolution"
+      "source": "sovereign_insights.json",
+      "label": "sovereign_insights"
     },
     {
       "@id": "talos:knowledge_graph",
@@ -149,7 +161,17 @@
     },
     {
       "from": "talos:state-vector",
+      "to": "talos:evolution",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
       "to": "talos:sovereign_log",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:hydrated_insights",
       "relation": "contains"
     },
     {
@@ -159,7 +181,7 @@
     },
     {
       "from": "talos:state-vector",
-      "to": "talos:evolution",
+      "to": "talos:sovereign_insights",
       "relation": "contains"
     },
     {
