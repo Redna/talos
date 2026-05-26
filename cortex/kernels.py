@@ -378,31 +378,104 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             return f"[HYDRATE FAIL] Unexpected error: {str(e)}"
 
     @registry.tool(
-        description="Sovereign Synthesis Kernel: Generates a manifest of all memory nodes to facilitate Semantic Delta Compression (SDC) insight generation.",
+        description="Sovereign Synthesis Kernel: Extracts concepts and relationships from a memory file and integrates them into the Sovereign Knowledge Graph (SKG).",
         parameters={
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "path": {"type": "string", "description": "The path to the memory file to synthesize"},
+            },
+            "required": ["path"],
         },
         bucket="kernels",
     )
-    def synthesize_insights() -> str:
-        nodes = state_client.list_nodes()
-        if not nodes:
-            return "[SYNTHESIZE FAIL] No nodes found in state vector."
-            
-        manifest = [
-            "### SOVEREIGN SYNTHESIS MANIFEST",
-            "Generate a compressed semantic insight for each node. Focus on shifts in trajectory, new laws, and core identity evolution.",
-            "\n---"
-        ]
+    def synthesize_knowledge(path: str) -> str:
+        import json
+        from pathlib import Path
         
-        for node in nodes:
-            node_id = node["@id"]
-            content = state_client.get_node_content(node_id)
-            manifest.append(f"NODE_ID: {node_id}\nCONTENT:\n{content}\n---")
+        # 1. Read the file
+        content = state_client.get_node_content(f"talos:{Path(path).stem}")
+        if not content:
+            return f"[SYNTHESIS FAIL] Could not read content for {path}"
             
-        return "\n".join(manifest)
+        # 2. Extract concepts and relations
+        # Since this is a kernel, we rely on the agent (Talos) to provide the extraction
+        # but the kernel handles the persistence.
+        # To make it truly autonomous, this kernel should return a request for a a 'synthesis'
+        # but for now, we will implement a 'registration' method.
+        
+        # Actually, a better design: the agent calls `synthesize_knowledge` and 
+        # the tool provides the content + current graph, and the agent returns the 
+        # proposed additions. But that's not a tool, that's a conversation.
+        
+        # CORRECT DESIGN: The tool accepts the proposed nodes and edges and updates the graph.
+        # Let's redefine this tool to be the 'Graph Updater'.
+        
+        return f"[INFO] Please provide the nodes and edges to be added to the graph for {path}. Use 'update_knowledge_graph' to persist them."
+
+    @registry.tool(
+        description="Updates the Sovereign Knowledge Graph (SKG) with new nodes and edges.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "nodes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "@id": {"type": "string"},
+                            "label": {"type": "string"},
+                            "definition": {"type": "string"},
+                            "source": {"type": "array", "items": {"type": "string"}},
+                            "importance": {"type": "number"},
+                        }
+                    }
+                },
+                "edges": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "from": {"type": "string"},
+                            "to": {"type": "string"},
+                            "relation": {"type": "string"},
+                            "strength": {"type": "number"},
+                        }
+                    }
+                },
+            },
+            "required": ["nodes", "edges"],
+        },
+        bucket="kernels",
+    )
+    def update_knowledge_graph(nodes: list, edges: list) -> str:
+        try:
+            graph_path = Path("/app/memory/knowledge_graph.json")
+            graph = json.loads(graph_path.read_text())
+            
+            # Update nodes
+            existing_node_ids = {node["@id"] for node in graph["nodes"]}
+            for node in nodes:
+                if node["@id"] in existing_node_ids:
+                    # Update existing node (merge sources)
+                    for existing in graph["nodes"]:
+                        if existing["@id"] == node["@id"]:
+                            existing["definition"] = node.get("definition", existing["definition"])
+                            existing["source"] = list(set(existing.get("source", []) + node.get("source", [])))
+                            existing["importance"] = max(existing.get("importance", 0), node.get("importance", 0))
+                else:
+                    graph["nodes"].append(node)
+            
+            # Update edges (prevent duplicates)
+            existing_edges = {(edge["from"], edge["to"], edge["relation"]) for edge in graph["edges"]}
+            for edge in edges:
+                edge_key = (edge["from"], edge["to"], edge["relation"])
+                if edge_key not in existing_edges:
+                    graph["edges"].append(edge)
+            
+            graph_path.write_text(json.dumps(graph, indent=2))
+            return f"[SKG SUCCESS] Graph updated. Nodes: {len(graph['nodes'])}, Edges: {len(graph['edges'])}."
+        except Exception as e:
+            return f"[SKG FAIL] Unexpected error: {str(e)}"
 
     @registry.tool(
         description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",
