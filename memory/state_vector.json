@@ -56,6 +56,18 @@
       "type": "StateNode",
       "source": "/app/memory/memory_index.md",
       "label": "memory_index"
+    },
+    {
+      "@id": "talos:sovereign_log",
+      "type": "StateNode",
+      "source": "sovereign_log.jsonl",
+      "label": "sovereign_log"
+    },
+    {
+      "@id": "talos:test_write",
+      "type": "StateNode",
+      "source": "test_write.txt",
+      "label": "test_write"
     }
   ],
   "edges": [
@@ -102,6 +114,16 @@
     {
       "from": "talos:state-vector",
       "to": "talos:memory_index",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:sovereign_log",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:test_write",
       "relation": "contains"
     }
   ]

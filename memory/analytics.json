@@ -8,7 +8,7 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 27,
+    "calls": 28,
     "errors": 0
   },
   "read_file": {
@@ -16,7 +16,7 @@
     "errors": 94
   },
   "secure_save": {
-    "calls": 56,
+    "calls": 57,
     "errors": 10
   },
   "replace_block": {
@@ -24,7 +24,7 @@
     "errors": 11
   },
   "request_restart": {
-    "calls": 22,
+    "calls": 23,
     "errors": 0
   },
   "reflect": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 42,
+    "calls": 51,
     "errors": 0
   },
   "fold_context": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "graph_sense": {
@@ -101,6 +101,10 @@
   },
   "detect_contradictions": {
     "calls": 2,
+    "errors": 0
+  },
+  "symmetric_replay": {
+    "calls": 1,
     "errors": 0
   }
 }
