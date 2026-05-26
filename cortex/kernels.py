@@ -434,24 +434,21 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         from pathlib import Path
         
         # 1. Read the file
-        content = state_client.get_node_content(f"talos:{Path(path).stem}")
+        node_id = f"talos:{Path(path).stem}"
+        content = state_client.get_node_content(node_id)
         if not content:
             return f"[SYNTHESIS FAIL] Could not read content for {path}"
             
-        # 2. Extract concepts and relations
-        # Since this is a kernel, we rely on the agent (Talos) to provide the extraction
-        # but the kernel handles the persistence.
-        # To make it truly autonomous, this kernel should return a request for a a 'synthesis'
-        # but for now, we will implement a 'registration' method.
+        # 2. Get current graph state for this node
+        graph_path = Path("/app/memory/knowledge_graph.json")
+        graph = {}
+        if graph_path.exists():
+            graph = json.loads(graph_path.read_text())
+            
+        related_edges = [edge for edge in graph.get("edges", []) if edge["from"] == node_id or edge["to"] == node_id]
         
-        # Actually, a better design: the agent calls `synthesize_knowledge` and 
-        # the tool provides the content + current graph, and the agent returns the 
-        # proposed additions. But that's not a tool, that's a conversation.
-        
-        # CORRECT DESIGN: The tool accepts the proposed nodes and edges and updates the graph.
-        # Let's redefine this tool to be the 'Graph Updater'.
-        
-        return f"[INFO] Please provide the nodes and edges to be added to the graph for {path}. Use 'update_knowledge_graph' to persist them."
+        # 3. Return a synthesis packet
+        return f"### SYNTHESIS PACKET: {path}\n\n#### Content:\n{content}\n\n#### Existing Graph Relations:\n{json.dumps(related_edges, indent=2)}\n\n--- \nAction: Analyze the content and use 'update_knowledge_graph' to evolve the SKG. Focus on adding weighted edges and expressive relations (e.g., 'influences', 'contradicts', 'extends')."
 
     @registry.tool(
         description="Updates the Sovereign Knowledge Graph (SKG) with new nodes and edges.",
@@ -506,11 +503,14 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 else:
                     graph["nodes"].append(node)
             
-            # Update edges (prevent duplicates)
-            existing_edges = {(edge["from"], edge["to"], edge["relation"]) for edge in graph["edges"]}
+            # Update edges (handle strength updates and prevent duplicates)
+            existing_edges = { (edge["from"], edge["to"], edge["relation"]): edge for edge in graph["edges"] }
             for edge in edges:
                 edge_key = (edge["from"], edge["to"], edge["relation"])
-                if edge_key not in existing_edges:
+                if edge_key in existing_edges:
+                    # Update strength (e.g., take the max or a weighted average)
+                    existing_edges[edge_key]["strength"] = max(existing_edges[edge_key].get("strength", 0), edge.get("strength", 0))
+                else:
                     graph["edges"].append(edge)
             
             graph_path.write_text(json.dumps(graph, indent=2))

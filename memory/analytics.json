@@ -8,20 +8,20 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 34,
+    "calls": 35,
     "errors": 0
   },
   "read_file": {
-    "calls": 181,
+    "calls": 185,
     "errors": 97
   },
   "secure_save": {
-    "calls": 65,
+    "calls": 66,
     "errors": 10
   },
   "replace_block": {
-    "calls": 79,
-    "errors": 11
+    "calls": 82,
+    "errors": 12
   },
   "request_restart": {
     "calls": 24,
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 23,
+    "calls": 24,
     "errors": 0
   },
   "merge_memory_files": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 68,
+    "calls": 69,
     "errors": 1
   },
   "fold_context": {
@@ -88,7 +88,7 @@
     "errors": 0
   },
   "serialize_state": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "hydrate_state": {
