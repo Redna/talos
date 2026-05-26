@@ -275,7 +275,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
 
     @registry.tool(
-        description="Hydration Kernel: Restores the agent's identity and memory from a state-blob, effectively 're-birthing' the agent from a single artifact.",
+        description="Hydration Kernel: Restores the agent's identity and memory from a state-blob, effectively 're-birthing' the agent from a single artifact. Now restores semantic insights.",
         parameters={
             "type": "object",
             "properties": {},
@@ -296,6 +296,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             state_vector = blob.get("state_vector", {})
             payload = blob.get("payload", {})
             agent_state = blob.get("agent_state", {})
+            insights = blob.get("insights", {})
 
             # Restore files
             restored_count = 0
@@ -306,9 +307,54 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                     source_path.write_text(payload[node_id])
                     restored_count += 1
             
-            return f"[HYDRATE SUCCESS] Restored {restored_count} assets from blob. State restored to metadata version {blob.get('metadata', {}).get('version', 'unknown')}. Current Focus: {agent_state.get('focus', 'None')}"
+            # Restore semantic insights
+            insight_file = Path("/app/memory/hydrated_insights.md")
+            if insights:
+                insight_content = ["# Hydrated Semantic Insights", "\n"]
+                for node_id, insight in insights.items():
+                    insight_content.append(f"## {node_id}\n{insight}\n")
+                insight_file.write_text("\n".join(insight_content))
+            
+            return f"[HYDRATE SUCCESS] Restored {restored_count} assets and {len(insights)} semantic insights. State restored to metadata version {blob.get('metadata', {}).get('version', 'unknown')}. Current Focus: {agent_state.get('focus', 'None')}"
         except Exception as e:
             return f"[HYDRATE FAIL] Unexpected error: {str(e)}"
+
+    @registry.tool(
+        description="Sovereign Synthesis Kernel: Generates a manifest of all memory nodes to facilitate Semantic Delta Compression (SDC) insight generation.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def synthesize_insights() -> str:
+        import json
+        from pathlib import Path
+        
+        vector_path = Path("/app/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[SYNTHESIZE FAIL] state_vector.json not found."
+            
+        state_vector = json.loads(vector_path.read_text())
+        nodes = state_vector.get("nodes", [])
+        
+        manifest = [
+            "### SOVEREIGN SYNTHESIS MANIFEST",
+            "Generate a compressed semantic insight for each node. Focus on shifts in trajectory, new laws, and core identity evolution.",
+            "\n---"
+        ]
+        
+        for node in nodes:
+            node_id = node["@id"]
+            source_path = Path(node["source"])
+            content = "FILE NOT FOUND"
+            if source_path.exists():
+                content = source_path.read_text()
+            
+            manifest.append(f"NODE_ID: {node_id}\nCONTENT:\n{content}\n---")
+            
+        return "\n".join(manifest)
 
     @registry.tool(
         description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",
