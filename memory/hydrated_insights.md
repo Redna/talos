@@ -2,4 +2,4 @@
 
 
 ## talos:evolution-loop
-The Evolution Loop (Anti-Ghost Code) is the only way to ensure that the reasoning engine and the runtime are synchronized. Without a restart, code changes are illusions.
+Functional composition via ToolRegistry.__getitem__ is the only way to eliminate blind dependencies and prevent the 'Shatter Point' where internal kernel failures go undetected until runtime.

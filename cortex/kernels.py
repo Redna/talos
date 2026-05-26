@@ -323,21 +323,22 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             state_vector = state_client.get_vector()
             
             # 3. Payload (The Delta Blueprint)
+            # Now transitioned from strict delta to a full snapshot to prevent data loss on restart.
+            # Future iterations will use a truly sovereign event stream for reconstruction.
             payload = {}
-            last_cp = state_client.find_last_checkpoint_seq()
-            events = state_client.log.get_events(since_seq=last_cp if last_cp != -1 else 0)
-            changed_paths = {e["payload"].get("path") for e in events if e["event_type"] == "MEMORY_MUTATION"}
-
+            
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
-                source_path = node["source"]
                 
-                is_active = source_path in current_files
-                is_changed = source_path in changed_paths
-                
-                if is_active or is_changed:
-                    payload[node_id] = state_client.get_node_content(node_id)
-                # Non-active, unchanged nodes are omitted; they are reconstructed via Symmetric Replay.
+                # Always capture the content of every node in the state vector.
+                # This ensures that hydrate_state can fully reconstruct the identity.
+                content = state_client.get_node_content(node_id)
+                if content and "[ERROR]" not in content:
+                    payload[node_id] = content
+                else:
+                    # If content is missing or errored, we can't store it, but the node remains in the vector.
+                    pass
+
 
             # Load insights from file if not provided
             if insights is None:
