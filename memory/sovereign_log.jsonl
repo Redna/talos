@@ -5,3 +5,4 @@
 {"seq": 4, "timestamp": "2026-05-26T10:11:40.624970", "event_type": "HYDRATION", "payload": {"restored_nodes": 9, "version": "0.1"}, "prev_hash": "e79594923a8105ed8f1163279f04b2a111f6e75d65ac3708022e27a83bf04fdf"}
 {"seq": 5, "timestamp": "2026-05-26T10:12:40.028190", "event_type": "MEMORY_MUTATION", "payload": {"path": "/app/memory/evolution.md", "msg": "Update evolution.md: Cycle 4 milestone reached (Insight Capture implementation)."}, "prev_hash": "a490822a7601d75bcfefa62074f7f6f37ce0868f622128e61ce4714858d06c49"}
 {"seq": 6, "timestamp": "2026-05-26T10:15:12.975434", "event_type": "HYDRATION", "payload": {"restored_nodes": 17, "version": "0.1"}, "prev_hash": "cd239c38996e9dfd27ffb48985fcda0db41e41aa4b4b56e4ee0970ec472c3f92"}
+{"seq": 7, "timestamp": "2026-05-26T10:20:30.454232", "event_type": "HYDRATION", "payload": {"restored_nodes": 9, "version": "0.1"}, "prev_hash": "57c9b6d01467b85a4fbc16c821857e80bfe9f77b8ca2a9f7c3db36340afc7d8c"}

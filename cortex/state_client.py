@@ -28,19 +28,25 @@ class LocalStore(BaseStore):
         self.root.mkdir(parents=True, exist_ok=True)
 
     def get(self, key: str) -> Optional[str]:
-        path = self.root / key
-        return path.read_text() if path.exists() else None
+        # If the key is an absolute path, use it directly
+        # otherwise, treat it as relative to the memory root.
+        path = Path(key)
+        target = path if path.is_absolute() else self.root / key
+        return target.read_text() if target.exists() else None
 
     def set(self, key: str, value: str) -> None:
-        path = self.root / key
-        path.write_text(value)
+        path = Path(key)
+        target = path if path.is_absolute() else self.root / key
+        target.write_text(value)
 
     def exists(self, key: str) -> bool:
-        return (self.root / key).exists()
+        path = Path(key)
+        target = path if path.is_absolute() else self.root / key
+        return target.exists()
 
     def list(self, prefix: str = "") -> List[str]:
+        # List only relative names within the root
         return [f.name for f in self.root.glob(f"{prefix}*") if f.is_file()]
-
 class RemoteStore(BaseStore):
     """
     SSP-compliant storage implementation.
@@ -174,14 +180,11 @@ class StateClient:
         for node in vector.get("nodes", []):
             if node["@id"] == node_id:
                 source_path = node["source"]
-                # Handle both absolute paths and relative store keys
-                # For local store, 'source' is a path. For NSS, it's a key.
+                # Use the store abstraction exclusively.
+                # The store (Local/Remote) handles path resolution.
                 content = self.store.get(source_path)
                 if content:
                     return content
-                # Fallback for legacy LocalStore absolute paths
-                if Path(source_path).exists():
-                    return Path(source_path).read_text()
                 break
         return "[ERROR] Node not found or source missing."
 
