@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 21,
+    "calls": 22,
     "errors": 1
   },
   "list_files": {
@@ -16,7 +16,7 @@
     "errors": 59
   },
   "secure_save": {
-    "calls": 36,
+    "calls": 37,
     "errors": 7
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 29,
+    "calls": 49,
     "errors": 0
   },
   "self_audit": {
@@ -68,7 +68,7 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "symmetrize_memory": {
