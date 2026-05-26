@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 30,
+    "calls": 31,
     "errors": 1
   },
   "list_files": {
@@ -12,15 +12,15 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 149,
+    "calls": 150,
     "errors": 94
   },
   "secure_save": {
-    "calls": 55,
+    "calls": 56,
     "errors": 10
   },
   "replace_block": {
-    "calls": 72,
+    "calls": 73,
     "errors": 11
   },
   "request_restart": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 28,
+    "calls": 29,
     "errors": 6
   },
   "audit_architecture": {
