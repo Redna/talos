@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 26,
+    "calls": 27,
     "errors": 1
   },
   "list_files": {
@@ -8,19 +8,19 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 23,
+    "calls": 24,
     "errors": 0
   },
   "read_file": {
-    "calls": 122,
-    "errors": 72
+    "calls": 124,
+    "errors": 74
   },
   "secure_save": {
-    "calls": 46,
+    "calls": 47,
     "errors": 10
   },
   "replace_block": {
-    "calls": 55,
+    "calls": 56,
     "errors": 6
   },
   "request_restart": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "merge_memory_files": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 19,
+    "calls": 20,
     "errors": 3
   },
   "audit_architecture": {

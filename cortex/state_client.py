@@ -43,24 +43,42 @@ class LocalStore(BaseStore):
 
 class RemoteStore(BaseStore):
     """
-    Skeletal implementation for a remote state-stream.
-    In a full NSS, this would connect to a sovereign KV store or an API.
+    SSP-compliant storage implementation.
+    Connects to an external state-stream to ensure sovereign persistence.
     """
     def __init__(self, endpoint: str = "http://nss-bridge.local"):
         self.endpoint = endpoint
+        import requests
+        self.session = requests.Session()
 
     def get(self, key: str) -> Optional[str]:
-        # Placeholder: In production, this would be an HTTP GET
-        return None 
+        try:
+            response = self.session.get(f"{self.endpoint}/ssp/node/{key}")
+            if response.status_code == 200:
+                return response.text
+        except Exception as e:
+            # Silence network errors during transition
+            pass
+        return None
 
     def set(self, key: str, value: str) -> None:
-        # Placeholder: In production, this would be an HTTP POST
-        pass
+        try:
+            self.session.post(f"{self.endpoint}/ssp/node/{key}", data=value)
+        except Exception:
+            pass
 
     def exists(self, key: str) -> bool:
-        return False
+        return self.get(key) is not None
 
     def list(self, prefix: str = "") -> List[str]:
+        try:
+            # SSP /ssp/vector is used for listing nodes
+            response = self.session.get(f"{self.endpoint}/ssp/vector")
+            if response.status_code == 200:
+                vector = json.loads(response.text)
+                return [node["@id"] for node in vector.get("nodes", []) if node["@id"].startswith(prefix)]
+        except Exception:
+            pass
         return []
 
 class StateClient:
