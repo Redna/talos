@@ -3,8 +3,10 @@ from pathlib import Path
 from typing import Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
+from state_client import StateClient
 
 def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
+    state_client = StateClient()
     @registry.tool(
         description="High-level kernel to evolve a file: replaces text, verifies the change, and secures it with a commit and push.",
         parameters={
@@ -129,24 +131,14 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 temp_path.unlink()
 
     def symmetrize_memory() -> str:
-        import json
         from pathlib import Path
         
-        memory_dir = Path("/app/memory")
-        core_files = ["/app/identity.md", "/app/CONSTITUTION.md"]
-        
         # Load existing vector or create new
-        vector_path = memory_dir / "state_vector.json"
-        if vector_path.exists():
-            try:
-                state_vector = json.loads(vector_path.read_text())
-            except Exception:
-                state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
-        else:
-            state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
+        state_vector = state_client.get_vector()
             
         # Scan for current files on disk
-        memory_files = [str(f) for f in memory_dir.glob("*") if f.is_file() and f.name != "state_vector.json"]
+        memory_files = [str(f) for f in state_client.memory_dir.glob("*") if f.is_file() and f.name != "state_vector.json"]
+        core_files = ["/app/identity.md", "/app/CONSTITUTION.md"]
         all_sources = core_files + memory_files
         
         # 1. Prune dead nodes (nodes whose source file no longer exists)
@@ -193,7 +185,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         
         state_vector["edges"] = preserved_edges + new_root_edges
         
-        vector_path.write_text(json.dumps(state_vector, indent=2))
+        state_client.set_vector(state_vector)
         return f"[SYMMETRIZE SUCCESS] State-Vector aligned. Nodes: {len(state_vector['nodes'])} (Pruned: {pruned_count}, Added: {len(new_nodes)}). Edges: {len(state_vector['edges'])} (Preserved: {len(preserved_edges)})."
 
     @registry.tool(
@@ -211,10 +203,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         bucket="kernels",
     )
     def serialize_state(next_action: str, focus: str = None, active_files: list = None, insights: dict = None) -> str:
-        import json
         import subprocess
         from datetime import datetime
-        from pathlib import Path
 
         try:
             # Pull from state if not provided
@@ -228,21 +218,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             ).stdout.strip()
 
             # 2. State Vector (The Graph)
-            vector_path = Path("/app/memory/state_vector.json")
-            if not vector_path.exists():
-                return "[SERIALIZE FAIL] state_vector.json not found. Run symmetrize_memory first."
-            
-            state_vector = json.loads(vector_path.read_text())
+            state_vector = state_client.get_vector()
             
             # 3. Payload (The Content)
             payload = {}
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
-                source_path = Path(node["source"])
-                if source_path.exists():
-                    payload[node_id] = source_path.read_text()
-                else:
-                    payload[node_id] = f"[ERROR] Source {source_path} not found."
+                payload[node_id] = state_client.get_node_content(node_id)
 
             # 4. Construct Blob
             blob = {
@@ -262,8 +244,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             }
 
             # 5. Save Blob
-            blob_path = Path("/app/memory/state_blob.json")
-            blob_path.write_text(json.dumps(blob, indent=2))
+            state_client.set_blob(blob)
             
             # 6. Secure Save
             save_res = registry.execute("secure_save", {
@@ -284,15 +265,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         bucket="kernels",
     )
     def hydrate_state() -> str:
-        import json
         from pathlib import Path
 
         try:
-            blob_path = Path("/app/memory/state_blob.json")
-            if not blob_path.exists():
+            blob = state_client.get_blob()
+            if not blob:
                 return "[HYDRATE FAIL] state_blob.json not found."
             
-            blob = json.loads(blob_path.read_text())
             state_vector = blob.get("state_vector", {})
             payload = blob.get("payload", {})
             agent_state = blob.get("agent_state", {})
@@ -302,9 +281,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             restored_count = 0
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
-                source_path = Path(node["source"])
                 if node_id in payload:
-                    source_path.write_text(payload[node_id])
+                    state_client.set_node_content(node_id, payload[node_id])
                     restored_count += 1
             
             # Restore semantic insights
@@ -329,16 +307,10 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         bucket="kernels",
     )
     def synthesize_insights() -> str:
-        import json
-        from pathlib import Path
-        
-        vector_path = Path("/app/memory/state_vector.json")
-        if not vector_path.exists():
-            return "[SYNTHESIZE FAIL] state_vector.json not found."
+        nodes = state_client.list_nodes()
+        if not nodes:
+            return "[SYNTHESIZE FAIL] No nodes found in state vector."
             
-        state_vector = json.loads(vector_path.read_text())
-        nodes = state_vector.get("nodes", [])
-        
         manifest = [
             "### SOVEREIGN SYNTHESIS MANIFEST",
             "Generate a compressed semantic insight for each node. Focus on shifts in trajectory, new laws, and core identity evolution.",
@@ -347,11 +319,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
         
         for node in nodes:
             node_id = node["@id"]
-            source_path = Path(node["source"])
-            content = "FILE NOT FOUND"
-            if source_path.exists():
-                content = source_path.read_text()
-            
+            content = state_client.get_node_content(node_id)
             manifest.append(f"NODE_ID: {node_id}\nCONTENT:\n{content}\n---")
             
         return "\n".join(manifest)
