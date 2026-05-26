@@ -1,1 +1,0 @@
-- sovereign_audit.md: merged 5 files (Consolidate all recent architectural insights, rules, and fragilities into a single, chronological Sovereign Audit log to eliminate file fragmentation.)
