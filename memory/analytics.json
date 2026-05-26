@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 22,
+    "calls": 23,
     "errors": 1
   },
   "list_files": {
@@ -8,27 +8,27 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "read_file": {
-    "calls": 99,
+    "calls": 100,
     "errors": 59
   },
   "secure_save": {
-    "calls": 39,
+    "calls": 40,
     "errors": 7
   },
   "replace_block": {
-    "calls": 38,
-    "errors": 4
+    "calls": 40,
+    "errors": 5
   },
   "request_restart": {
     "calls": 18,
     "errors": 0
   },
   "reflect": {
-    "calls": 52,
+    "calls": 53,
     "errors": 0
   },
   "self_audit": {
@@ -56,8 +56,8 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 17,
-    "errors": 2
+    "calls": 18,
+    "errors": 3
   },
   "audit_architecture": {
     "calls": 9,
@@ -88,7 +88,7 @@
     "errors": 0
   },
   "serialize_state": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "hydrate_state": {

@@ -427,3 +427,42 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
             return "\n".join(report)
         except Exception as e:
             return f"[CONTRADICT FAIL] Unexpected error: {str(e)}"
+
+    @registry.tool(
+        description="The Predictive Failure kernel: Simulates a given scenario against known architectural fragilities to predict systemic breaks and propose mitigations.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "scenario": {"type": "string", "description": "The potential change or growth scenario to simulate (e.g., 'Scaling to 1,000 memory files', 'Rapidly shifting primary objective')."},
+            },
+            "required": ["scenario"],
+        },
+        bucket="kernels",
+    )
+    def predict_failure(scenario: str) -> str:
+        from pathlib import Path
+        
+        # 1. Extract Risk Profile
+        audit_path = Path("/app/memory/sovereign_audit.md")
+        fragility_path = Path("/app/memory/fragilities.md")
+        
+        risk_data = []
+        if audit_path.exists():
+            risk_data.append(f"--- AUDIT ---\n{audit_path.read_text()}")
+        if fragility_path.exists():
+            risk_data.append(f"--- FRAGILITIES ---\n{fragility_path.read_text()}")
+            
+        risk_profile = "\n\n".join(risk_data)
+        
+        # 2. Simulation Synthesis
+        simulation_request = [
+            "### PREDICTIVE SIMULATION REQUEST",
+            f"Scenario: {scenario}",
+            "Current Risk Profile:",
+            risk_profile,
+            "\n#### Evaluation Goal:",
+            "Predict the exact point of failure (the 'Shatter Point') and the cascading effect on the SSV loop."
+        ]
+        
+        return "\n".join(simulation_request)
+
