@@ -16,7 +16,7 @@
     "errors": 59
   },
   "secure_save": {
-    "calls": 38,
+    "calls": 39,
     "errors": 7
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 50,
+    "calls": 52,
     "errors": 0
   },
   "self_audit": {
