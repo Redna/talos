@@ -76,6 +76,12 @@
       "label": "resonance_stream"
     },
     {
+      "@id": "talos:sdc_test",
+      "type": "StateNode",
+      "source": "sdc_test.md",
+      "label": "sdc_test"
+    },
+    {
       "@id": "talos:sovereign_insights",
       "type": "StateNode",
       "source": "sovereign_insights.json",
@@ -212,6 +218,11 @@
     {
       "from": "talos:state-vector",
       "to": "talos:remote_gap",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:sdc_test",
       "relation": "contains"
     }
   ]

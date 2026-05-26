@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 34,
+    "calls": 35,
     "errors": 1
   },
   "list_files": {
@@ -16,7 +16,7 @@
     "errors": 106
   },
   "secure_save": {
-    "calls": 69,
+    "calls": 70,
     "errors": 10
   },
   "replace_block": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 69,
+    "calls": 70,
     "errors": 1
   },
   "fold_context": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "evolve_file": {
