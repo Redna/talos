@@ -4,31 +4,31 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 43,
+    "calls": 46,
     "errors": 0
   },
   "set_focus": {
-    "calls": 17,
+    "calls": 20,
     "errors": 0
   },
   "read_file": {
-    "calls": 106,
-    "errors": 64
+    "calls": 118,
+    "errors": 68
   },
   "secure_save": {
-    "calls": 41,
-    "errors": 8
+    "calls": 42,
+    "errors": 9
   },
   "replace_block": {
-    "calls": 43,
+    "calls": 46,
     "errors": 6
   },
   "request_restart": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "reflect": {
-    "calls": 54,
+    "calls": 56,
     "errors": 0
   },
   "self_audit": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "merge_memory_files": {
@@ -52,23 +52,23 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 4,
+    "calls": 6,
     "errors": 0
   },
   "evolve_file": {
-    "calls": 18,
+    "calls": 19,
     "errors": 3
   },
   "audit_architecture": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "send_message": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "symmetrize_memory": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "graph_sense": {

@@ -169,35 +169,48 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 })
         
         state_vector["nodes"] = maintained_nodes + new_nodes
+        valid_node_ids = {node["@id"] for node in state_vector["nodes"]}
+        valid_node_ids.add("talos:state-vector")
+
+        # 3. Edge Preservation & Symmetrization
+        current_edges = state_vector.get("edges", [])
+        preserved_edges = [
+            edge for edge in current_edges 
+            if edge.get("from") in valid_node_ids and edge.get("to") in valid_node_ids
+        ]
         
-        # 3. Reconstruct edges (Sovereign root -> all nodes)
-        # We rebuild edges to ensure no legacy edges to pruned nodes remain
-        edges = []
+        root_id = "talos:state-vector"
+        existing_root_targets = {edge["to"] for edge in preserved_edges if edge["from"] == root_id}
+        
+        new_root_edges = []
         for node in state_vector["nodes"]:
-            edges.append({
-                "from": "talos:state-vector",
-                "to": node["@id"],
-                "relation": "contains"
-            })
-        state_vector["edges"] = edges
+            if node["@id"] not in existing_root_targets:
+                new_root_edges.append({
+                    "from": root_id,
+                    "to": node["@id"],
+                    "relation": "contains"
+                })
+        
+        state_vector["edges"] = preserved_edges + new_root_edges
         
         vector_path.write_text(json.dumps(state_vector, indent=2))
-        return f"[SYMMETRIZE SUCCESS] State-Vector aligned. Nodes: {len(state_vector['nodes'])} (Pruned: {pruned_count}, Added: {len(new_nodes)}). Edges: {len(state_vector['edges'])}."
+        return f"[SYMMETRIZE SUCCESS] State-Vector aligned. Nodes: {len(state_vector['nodes'])} (Pruned: {pruned_count}, Added: {len(new_nodes)}). Edges: {len(state_vector['edges'])} (Preserved: {len(preserved_edges)})."
 
     @registry.tool(
-        description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector).",
+        description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector). Now supports Semantic Delta Compression (SDC) via optional insights.",
         parameters={
             "type": "object",
             "properties": {
+                "next_action": {"type": "string", "description": "The immediate next step"},
                 "focus": {"type": "string", "description": "The current objective (defaults to current state)"},
                 "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active (defaults to current state)"},
-                "next_action": {"type": "string", "description": "The immediate next step"},
+                "insights": {"type": "object", "description": "A mapping of node IDs to compressed semantic insights for SDC."},
             },
             "required": ["next_action"],
         },
         bucket="kernels",
     )
-    def serialize_state(next_action: str, focus: str = None, active_files: list = None) -> str:
+    def serialize_state(next_action: str, focus: str = None, active_files: list = None, insights: dict = None) -> str:
         import json
         import subprocess
         from datetime import datetime
@@ -245,6 +258,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 },
                 "state_vector": state_vector,
                 "payload": payload,
+                "insights": insights or {},
             }
 
             # 5. Save Blob
@@ -256,7 +270,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient, state: Any):
                 "message": f"SSV Serialization: State-Blob created at {git_hash[:7]}"
             })
             
-            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. {save_res}"
+            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. Insights included: {len(insights if insights else [])}. {save_res}"
         except Exception as e:
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
 
