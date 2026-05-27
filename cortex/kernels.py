@@ -601,7 +601,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         focus_updates = 0
         
         def recover_initial_content(path: str):
-            \"\"\"Scan ledger for the first occurrence of a file write to seed virtual state.\"\"\"
+            """Scan ledger for the first occurrence of a file write to seed virtual state."""
             for e in events:
                 if e.get("event") in ["FILE_WRITE", "GENESIS_FILE_WRITE"] and e.get("data", {}).get("path") == path:
                     return e["data"]["content"]
