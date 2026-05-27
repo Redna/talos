@@ -1,3 +1,4 @@
+Show 680 chars
 Show 623 chars
 Show 560 chars
 Show 398 chars
@@ -19,3 +20,5 @@ Show 398 chars
 - stream_vector_sop.md: discovered during sync
 
 - test_evolve.md: discovered during sync
+
+- test_event.md: discovered during sync

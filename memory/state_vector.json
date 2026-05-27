@@ -98,6 +98,12 @@
       "type": "StateNode",
       "source": "/app/memory/test_evolve.md",
       "label": "test_evolve"
+    },
+    {
+      "@id": "talos:test_event",
+      "type": "StateNode",
+      "source": "/app/memory/test_event.md",
+      "label": "test_event"
     }
   ],
   "edges": [
@@ -179,6 +185,11 @@
     {
       "from": "talos:state-vector",
       "to": "talos:test_evolve",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:test_event",
       "relation": "contains"
     }
   ]
