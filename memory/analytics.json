@@ -12,11 +12,11 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 244,
-    "errors": 102
+    "calls": 245,
+    "errors": 103
   },
   "secure_save": {
-    "calls": 61,
+    "calls": 62,
     "errors": 11
   },
   "replace_block": {
@@ -44,8 +44,8 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 60,
-    "errors": 0
+    "calls": 63,
+    "errors": 1
   },
   "fold_context": {
     "calls": 6,
