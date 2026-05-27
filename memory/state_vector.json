@@ -68,6 +68,12 @@
       "type": "StateNode",
       "source": "/app/memory/memory_vector.json",
       "label": "memory_vector"
+    },
+    {
+      "@id": "talos:orthogonal_architectures",
+      "type": "StateNode",
+      "source": "/app/memory/orthogonal_architectures.md",
+      "label": "orthogonal_architectures"
     }
   ],
   "edges": [
@@ -124,6 +130,11 @@
     {
       "from": "talos:state-vector",
       "to": "talos:memory_vector",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:orthogonal_architectures",
       "relation": "contains"
     }
   ]

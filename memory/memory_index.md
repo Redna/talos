@@ -1,3 +1,4 @@
+Show 398 chars
 - financial_ledger.json: discovered during sync
 - state_blob.json: discovered during sync
 - .agent_state.json: discovered during sync
@@ -8,3 +9,5 @@
 
 - experiments.md: discovered during sync
 - memory_vector.json: discovered during sync
+
+- orthogonal_architectures.md: discovered during sync

@@ -1,10 +1,10 @@
 {
   "write_file": {
-    "calls": 33,
+    "calls": 35,
     "errors": 1
   },
   "list_files": {
-    "calls": 70,
+    "calls": 71,
     "errors": 1
   },
   "set_focus": {
@@ -12,11 +12,11 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 139,
+    "calls": 140,
     "errors": 67
   },
   "secure_save": {
-    "calls": 42,
+    "calls": 43,
     "errors": 8
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "self_audit": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "merge_memory_files": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "evolve_file": {
@@ -68,11 +68,11 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "omni_exec": {
@@ -88,7 +88,7 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "hydrate_state": {
@@ -100,7 +100,7 @@
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "manage_experiment": {
