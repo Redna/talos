@@ -40,3 +40,8 @@
 - **Hypothesis:** project_trajectory can successfully restore file state from the continuity_ledger.jsonl.
 - **Success Criteria:** Delete a file present in ledger, call project_trajectory, and verify file is restored with correct content.
 - **Log:**
+
+## Stream-Vector-Fidelity-Boost [2026-05-27 20:16:19]
+- **Hypothesis:** Integrating the full Stream-Vector event taxonomy into project_trajectory and adding state-file materialization (.agent_state.json) will increase the fidelity of state recovery.
+- **Success Criteria:** project_trajectory correctly restores not only files but also the agent focus and internal state, verifiable by reading .agent_state.json after a projection.
+- **Log:**

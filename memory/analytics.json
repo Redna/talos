@@ -4,7 +4,7 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 104,
+    "calls": 109,
     "errors": 1
   },
   "set_focus": {
@@ -12,16 +12,16 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 245,
-    "errors": 103
+    "calls": 254,
+    "errors": 107
   },
   "secure_save": {
-    "calls": 62,
+    "calls": 63,
     "errors": 11
   },
   "replace_block": {
-    "calls": 60,
-    "errors": 4
+    "calls": 64,
+    "errors": 7
   },
   "request_restart": {
     "calls": 21,
@@ -44,8 +44,8 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 63,
-    "errors": 1
+    "calls": 72,
+    "errors": 2
   },
   "fold_context": {
     "calls": 6,
@@ -56,8 +56,8 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 29,
-    "errors": 6
+    "calls": 31,
+    "errors": 7
   },
   "audit_architecture": {
     "calls": 18,
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 26,
+    "calls": 28,
     "errors": 2
   },
   "git_commit": {
@@ -104,7 +104,7 @@
     "errors": 0
   },
   "manage_experiment": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "review_state": {
@@ -112,11 +112,11 @@
     "errors": 0
   },
   "append_to_ledger": {
-    "calls": 12,
+    "calls": 14,
     "errors": 2
   },
   "project_trajectory": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   }
 }

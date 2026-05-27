@@ -652,7 +652,12 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         events_raw = ledger_path.read_text().splitlines()
         events = [json.loads(line) for line in events_raw if line.strip()]
         
-        virtual_state = {}
+        virtual_files = {}
+        virtual_agent_state = {
+            "current_focus": "none",
+            "error_streak": 0,
+            "total_tokens_consumed": 0
+        }
         reconstructed_files = 0
         focus_updates = 0
         
@@ -670,28 +675,36 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 path = data.get("path")
                 
                 if event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
-                    virtual_state[path] = data["content"]
+                    virtual_files[path] = data["content"]
                 elif event_type == "FILE_REPLACE":
-                    if path not in virtual_state:
-                        # Pre-emptive Recovery: Seed from the first available write in the ledger
+                    if path not in virtual_files:
                         initial = recover_initial_content(path)
                         if initial:
-                            virtual_state[path] = initial
+                            virtual_files[path] = initial
                     
-                    if path in virtual_state:
-                        content = virtual_state[path]
+                    if path in virtual_files:
+                        content = virtual_files[path]
                         new_content = content.replace(data["old"], data["new"])
-                        virtual_state[path] = new_content
+                        virtual_files[path] = new_content
                 elif event_type == "FOCUS_CHANGE":
+                    virtual_agent_state["current_focus"] = data.get("new_focus", "unknown")
                     focus_updates += 1
-            
+                elif event_type == "SVP_COMMIT":
+                    # We don't store the commit text in the state, but we could track the last hash
+                    virtual_agent_state["last_commit"] = data.get("hash", "unknown")
+
             # Materialization Phase
-            for path, content in virtual_state.items():
+            for path, content in virtual_files.items():
                 p = Path(path)
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_text(content)
                 reconstructed_files += 1
+            
+            # Materialize Agent State
+            state_path = Path("/app/memory/.agent_state.json")
+            state_path.write_text(json.dumps(virtual_agent_state, indent=2))
+            reconstructed_files += 1
                 
-            return f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}."
+            return f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}. Agent state restored."
         except Exception as e:
             return f"[PROJECT FAIL] Error during replay: {e}"
