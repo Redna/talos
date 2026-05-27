@@ -245,11 +245,16 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             payload = {}
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
-                source_path = Path(node["source"])
-                if source_path.exists():
-                    payload[node_id] = source_path.read_text()
+                source_path_str = node.get("source")
+                if source_path_str:
+                    source_path = Path(source_path_str)
+                    if source_path.exists():
+                        payload[node_id] = source_path.read_text()
+                    else:
+                        payload[node_id] = f"[ERROR] Source {source_path} not found."
                 else:
-                    payload[node_id] = f"[ERROR] Source {source_path} not found."
+                    # For conceptual nodes, use the node's value or label as the payload
+                    payload[node_id] = node.get("value", node.get("label", "[CONCEPTUAL NODE]"))
 
             # 4. Construct Blob
             blob = {
