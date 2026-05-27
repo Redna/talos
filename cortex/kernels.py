@@ -438,7 +438,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         })
         
         # Log the ritual to the ledger as a major state anchor
-        registry.execute("append_to_ledger", {
+        ledger_res = registry.execute("append_to_ledger", {
             "event_type": "RITUAL_SALIENCE",
             "data": {
                 "focus": focus,
@@ -447,7 +447,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             }
         })
         
-        return f"[RITUAL COMPLETE]\n{sync_res}\n{symm_res}\n{ser_res}"
+        return f"[RITUAL COMPLETE]\n{sync_res}\n{symm_res}\n{ser_res}\nLedger: {ledger_res}"
 
     @registry.tool(
         description="The Experiment Kernel: manages the lifecycle of hypotheses, iterations, and results. Use this to systematically evolve capabilities.",

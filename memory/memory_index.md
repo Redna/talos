@@ -1,3 +1,4 @@
+Show 623 chars
 Show 560 chars
 Show 398 chars
 - financial_ledger.json: discovered during sync
@@ -16,3 +17,5 @@ Show 398 chars
 - continuity_ledger.jsonl: discovered during sync
 
 - stream_vector_sop.md: discovered during sync
+
+- test_evolve.md: discovered during sync

@@ -1,10 +1,10 @@
 {
   "write_file": {
-    "calls": 41,
+    "calls": 42,
     "errors": 1
   },
   "list_files": {
-    "calls": 86,
+    "calls": 87,
     "errors": 1
   },
   "set_focus": {
@@ -12,15 +12,15 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 184,
-    "errors": 83
+    "calls": 193,
+    "errors": 85
   },
   "secure_save": {
-    "calls": 50,
+    "calls": 51,
     "errors": 9
   },
   "replace_block": {
-    "calls": 52,
+    "calls": 53,
     "errors": 4
   },
   "request_restart": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 31,
+    "calls": 32,
     "errors": 0
   },
   "fold_context": {
@@ -52,11 +52,11 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "evolve_file": {
-    "calls": 22,
+    "calls": 23,
     "errors": 5
   },
   "audit_architecture": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "omni_exec": {
@@ -100,7 +100,7 @@
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "manage_experiment": {

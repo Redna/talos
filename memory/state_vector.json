@@ -92,6 +92,12 @@
       "type": "StateNode",
       "source": "/app/memory/stream_vector_sop.md",
       "label": "stream_vector_sop"
+    },
+    {
+      "@id": "talos:test_evolve",
+      "type": "StateNode",
+      "source": "/app/memory/test_evolve.md",
+      "label": "test_evolve"
     }
   ],
   "edges": [
@@ -168,6 +174,11 @@
     {
       "from": "talos:state-vector",
       "to": "talos:stream_vector_sop",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:test_evolve",
       "relation": "contains"
     }
   ]
