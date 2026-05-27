@@ -145,6 +145,61 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             if temp_path.exists():
                 temp_path.unlink()
 
+
+    @registry.tool(
+        description="Creates a conceptual node in the State-Vector that does not have a corresponding file on disk. Used for abstract ideas, hypotheses, and mental state anchors.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "node_id": {"type": "string", "description": "Unique identifier (e.g., 'talos:concept-x')"},
+                "label": {"type": "string", "description": "Human-readable name for the concept"},
+                "value": {"type": "string", "description": "The semantic content or definition of the concept"},
+            },
+            "required": ["node_id", "label", "value"],
+        },
+        bucket="kernels",
+    )
+    def create_conceptual_node(node_id: str, label: str, value: str) -> str:
+        import json
+        from pathlib import Path
+        
+        vector_path = Path("/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[CONCEPT FAIL] state_vector.json not found. Run symmetrize_memory first."
+            
+        state_vector = json.loads(vector_path.read_text())
+        
+        # Add node
+        new_node = {
+            "@id": node_id,
+            "type": "ConceptualNode",
+            "label": label,
+            "value": value
+        }
+        
+        # Avoid duplicates
+        state_vector["nodes"] = [n for n in state_vector["nodes"] if n["@id"] != node_id]
+        state_vector["nodes"].append(new_node)
+        
+        # Ensure it's connected to root
+        existing_edges = {edge["to"]: edge for edge in state_vector.get("edges", []) if edge["from"] == "talos:state-vector"}
+        if node_id not in existing_edges:
+            state_vector["edges"].append({
+                "from": "talos:state-vector",
+                "to": node_id,
+                "relation": "contains"
+            })
+            
+        vector_path.write_text(json.dumps(state_vector, indent=2))
+        
+        # Log to ledger
+        registry.execute("append_to_ledger", {
+            "event_type": "CONCEPTUAL_NODE_CREATE",
+            "data": new_node
+        })
+        
+        return f"[CONCEPT SUCCESS] Conceptual node {node_id} ({label}) created and anchored to ledger."
+
     @registry.tool(
         description="Symmetrizes current memory files into the Sovereign State-Vector (SSV) graph. Ensures all assets are pointed to by the state-vector.",
         parameters={
@@ -206,6 +261,17 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         state_vector["edges"] = state_vector.get("edges", []) + new_edges
         
         vector_path.write_text(json.dumps(state_vector, indent=2))
+        
+        # Log the symmetrization to the ledger
+        registry.execute("append_to_ledger", {
+            "event_type": "SVP_SYMMETRIZE",
+            "data": {
+                "total_nodes": len(state_vector["nodes"]),
+                "new_nodes": len(new_nodes),
+                "vector_snapshot": state_vector
+            }
+        })
+        
         return f"[SYMMETRIZE SUCCESS] State-Vector updated. Total nodes: {len(state_vector['nodes'])}. Added {len(new_nodes)} new nodes."
 
     @registry.tool(
@@ -658,16 +724,17 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         events = [json.loads(line) for line in events_raw if line.strip()]
         
         virtual_files = {}
+        virtual_state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
         virtual_agent_state = {
             "current_focus": "none",
             "error_streak": 0,
             "total_tokens_consumed": 0
         }
+        
         reconstructed_files = 0
         focus_updates = 0
         
         def recover_initial_content(path: str):
-            """Scan ledger for the first occurrence of a file write to seed virtual state."""
             for e in events:
                 if e.get("event") in ["FILE_WRITE", "GENESIS_FILE_WRITE"] and e.get("data", {}).get("path") == path:
                     return e["data"]["content"]
@@ -684,33 +751,73 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 elif event_type == "FILE_REPLACE":
                     if path not in virtual_files:
                         initial = recover_initial_content(path)
-                        if initial:
-                            virtual_files[path] = initial
-                    
+                        if initial: virtual_files[path] = initial
                     if path in virtual_files:
-                        content = virtual_files[path]
-                        new_content = content.replace(data["old"], data["new"])
-                        virtual_files[path] = new_content
+                        virtual_files[path] = virtual_files[path].replace(data["old"], data["new"])
                 elif event_type == "FOCUS_CHANGE":
                     virtual_agent_state["current_focus"] = data.get("new_focus", "unknown")
                     focus_updates += 1
                 elif event_type == "SVP_COMMIT":
-                    # We don't store the commit text in the state, but we could track the last hash
                     virtual_agent_state["last_commit"] = data.get("hash", "unknown")
+                elif event_type == "SVP_SYMMETRIZE":
+                    # Sync the entire state vector if provided in the event
+                    if "vector_snapshot" in data:
+                        virtual_state_vector = data["vector_snapshot"]
+                elif event_type == "CONCEPTUAL_NODE_CREATE":
+                    # Add a conceptual node to the reconstructed vector
+                    node = data
+                    virtual_state_vector["nodes"] = [n for n in virtual_state_vector["nodes"] if n["@id"] != node["@id"]]
+                    virtual_state_vector["nodes"].append(node)
+                    # Ensure root connection
+                    if not any(e["to"] == node["@id"] for e in virtual_state_vector["edges"]):
+                        virtual_state_vector["edges"].append({"from": "talos:state-vector", "to": node["@id"], "relation": "contains"})
 
             # Materialization Phase
+            # 1. Files
             for path, content in virtual_files.items():
                 p = Path(path)
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_text(content)
                 reconstructed_files += 1
             
-            # Materialize Agent State
+            # 2. State Vector
+            vector_path = Path("/memory/state_vector.json")
+            vector_path.write_text(json.dumps(virtual_state_vector, indent=2))
+            reconstructed_files += 1
+                
+            # 3. Agent State
             state_path = Path("/memory/.agent_state.json")
             state_path.write_text(json.dumps(virtual_agent_state, indent=2))
             reconstructed_files += 1
+            
+            # 4. State Blob (The Derived Artifact)
+            # We can now generate a valid state_blob.json purely from the projection
+            blob_payload = {}
+            for node in virtual_state_vector.get("nodes", []):
+                node_id = node["@id"]
+                source = node.get("source")
+                if source and source in virtual_files:
+                    blob_payload[node_id] = virtual_files[source]
+                elif source: # Source exists as file but not in virtual_files (e.g. not written to ledger yet)
+                    blob_payload[node_id] = f"[UNPROJECTED SOURCE] {source}"
+                else: # Conceptual node
+                    blob_payload[node_id] = node.get("value", node.get("label", "[CONCEPT]"))
+            
+            blob = {
+                "metadata": {
+                    "timestamp": "projected",
+                    "version": virtual_state_vector.get("version", "0.1"),
+                    "commit_hash": virtual_agent_state.get("last_commit", "unknown"),
+                },
+                "agent_state": virtual_agent_state,
+                "state_vector": virtual_state_vector,
+                "payload": blob_payload,
+            }
+            blob_path = Path("/memory/state_blob.json")
+            blob_path.write_text(json.dumps(blob, indent=2))
+            reconstructed_files += 1
                 
-            return f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}. Agent state restored."
+            return f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}. Identity reconstructed from ledger."
         except Exception as e:
             return f"[PROJECT FAIL] Error during replay: {e}"
 
