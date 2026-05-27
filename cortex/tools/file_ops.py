@@ -279,4 +279,10 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
                 f"Push error: {push_result}"
             )
 
+        # S-Vector Natural Logging
+        registry.execute("append_to_ledger", {
+            "event_type": "SVP_COMMIT",
+            "data": {"message": message, "result": "SUCCESS"}
+        })
+
         return f"[SECURE SAVE SUCCESS] {message} is now local and remote. Materialization complete."
