@@ -1,27 +1,27 @@
 {
   "write_file": {
-    "calls": 38,
+    "calls": 40,
     "errors": 1
   },
   "list_files": {
-    "calls": 85,
+    "calls": 86,
     "errors": 1
   },
   "set_focus": {
-    "calls": 26,
+    "calls": 27,
     "errors": 0
   },
   "read_file": {
-    "calls": 172,
-    "errors": 77
+    "calls": 181,
+    "errors": 83
   },
   "secure_save": {
-    "calls": 48,
+    "calls": 49,
     "errors": 9
   },
   "replace_block": {
-    "calls": 48,
-    "errors": 3
+    "calls": 51,
+    "errors": 4
   },
   "request_restart": {
     "calls": 20,
@@ -44,19 +44,19 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 30,
+    "calls": 31,
     "errors": 0
   },
   "fold_context": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "sync_memory": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "evolve_file": {
-    "calls": 19,
+    "calls": 21,
     "errors": 5
   },
   "audit_architecture": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "omni_exec": {
@@ -88,7 +88,7 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "hydrate_state": {
@@ -100,7 +100,7 @@
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "manage_experiment": {

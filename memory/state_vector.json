@@ -86,6 +86,12 @@
       "type": "StateNode",
       "source": "/app/memory/continuity_ledger.jsonl",
       "label": "continuity_ledger"
+    },
+    {
+      "@id": "talos:stream_vector_sop",
+      "type": "StateNode",
+      "source": "/app/memory/stream_vector_sop.md",
+      "label": "stream_vector_sop"
     }
   ],
   "edges": [
@@ -157,6 +163,11 @@
     {
       "from": "talos:state-vector",
       "to": "talos:continuity_ledger",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:stream_vector_sop",
       "relation": "contains"
     }
   ]

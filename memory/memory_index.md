@@ -1,3 +1,4 @@
+Show 560 chars
 Show 398 chars
 - financial_ledger.json: discovered during sync
 - state_blob.json: discovered during sync
@@ -13,3 +14,5 @@ Show 398 chars
 - orthogonal_architectures.md: discovered during sync
 - ground_truth.md: discovered during sync
 - continuity_ledger.jsonl: discovered during sync
+
+- stream_vector_sop.md: discovered during sync
