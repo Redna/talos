@@ -62,6 +62,10 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         save_result = registry.execute("write_file", {"path": f"/memory/{index_file}", "content": final_index})
         if "[ERROR]" in save_result:
             return f"[SYNC FAIL] Failed to update index: {save_result}"
+        
+        # Test ledger call
+        registry.execute("append_to_ledger", {"event_type": "SYNC_TEST", "data": {"status": "ok"}})
+        
         return f"[SYNC SUCCESS] Fixed index. Added {len(missing)} missing files: {', '.join(missing)}."
 
     @registry.tool(
