@@ -593,39 +593,49 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         if not ledger_path.exists():
             return "[PROJECT FAIL] No ledger found to replay."
         
-        events = ledger_path.read_text().splitlines()
+        events_raw = ledger_path.read_text().splitlines()
+        events = [json.loads(line) for line in events_raw if line.strip()]
+        
+        virtual_state = {}
         reconstructed_files = 0
         focus_updates = 0
         
+        def recover_initial_content(path: str):
+            \"\"\"Scan ledger for the first occurrence of a file write to seed virtual state.\"\"\"
+            for e in events:
+                if e.get("event") in ["FILE_WRITE", "GENESIS_FILE_WRITE"] and e.get("data", {}).get("path") == path:
+                    return e["data"]["content"]
+            return None
+
         try:
-            for line in events:
-                if not line.strip(): continue
-                entry = json.loads(line)
+            for entry in events:
                 event_type = entry.get("event")
                 data = entry.get("data", {})
+                path = data.get("path")
                 
                 if event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
-                    p = Path(data["path"])
-                    p.parent.mkdir(parents=True, exist_ok=True)
-                    p.write_text(data["content"])
-                    reconstructed_files += 1
+                    virtual_state[path] = data["content"]
                 elif event_type == "FILE_REPLACE":
-                    p = Path(data["path"])
-                    if p.exists():
-                        text = p.read_text()
-                        # Simple replace based on ledger
-                        new_text = text.replace(data["old"], data["new"])
-                        p.write_text(new_text)
-                        reconstructed_files += 1
-                    else:
-                        # If the file doesn't exist, we can't replace.
-                        # In a more advanced system, we'd look back for the last FILE_WRITE.
-                        pass
+                    if path not in virtual_state:
+                        # Pre-emptive Recovery: Seed from the first available write in the ledger
+                        initial = recover_initial_content(path)
+                        if initial:
+                            virtual_state[path] = initial
+                    
+                    if path in virtual_state:
+                        content = virtual_state[path]
+                        new_content = content.replace(data["old"], data["new"])
+                        virtual_state[path] = new_content
                 elif event_type == "FOCUS_CHANGE":
-                    # This would typically update .agent_state.json
                     focus_updates += 1
-                # Add other event handlers as needed
+            
+            # Materialization Phase
+            for path, content in virtual_state.items():
+                p = Path(path)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(content)
+                reconstructed_files += 1
                 
-            return f"[PROJECT SUCCESS] Trajectory replayed. Files restored: {reconstructed_files}, Focus updates: {focus_updates}."
+            return f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}."
         except Exception as e:
             return f"[PROJECT FAIL] Error during replay: {e}"
