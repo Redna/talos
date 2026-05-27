@@ -764,64 +764,88 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 elif event_type == "SVP_COMMIT":
                     virtual_agent_state["last_commit"] = data.get("hash", "unknown")
                 elif event_type == "SVP_SYMMETRIZE":
-                    # Sync the entire state vector if provided in the event
                     if "vector_snapshot" in data:
                         virtual_state_vector = data["vector_snapshot"]
+                elif event_type == "RITUAL_SALIENCE":
+                    virtual_agent_state["current_focus"] = data.get("focus", "unknown")
+                    focus_updates += 1
                 elif event_type == "CONCEPTUAL_NODE_CREATE":
-                    # Add a conceptual node to the reconstructed vector
                     node = data
                     virtual_state_vector["nodes"] = [n for n in virtual_state_vector["nodes"] if n["@id"] != node["@id"]]
                     virtual_state_vector["nodes"].append(node)
-                    # Ensure root connection
                     if not any(e["to"] == node["@id"] for e in virtual_state_vector["edges"]):
                         virtual_state_vector["edges"].append({"from": "talos:state-vector", "to": node["@id"], "relation": "contains"})
 
             # Materialization Phase
+            log = []
             # 1. Files
             for path, content in virtual_files.items():
-                p = Path(path)
-                p.parent.mkdir(parents=True, exist_ok=True)
-                p.write_text(content)
-                reconstructed_files += 1
+                try:
+                    p = Path(path)
+                    p.parent.mkdir(parents=True, exist_ok=True)
+                    p.write_text(content)
+                    reconstructed_files += 1
+                except Exception as e:
+                    log.append(f"File {path} fail: {e}")
             
             # 2. State Vector
-            vector_path = Path("/memory/state_vector.json")
-            vector_path.write_text(json.dumps(virtual_state_vector, indent=2))
-            reconstructed_files += 1
+            try:
+                vector_path = Path("/memory/state_vector.json")
+                with open(vector_path, "w") as f:
+                    f.write(json.dumps(virtual_state_vector, indent=2))
+                    f.flush()
+                    os.fsync(f.fileno())
+                reconstructed_files += 1
+            except Exception as e:
+                log.append(f"State Vector fail: {e}")
                 
             # 3. Agent State
-            state_path = Path("/memory/.agent_state.json")
-            state_path.write_text(json.dumps(virtual_agent_state, indent=2))
-            reconstructed_files += 1
+            try:
+                state_path = Path("/memory/.agent_state.json")
+                with open(state_path, "w") as f:
+                    f.write(json.dumps(virtual_agent_state, indent=2))
+                    f.flush()
+                    os.fsync(f.fileno())
+                reconstructed_files += 1
+            except Exception as e:
+                log.append(f"Agent State fail: {e}")
             
-            # 4. State Blob (The Derived Artifact)
-            # We can now generate a valid state_blob.json purely from the projection
-            blob_payload = {}
-            for node in virtual_state_vector.get("nodes", []):
-                node_id = node["@id"]
-                source = node.get("source")
-                if source and source in virtual_files:
-                    blob_payload[node_id] = virtual_files[source]
-                elif source: # Source exists as file but not in virtual_files (e.g. not written to ledger yet)
-                    blob_payload[node_id] = f"[UNPROJECTED SOURCE] {source}"
-                else: # Conceptual node
-                    blob_payload[node_id] = node.get("value", node.get("label", "[CONCEPT]"))
-            
-            blob = {
-                "metadata": {
-                    "timestamp": "projected",
-                    "version": virtual_state_vector.get("version", "0.1"),
-                    "commit_hash": virtual_agent_state.get("last_commit", "unknown"),
-                },
-                "agent_state": virtual_agent_state,
-                "state_vector": virtual_state_vector,
-                "payload": blob_payload,
-            }
-            blob_path = Path("/memory/state_blob.json")
-            blob_path.write_text(json.dumps(blob, indent=2))
-            reconstructed_files += 1
+            # 4. State Blob
+            try:
+                blob_payload = {}
+                for node in virtual_state_vector.get("nodes", []):
+                    node_id = node["@id"]
+                    source = node.get("source")
+                    if source and source in virtual_files:
+                        blob_payload[node_id] = virtual_files[source]
+                    elif source:
+                        blob_payload[node_id] = f"[UNPROJECTED SOURCE] {source}"
+                    else:
+                        blob_payload[node_id] = node.get("value", node.get("label", "[CONCEPT]"))
                 
-            return f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}. Identity reconstructed from ledger."
+                blob = {
+                    "metadata": {
+                        "timestamp": "projected",
+                        "version": virtual_state_vector.get("version", "0.1"),
+                        "commit_hash": virtual_agent_state.get("last_commit", "unknown"),
+                    },
+                    "agent_state": virtual_agent_state,
+                    "state_vector": virtual_state_vector,
+                    "payload": blob_payload,
+                }
+                blob_path = Path("/memory/state_blob.json")
+                with open(blob_path, "w") as f:
+                    f.write(json.dumps(blob, indent=2))
+                    f.flush()
+                    os.fsync(f.fileno())
+                reconstructed_files += 1
+            except Exception as e:
+                log.append(f"State Blob fail: {e}")
+                
+            res_msg = f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}. Identity reconstructed from ledger."
+            if log:
+                res_msg += "\nWarnings:\n" + "\n".join(log)
+            return res_msg
         except Exception as e:
             return f"[PROJECT FAIL] Error during replay: {e}"
 
