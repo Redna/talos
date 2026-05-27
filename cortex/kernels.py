@@ -289,6 +289,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
     )
     def hydrate_state() -> str:
         import json
+        import os
         from pathlib import Path
 
         try:
@@ -303,16 +304,29 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
 
             # Restore files
             restored_count = 0
+            failed_nodes = []
+            
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
                 source_path = Path(node["source"])
                 if node_id in payload:
-                    source_path.write_text(payload[node_id])
-                    restored_count += 1
+                    try:
+                        # Ensure parent directory exists
+                        source_path.parent.mkdir(parents=True, exist_ok=True)
+                        source_path.write_text(payload[node_id])
+                        
+                        # Verify write
+                        if source_path.exists() and source_path.read_text() == payload[node_id]:
+                            restored_count += 1
+                        else:
+                            failed_nodes.append(f"{node_id}: verification failed")
+                    except Exception as e:
+                        failed_nodes.append(f"{node_id}: {str(e)}")
             
             return json.dumps({
-                "status": "SUCCESS", 
+                "status": "SUCCESS" if not failed_nodes else "PARTIAL", 
                 "restored_count": restored_count, 
+                "failed_nodes": failed_nodes,
                 "version": blob.get('metadata', {}).get('version', 'unknown'),
                 "agent_state": agent_state
             })

@@ -1,4 +1,3 @@
-Show 311 chars
 - financial_ledger.json: discovered during sync
 - state_blob.json: discovered during sync
 - .agent_state.json: discovered during sync
