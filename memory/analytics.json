@@ -12,15 +12,15 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 65,
-    "errors": 42
+    "calls": 66,
+    "errors": 43
   },
   "secure_save": {
-    "calls": 27,
-    "errors": 2
+    "calls": 28,
+    "errors": 3
   },
   "replace_block": {
-    "calls": 26,
+    "calls": 27,
     "errors": 1
   },
   "request_restart": {

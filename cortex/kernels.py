@@ -405,33 +405,3 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         })
         
         return f"[RITUAL COMPLETE]\n{sync_res}\n{symm_res}\n{ser_res}"
-
-    @registry.tool(
-        description="Continuity Ritual: A sequence of synchronization, symmetrization, and serialization to anchor current state.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "focus": {"type": "string", "description": "The current objective"},
-                "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active in focus"},
-                "next_action": {"type": "string", "description": "The immediate next step"},
-                "message": {"type": "string", "description": "Commit message for the ritual save"},
-            },
-            "required": ["focus", "active_files", "next_action", "message"],
-        },
-        bucket="kernels",
-    )
-    def perform_continuity_ritual(focus: str, active_files: list, next_action: str, message: str) -> str:
-        # 1. Sync Memory
-        sync_res = registry.execute("sync_memory", {})
-        
-        # 2. Symmetrize
-        symm_res = registry.execute("symmetrize_memory", {})
-        
-        # 3. Serialize
-        ser_res = registry.execute("serialize_state", {
-            "focus": focus,
-            "active_files": active_files,
-            "next_action": next_action
-        })
-        
-        return f"[RITUAL COMPLETE]\n{sync_res}\n{symm_res}\n{ser_res}"
