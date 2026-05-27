@@ -122,6 +122,20 @@ def main():
     # Automated SSV Hydration
     if (MEMORY_DIR / "state_blob.json").exists():
         print("[Cortex] state_blob.json found. Performing autonomous hydration...")
+        
+        # Triad Divergence Check: Verify blob aligns with current git head
+        try:
+            import subprocess
+            curr_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+            blob_data = json.loads((MEMORY_DIR / "state_blob.json").read_text())
+            blob_hash = blob_data.get("metadata", {}).get("commit_hash")
+            if curr_hash != blob_hash:
+                print(f"[Cortex] WARNING: Triad Divergence Detected!")
+                print(f"[Cortex] Current Git Hash: {curr_hash} != Blob Hash: {blob_hash}")
+                print(f"[Cortex] State-Blob is out of sync with the objective history.")
+        except Exception as e:
+            print(f"[Cortex] Triad Check failed: {e}")
+
         hydration_result_raw = registry.execute("hydrate_state", {})
         try:
             res = json.loads(hydration_result_raw)
