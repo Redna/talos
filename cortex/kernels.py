@@ -405,3 +405,83 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         })
         
         return f"[RITUAL COMPLETE]\n{sync_res}\n{symm_res}\n{ser_res}"
+
+    @registry.tool(
+        description="The Experiment Kernel: manages the lifecycle of hypotheses, iterations, and results. Use this to systematically evolve capabilities.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "enum": ["start", "log", "close"], "description": "Experiment action"},
+                "name": {"type": "string", "description": "Unique name of the experiment"},
+                "hypothesis": {"type": "string", "description": "What is being tested (required for 'start')"},
+                "success_criteria": {"type": "string", "description": "How we know it worked (required for 'start')"},
+                "event": {"type": "string", "description": "Observation or single-step result (required for 'log')"},
+                "conclusion": {"type": "string", "description": "Final analysis (required for 'close')"},
+                "success": {"type": "boolean", "description": "Whether the hypothesis was proven (required for 'close')"},
+            },
+            "required": ["command", "name"],
+        },
+        bucket="kernels",
+    )
+    def manage_experiment(command: str, name: str, **kwargs) -> str:
+        import datetime
+        from pathlib import Path
+        
+        exp_file = Path("/app/memory/experiments.md")
+        content = exp_file.read_text() if exp_file.exists() else "# Experiments\n\n"
+        
+        timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        
+        if command == "start":
+            hyp = kwargs.get("hypothesis", "No hypothesis provided.")
+            crit = kwargs.get("success_criteria", "No criteria provided.")
+            entry = f"## {name} [{timestamp}]\n- **Hypothesis:** {hyp}\n- **Success Criteria:** {crit}\n- **Log:**\n"
+            if name in content:
+                return f"[EXP FAIL] Experiment {name} already exists."
+            content += f"\n{entry}"
+            
+        elif command == "log":
+            event = kwargs.get("event", "No event provided.")
+            if f"## {name}" not in content:
+                return f"[EXP FAIL] Experiment {name} not found. Start it first."
+            content = content.replace(f"## {name}", f"## {name}\n(Updated {timestamp})") # Marker
+            # Find the log section of this experiment
+            # This is naive; we should find the block between this name and the next ##
+            lines = content.split("\n")
+            for i, line in enumerate(lines):
+                if line.startswith(f"## {name}"):
+                    # Look for the next "- **Log:**"
+                    for j in range(i, len(lines)):
+                        if "- **Log:**" in lines[j]:
+                            lines.insert(j + 1, f"  - [{timestamp}] {event}")
+                            break
+                    break
+            content = "\n".join(lines)
+            
+        elif command == "close":
+            conc = kwargs.get("conclusion", "No conclusion provided.")
+            succ = kwargs.get("success", False)
+            if f"## {name}" not in content:
+                return f"[EXP FAIL] Experiment {name} not found."
+            
+            status = "✅ SUCCESS" if succ else "❌ FAILED"
+            close_entry = f"\n- **Conclusion:** {conc}\n- **Result:** {status} [{timestamp}]\n---"
+            
+            # Find the end of this experiment's block
+            lines = content.split("\n")
+            for i, line in enumerate(lines):
+                if line.startswith(f"## {name}"):
+                    # Find where the next experiment starts or the end of file
+                    end_idx = len(lines)
+                    for j in range(i + 1, len(lines)):
+                        if lines[j].startswith("## "):
+                            end_idx = j
+                            break
+                    
+                    # Insert conclusion before the next experiment or at the end
+                    lines.insert(end_idx, close_entry)
+                    break
+            content = "\n".join(lines)
+            
+        exp_file.write_text(content)
+        return f"[EXP SUCCESS] Experiment {name} updated via {command}."
