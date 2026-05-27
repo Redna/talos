@@ -379,26 +379,47 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             payload = blob.get("payload", {})
             agent_state = blob.get("agent_state", {})
 
-            # Restore files
+            # 1. Restore state_vector.json first
+            vector_path = Path("/memory/state_vector.json")
+            vector_path.write_text(json.dumps(state_vector, indent=2))
+
+            # 2. Restore files
             restored_count = 0
             failed_nodes = []
             
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
-                source_path = Path(node["source"])
-                if node_id in payload:
-                    try:
-                        # Ensure parent directory exists
-                        source_path.parent.mkdir(parents=True, exist_ok=True)
-                        source_path.write_text(payload[node_id])
-                        
-                        # Verify write
-                        if source_path.exists() and source_path.read_text() == payload[node_id]:
-                            restored_count += 1
-                        else:
-                            failed_nodes.append(f"{node_id}: verification failed")
-                    except Exception as e:
-                        failed_nodes.append(f"{node_id}: {str(e)}")
+                source_path_str = node.get("source")
+                
+                # Only attempt restoration for nodes that have a source path (StateNodes)
+                if source_path_str:
+                    source_path = Path(source_path_str)
+                    if node_id in payload:
+                        try:
+                            source_path.parent.mkdir(parents=True, exist_ok=True)
+                            source_path.write_text(payload[node_id])
+                            
+                            if source_path.exists() and source_path.read_text() == payload[node_id]:
+                                restored_count += 1
+                            else:
+                                failed_nodes.append(f"{node_id}: verification failed")
+                        except Exception as e:
+                            failed_nodes.append(f"{node_id}: {str(e)}")
+                    else:
+                        failed_nodes.append(f"{node_id}: missing from payload")
+            
+            # 3. Restore Agent State
+            if agent_state:
+                focus = agent_state.get("focus")
+                if focus:
+                    registry.execute("set_focus", {"objective": focus})
+                
+                # Materialize active_files and next_action into a state file for reference
+                try:
+                    state_path = Path("/memory/.hydration_state.json")
+                    state_path.write_text(json.dumps(agent_state, indent=2))
+                except Exception as e:
+                    failed_nodes.append(f"agent_state: {str(e)}")
             
             return json.dumps({
                 "status": "SUCCESS" if not failed_nodes else "PARTIAL", 
