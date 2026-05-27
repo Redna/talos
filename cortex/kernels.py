@@ -512,31 +512,3 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         review_file.write_text(content + entry)
         
         return f"[REVIEW SUCCESS] Gap analysis recorded in {review_file}. Analysis: {analysis[:100]}..."
-
-
-    @registry.tool(
-        description="Systematic state review: audits capabilities, compares against benchmarks, and logs a gap analysis to reviews.md.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "analysis": {"type": "string", "description": "The synthesized gap analysis and proposed tasks"},
-            },
-            "required": ["analysis"],
-        },
-        bucket="kernels",
-    )
-    def review_state(analysis: str) -> str:
-        from datetime import datetime
-        from pathlib import Path
-        
-        review_file = Path("/app/memory/reviews.md")
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Count existing reviews by counting '## Review'
-        content = review_file.read_text() if review_file.exists() else "# Review Log\n"
-        review_count = content.count("## Review")
-        
-        entry = f"\n## Review {review_count} [{timestamp}]\n{analysis}\n---\n"
-        review_file.write_text(content + entry)
-        
-        return f"[REVIEW SUCCESS] Gap analysis recorded in {review_file}. Analysis: {analysis[:100]}..."

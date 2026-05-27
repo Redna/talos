@@ -4,27 +4,27 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 46,
+    "calls": 49,
     "errors": 0
   },
   "set_focus": {
-    "calls": 17,
+    "calls": 18,
     "errors": 0
   },
   "read_file": {
-    "calls": 81,
-    "errors": 49
+    "calls": 92,
+    "errors": 53
   },
   "secure_save": {
-    "calls": 32,
-    "errors": 3
+    "calls": 33,
+    "errors": 4
   },
   "replace_block": {
-    "calls": 33,
-    "errors": 1
+    "calls": 35,
+    "errors": 2
   },
   "request_restart": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "reflect": {
@@ -56,15 +56,15 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 10,
-    "errors": 1
+    "calls": 12,
+    "errors": 2
   },
   "audit_architecture": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "send_message": {
@@ -92,11 +92,11 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "graph_sense": {
-    "calls": 3,
+    "calls": 4,
     "errors": 0
   },
   "perform_continuity_ritual": {
@@ -104,7 +104,11 @@
     "errors": 0
   },
   "manage_experiment": {
-    "calls": 3,
+    "calls": 4,
+    "errors": 0
+  },
+  "review_state": {
+    "calls": 1,
     "errors": 0
   }
 }
