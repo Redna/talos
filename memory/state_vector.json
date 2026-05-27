@@ -56,6 +56,18 @@
       "type": "StateNode",
       "source": "/app/memory/memory_index.md",
       "label": "memory_index"
+    },
+    {
+      "@id": "talos:experiments",
+      "type": "StateNode",
+      "source": "/app/memory/experiments.md",
+      "label": "experiments"
+    },
+    {
+      "@id": "talos:memory_vector",
+      "type": "StateNode",
+      "source": "/app/memory/memory_vector.json",
+      "label": "memory_vector"
     }
   ],
   "edges": [
@@ -102,6 +114,16 @@
     {
       "from": "talos:state-vector",
       "to": "talos:memory_index",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:experiments",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:memory_vector",
       "relation": "contains"
     }
   ]

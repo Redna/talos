@@ -1,3 +1,4 @@
+Show 311 chars
 - financial_ledger.json: discovered during sync
 - state_blob.json: discovered during sync
 - .agent_state.json: discovered during sync
@@ -5,3 +6,6 @@
 - state_vector.json: discovered during sync
 - ssv_hypothesis.md: discovered during sync
 - analytics.json: discovered during sync
+
+- experiments.md: discovered during sync
+- memory_vector.json: discovered during sync
