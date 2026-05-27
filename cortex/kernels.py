@@ -575,6 +575,62 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[LEDGER FAIL] Error writing to ledger: {e}"
 
+    @registry.tool(
+        description="Semantic and structural search over the action ledger. Allows querying history without a full projection.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "event_type": {"type": "string", "description": "Filter by event type (e.g., 'FILE_WRITE', 'SECURE_SAVE')"},
+                "query": {"type": "string", "description": "Keyword search within the event data payload"},
+                "limit": {"type": "integer", "description": "Maximum number of results to return (default 100)"},
+            },
+        },
+        bucket="kernels",
+    )
+    def ledger_query(event_type: str = None, query: str = None, limit: int = 100) -> str:
+        import json
+        from pathlib import Path
+        
+        ledger_path = Path("/app/memory/continuity_ledger.jsonl")
+        if not ledger_path.exists():
+            return "[LEDGER QUERY FAIL] No ledger found."
+        
+        matches = []
+        try:
+            with open(ledger_path, "r") as f:
+                for line in f:
+                    if not line.strip(): continue
+                    entry = json.loads(line)
+                    
+                    # Structural filter
+                    if event_type and entry.get("event") != event_type:
+                        continue
+                    
+                    # Semantic filter
+                    if query:
+                        data_str = json.dumps(entry.get("data", {})).lower()
+                        if query.lower() not in data_str:
+                            continue
+                    
+                    matches.append(entry)
+                    if len(matches) >= limit:
+                        break
+            
+            if not matches:
+                return f"[LEDGER QUERY EMPTY] No events matching criteria: type={event_type}, query={query}"
+            
+            # Format output
+            report = [f"### LEDGER QUERY RESULTS ({len(matches)} found)"]
+            for m in matches:
+                ts = m.get("timestamp", "unknown")
+                evt = m.get("event", "unknown")
+                data = m.get("data", {})
+                report.append(f"[{ts}] {evt} -> {data}")
+            
+            return "\n".join(report)
+        except Exception as e:
+            return f"[LEDGER QUERY FAIL] Error: {e}"
+
 
     @registry.tool(
         description="Project the current state by replaying the action ledger from genesis. Reconstructs memory and state.",
