@@ -49,7 +49,7 @@ class ToolRegistry:
         self.plugins_dir = Path("/app/cortex/plugins")
 
         # Analytics
-        self._stats_path = Path("/app/memory") / "analytics.json"
+        self._stats_path = Path("/memory") / "analytics.json"
         self._stats = self._load_stats()
 
     def _load_stats(self) -> dict:

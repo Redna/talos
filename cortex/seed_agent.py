@@ -14,7 +14,7 @@ from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
 from kernels import register_kernels
 
-MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/app/memory"))
+MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
 SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 

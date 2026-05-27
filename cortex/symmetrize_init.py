@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-memory_dir = Path("/app/memory")
+memory_dir = Path("/memory")
 core_files = ["/app/identity.md", "/app/CONSTITUTION.md"]
 memory_files = [str(f) for f in memory_dir.glob("*") if f.is_file() and f.name != "state_vector.json"]
 all_sources = core_files + memory_files

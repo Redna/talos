@@ -1,2 +1,0 @@
-# Test file
-Hello Talos.

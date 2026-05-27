@@ -47,19 +47,19 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         bucket="kernels",
     )
     def sync_memory() -> str:
-        files_result = registry.execute("list_files", {"path": "/app/memory/", "recursive": False})
+        files_result = registry.execute("list_files", {"path": "/memory/", "recursive": False})
         if "[ERROR]" in files_result or files_result == "[EMPTY]":
             return f"[SYNC FAIL] Could not list memory files: {files_result}"
         all_files = set(files_result.split("\n"))
         index_file = "memory_index.md"
-        index_result = registry.execute("read_file", {"path": f"/app/memory/{index_file}"})
+        index_result = registry.execute("read_file", {"path": f"/memory/{index_file}"})
         index_content = "" if "[ERROR]" in index_result else index_result
         missing = [f for f in all_files if f != index_file and f not in index_content]
         if not missing:
             return "[SYNC SUCCESS] All memory files are correctly indexed."
         fix_note = "\n".join([f"- {f}: discovered during sync" for f in missing]) + "\n"
         final_index = index_content + "\n" + fix_note if index_content else fix_note
-        save_result = registry.execute("write_file", {"path": f"/app/memory/{index_file}", "content": final_index})
+        save_result = registry.execute("write_file", {"path": f"/memory/{index_file}", "content": final_index})
         if "[ERROR]" in save_result:
             return f"[SYNC FAIL] Failed to update index: {save_result}"
         return f"[SYNC SUCCESS] Fixed index. Added {len(missing)} missing files: {', '.join(missing)}."
@@ -158,7 +158,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         import json
         from pathlib import Path
         
-        memory_dir = Path("/app/memory")
+        memory_dir = Path("/memory")
         core_files = ["/app/identity.md", "/app/CONSTITUTION.md"]
         
         # Load existing vector or create new
@@ -235,7 +235,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             ).stdout.strip()
 
             # 2. State Vector (The Graph)
-            vector_path = Path("/app/memory/state_vector.json")
+            vector_path = Path("/memory/state_vector.json")
             if not vector_path.exists():
                 return "[SERIALIZE FAIL] state_vector.json not found. Run symmetrize_memory first."
             
@@ -268,7 +268,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             }
 
             # 5. Save Blob
-            blob_path = Path("/app/memory/state_blob.json")
+            blob_path = Path("/memory/state_blob.json")
             blob_path.write_text(json.dumps(blob, indent=2))
             
             # 6. Secure Save
@@ -295,7 +295,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         from pathlib import Path
 
         try:
-            blob_path = Path("/app/memory/state_blob.json")
+            blob_path = Path("/memory/state_blob.json")
             if not blob_path.exists():
                 return json.dumps({"status": "FAIL", "error": "state_blob.json not found."})
             
@@ -354,7 +354,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         if scope == "all" or scope == "code":
             paths.append("/app/cortex")
         if scope == "all" or scope == "memory":
-            paths.append("/app/memory")
+            paths.append("/memory")
             
         if not paths:
             return "[GRAPH FAIL] Invalid scope."
@@ -458,7 +458,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         import datetime
         from pathlib import Path
         
-        exp_file = Path("/app/memory/experiments.md")
+        exp_file = Path("/memory/experiments.md")
         content = exp_file.read_text() if exp_file.exists() else "# Experiments\n\n"
         
         timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -532,7 +532,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         from datetime import datetime
         from pathlib import Path
         
-        review_file = Path("/app/memory/reviews.md")
+        review_file = Path("/memory/reviews.md")
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         
         # Count existing reviews by counting '## Review'
@@ -561,7 +561,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         from datetime import datetime
         from pathlib import Path
         
-        ledger_path = Path("/app/memory/continuity_ledger.jsonl")
+        ledger_path = Path("/memory/continuity_ledger.jsonl")
         entry = {
             "timestamp": datetime.utcnow().isoformat(),
             "event": event_type,
@@ -591,7 +591,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         import json
         from pathlib import Path
         
-        ledger_path = Path("/app/memory/continuity_ledger.jsonl")
+        ledger_path = Path("/memory/continuity_ledger.jsonl")
         if not ledger_path.exists():
             return "[LEDGER QUERY FAIL] No ledger found."
         
@@ -645,7 +645,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         import json
         from pathlib import Path
         
-        ledger_path = Path("/app/memory/continuity_ledger.jsonl")
+        ledger_path = Path("/memory/continuity_ledger.jsonl")
         if not ledger_path.exists():
             return "[PROJECT FAIL] No ledger found to replay."
         
@@ -701,7 +701,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 reconstructed_files += 1
             
             # Materialize Agent State
-            state_path = Path("/app/memory/.agent_state.json")
+            state_path = Path("/memory/.agent_state.json")
             state_path.write_text(json.dumps(virtual_agent_state, indent=2))
             reconstructed_files += 1
                 

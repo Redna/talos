@@ -1,30 +1,30 @@
 {
   "write_file": {
-    "calls": 44,
+    "calls": 45,
     "errors": 1
   },
   "list_files": {
-    "calls": 109,
+    "calls": 121,
     "errors": 1
   },
   "set_focus": {
-    "calls": 31,
+    "calls": 34,
     "errors": 0
   },
   "read_file": {
-    "calls": 254,
-    "errors": 107
+    "calls": 272,
+    "errors": 113
   },
   "secure_save": {
-    "calls": 63,
+    "calls": 64,
     "errors": 11
   },
   "replace_block": {
-    "calls": 64,
+    "calls": 65,
     "errors": 7
   },
   "request_restart": {
-    "calls": 21,
+    "calls": 23,
     "errors": 0
   },
   "reflect": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "merge_memory_files": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 72,
+    "calls": 76,
     "errors": 2
   },
   "fold_context": {
@@ -52,11 +52,11 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "evolve_file": {
-    "calls": 31,
+    "calls": 32,
     "errors": 7
   },
   "audit_architecture": {
@@ -72,11 +72,11 @@
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "omni_exec": {
-    "calls": 28,
+    "calls": 30,
     "errors": 2
   },
   "git_commit": {
@@ -92,19 +92,19 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 21,
+    "calls": 23,
     "errors": 0
   },
   "graph_sense": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "manage_experiment": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "review_state": {
@@ -112,11 +112,15 @@
     "errors": 0
   },
   "append_to_ledger": {
-    "calls": 14,
+    "calls": 23,
     "errors": 2
   },
   "project_trajectory": {
-    "calls": 5,
+    "calls": 8,
+    "errors": 0
+  },
+  "ledger_query": {
+    "calls": 3,
     "errors": 0
   }
 }
