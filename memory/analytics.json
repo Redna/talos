@@ -4,19 +4,19 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 67,
+    "calls": 70,
     "errors": 1
   },
   "set_focus": {
-    "calls": 21,
+    "calls": 22,
     "errors": 0
   },
   "read_file": {
-    "calls": 133,
-    "errors": 65
+    "calls": 139,
+    "errors": 67
   },
   "secure_save": {
-    "calls": 41,
+    "calls": 42,
     "errors": 8
   },
   "replace_block": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 23,
+    "calls": 26,
     "errors": 0
   },
   "fold_context": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "evolve_file": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "omni_exec": {
@@ -88,11 +88,11 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "graph_sense": {
@@ -100,11 +100,11 @@
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "manage_experiment": {
-    "calls": 6,
+    "calls": 8,
     "errors": 0
   },
   "review_state": {
