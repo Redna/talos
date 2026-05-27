@@ -4,27 +4,27 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 64,
-    "errors": 0
+    "calls": 66,
+    "errors": 1
   },
   "set_focus": {
     "calls": 21,
     "errors": 0
   },
   "read_file": {
-    "calls": 126,
-    "errors": 64
+    "calls": 131,
+    "errors": 65
   },
   "secure_save": {
-    "calls": 39,
+    "calls": 40,
     "errors": 7
   },
   "replace_block": {
-    "calls": 44,
+    "calls": 45,
     "errors": 3
   },
   "request_restart": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "reflect": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 19,
+    "calls": 20,
     "errors": 0
   },
   "fold_context": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 17,
+    "calls": 18,
     "errors": 4
   },
   "audit_architecture": {
@@ -88,11 +88,11 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "graph_sense": {
