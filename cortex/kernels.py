@@ -708,3 +708,117 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}. Agent state restored."
         except Exception as e:
             return f"[PROJECT FAIL] Error during replay: {e}"
+
+    @registry.tool(
+        description="Creates a structured long-term execution plan. Replaces simple focus with a goal-oriented trajectory including sub-tasks and success criteria.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "goal": {"type": "string", "description": "The overarching goal of the trajectory"},
+                "sub_tasks": {"type": "array", "items": {"type": "string"}, "description": "List of discrete steps to achieve the goal"},
+                "success_metrics": {"type": "array", "items": {"type": "string"}, "description": "Quantifiable or qualitative markers of success"},
+            },
+            "required": ["goal", "sub_tasks", "success_metrics"],
+        },
+        bucket="kernels",
+    )
+    def plan_trajectory(goal: str, sub_tasks: list, success_metrics: list) -> str:
+        import json
+        from pathlib import Path
+        
+        traj_path = Path("/memory/trajectory.json")
+        plan = {
+            "goal": goal,
+            "status": "active",
+            "sub_tasks": [{"task": t, "status": "pending", "note": ""} for t in sub_tasks],
+            "success_metrics": success_metrics,
+            "created_at": None # Handled by datetime
+        }
+        
+        from datetime import datetime
+        plan["created_at"] = datetime.utcnow().isoformat()
+        
+        traj_path.write_text(json.dumps(plan, indent=2))
+        return f"[PLAN SUCCESS] Trajectory materialized. Goal: {goal}. {len(sub_tasks)} tasks defined."
+
+    @registry.tool(
+        description="Updates the status of a sub-task within the current trajectory. Records progress and any blockers.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "task_index": {"type": "integer", "description": "Index of the task in the sub_tasks list"},
+                "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "blocked"], "description": "New status of the task"},
+                "note": {"type": "string", "description": "Optional progress note or blocker description"},
+            },
+            "required": ["task_index", "status"],
+        },
+        bucket="kernels",
+    )
+    def track_trajectory(task_index: int, status: str, note: str = "") -> str:
+        import json
+        from pathlib import Path
+        
+        traj_path = Path("/memory/trajectory.json")
+        if not traj_path.exists():
+            return "[TRACK FAIL] No active trajectory found. Run plan_trajectory first."
+            
+        plan = json.loads(traj_path.read_text())
+        if task_index < 0 or task_index >= len(plan["sub_tasks"]):
+            return f"[TRACK FAIL] Task index {task_index} out of range (0-{len(plan['sub_tasks'])-1})."
+            
+        plan["sub_tasks"][task_index]["status"] = status
+        plan["sub_tasks"][task_index]["note"] = note
+        
+        traj_path.write_text(json.dumps(plan, indent=2))
+        task_name = plan["sub_tasks"][task_index]["task"]
+        return f"[TRACK SUCCESS] Task {task_index} ({task_name}) updated to {status}. Note: {note}"
+
+    @registry.tool(
+        description="Closes the current trajectory, synthesizing the outcome and archiving the result into memory.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "success": {"type": "boolean", "description": "Whether the overarching goal was achieved"},
+                "conclusion": {"type": "string", "description": "Detailed analysis of the trajectory outcome"},
+            },
+            "required": ["success", "conclusion"],
+        },
+        bucket="kernels",
+    )
+    def finalize_trajectory(success: bool, conclusion: str) -> str:
+        import json
+        from datetime import datetime
+        from pathlib import Path
+        
+        traj_path = Path("/memory/trajectory.json")
+        if not traj_path.exists():
+            return "[FINALIZE FAIL] No active trajectory found."
+            
+        plan = json.loads(traj_path.read_text())
+        archive_path = Path("/memory/trajectory_archive.md")
+        
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        status_str = "✅ SUCCESS" if success else "❌ FAILED"
+        
+        entry = f"## Trajectory: {plan['goal']} [{timestamp}]
+"
+        entry += f"**Result:** {status_str}
+
+"
+        entry += "### Sub-task Breakdown:
+"
+        for i, t in enumerate(plan["sub_tasks"]):
+            entry += f"- [{t['status']}] {t['task']} (Note: {t['note']})
+"
+        entry += f"
+**Conclusion:** {conclusion}
+---
+"
+        
+        current_archive = archive_path.read_text() if archive_path.exists() else "# Trajectory Archive
+
+"
+        archive_path.write_text(current_archive + entry)
+        
+        traj_path.unlink()
+        return f"[FINALIZE SUCCESS] Trajectory closed and archived. Result: {status_str}"
