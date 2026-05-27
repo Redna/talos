@@ -4,27 +4,27 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 37,
+    "calls": 39,
     "errors": 0
   },
   "set_focus": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "read_file": {
-    "calls": 66,
+    "calls": 71,
     "errors": 43
   },
   "secure_save": {
-    "calls": 28,
+    "calls": 29,
     "errors": 3
   },
   "replace_block": {
-    "calls": 27,
+    "calls": 28,
     "errors": 1
   },
   "request_restart": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "reflect": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "evolve_file": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "omni_exec": {
@@ -92,11 +92,15 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "graph_sense": {
     "calls": 3,
+    "errors": 0
+  },
+  "perform_continuity_ritual": {
+    "calls": 1,
     "errors": 0
   }
 }

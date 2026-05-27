@@ -50,6 +50,12 @@
       "type": "StateNode",
       "source": "/app/memory/state_blob.json",
       "label": "state_blob"
+    },
+    {
+      "@id": "talos:memory_index",
+      "type": "StateNode",
+      "source": "/app/memory/memory_index.md",
+      "label": "memory_index"
     }
   ],
   "edges": [
@@ -91,6 +97,11 @@
     {
       "from": "talos:state-vector",
       "to": "talos:state_blob",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:memory_index",
       "relation": "contains"
     }
   ]
