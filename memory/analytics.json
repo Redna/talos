@@ -1,30 +1,30 @@
 {
   "write_file": {
-    "calls": 45,
+    "calls": 44,
     "errors": 1
   },
   "list_files": {
-    "calls": 121,
+    "calls": 92,
     "errors": 1
   },
   "set_focus": {
-    "calls": 34,
+    "calls": 28,
     "errors": 0
   },
   "read_file": {
-    "calls": 272,
-    "errors": 113
+    "calls": 204,
+    "errors": 86
   },
   "secure_save": {
-    "calls": 64,
-    "errors": 11
+    "calls": 53,
+    "errors": 10
   },
   "replace_block": {
-    "calls": 65,
-    "errors": 7
+    "calls": 54,
+    "errors": 4
   },
   "request_restart": {
-    "calls": 23,
+    "calls": 21,
     "errors": 0
   },
   "reflect": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 15,
+    "calls": 12,
     "errors": 0
   },
   "merge_memory_files": {
@@ -44,20 +44,20 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 76,
-    "errors": 2
+    "calls": 37,
+    "errors": 0
   },
   "fold_context": {
-    "calls": 6,
+    "calls": 4,
     "errors": 0
   },
   "sync_memory": {
-    "calls": 17,
+    "calls": 15,
     "errors": 0
   },
   "evolve_file": {
-    "calls": 32,
-    "errors": 7
+    "calls": 24,
+    "errors": 6
   },
   "audit_architecture": {
     "calls": 18,
@@ -68,15 +68,15 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 5,
+    "calls": 4,
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 16,
+    "calls": 14,
     "errors": 0
   },
   "omni_exec": {
-    "calls": 30,
+    "calls": 12,
     "errors": 2
   },
   "git_commit": {
@@ -88,23 +88,23 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 15,
+    "calls": 13,
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 23,
+    "calls": 21,
     "errors": 0
   },
   "graph_sense": {
-    "calls": 12,
+    "calls": 5,
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 14,
+    "calls": 12,
     "errors": 0
   },
   "manage_experiment": {
-    "calls": 15,
+    "calls": 9,
     "errors": 0
   },
   "review_state": {
@@ -112,15 +112,7 @@
     "errors": 0
   },
   "append_to_ledger": {
-    "calls": 23,
+    "calls": 4,
     "errors": 2
-  },
-  "project_trajectory": {
-    "calls": 8,
-    "errors": 0
-  },
-  "ledger_query": {
-    "calls": 3,
-    "errors": 0
   }
 }
