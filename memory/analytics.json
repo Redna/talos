@@ -1,6 +1,6 @@
 {
   "write_file": {
-    "calls": 40,
+    "calls": 41,
     "errors": 1
   },
   "list_files": {
@@ -12,15 +12,15 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 181,
+    "calls": 184,
     "errors": 83
   },
   "secure_save": {
-    "calls": 49,
+    "calls": 50,
     "errors": 9
   },
   "replace_block": {
-    "calls": 51,
+    "calls": 52,
     "errors": 4
   },
   "request_restart": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 21,
+    "calls": 22,
     "errors": 5
   },
   "audit_architecture": {
@@ -88,7 +88,7 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "hydrate_state": {
@@ -112,7 +112,7 @@
     "errors": 0
   },
   "append_to_ledger": {
-    "calls": 2,
+    "calls": 3,
     "errors": 2
   }
 }
