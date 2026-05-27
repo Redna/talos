@@ -558,8 +558,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         try:
             with open(ledger_path, "a") as f:
-                f.write(json.dumps(entry) + "
-")
+                f.write(json.dumps(entry) + "\n")
             return f"[LEDGER SUCCESS] Event {event_type} recorded."
         except Exception as e:
             return f"[LEDGER FAIL] Error writing to ledger: {e}"
