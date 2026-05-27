@@ -1,10 +1,10 @@
 {
   "write_file": {
-    "calls": 35,
+    "calls": 37,
     "errors": 1
   },
   "list_files": {
-    "calls": 71,
+    "calls": 72,
     "errors": 1
   },
   "set_focus": {
@@ -12,11 +12,11 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 140,
+    "calls": 141,
     "errors": 67
   },
   "secure_save": {
-    "calls": 43,
+    "calls": 44,
     "errors": 8
   },
   "replace_block": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "self_audit": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "evolve_file": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "omni_exec": {
@@ -88,7 +88,7 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "hydrate_state": {
@@ -100,7 +100,7 @@
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "manage_experiment": {

@@ -74,6 +74,12 @@
       "type": "StateNode",
       "source": "/app/memory/orthogonal_architectures.md",
       "label": "orthogonal_architectures"
+    },
+    {
+      "@id": "talos:ground_truth",
+      "type": "StateNode",
+      "source": "/app/memory/ground_truth.md",
+      "label": "ground_truth"
     }
   ],
   "edges": [
@@ -135,6 +141,11 @@
     {
       "from": "talos:state-vector",
       "to": "talos:orthogonal_architectures",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:ground_truth",
       "relation": "contains"
     }
   ]
