@@ -4,27 +4,27 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 72,
+    "calls": 81,
     "errors": 1
   },
   "set_focus": {
-    "calls": 23,
+    "calls": 25,
     "errors": 0
   },
   "read_file": {
-    "calls": 143,
-    "errors": 69
+    "calls": 162,
+    "errors": 76
   },
   "secure_save": {
-    "calls": 45,
+    "calls": 46,
     "errors": 8
   },
   "replace_block": {
-    "calls": 46,
+    "calls": 47,
     "errors": 3
   },
   "request_restart": {
-    "calls": 17,
+    "calls": 19,
     "errors": 0
   },
   "reflect": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 26,
+    "calls": 29,
     "errors": 0
   },
   "fold_context": {
@@ -56,15 +56,15 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 18,
+    "calls": 19,
     "errors": 5
   },
   "audit_architecture": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 16,
+    "calls": 17,
     "errors": 0
   },
   "send_message": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 10,
+    "calls": 12,
     "errors": 2
   },
   "git_commit": {
@@ -92,11 +92,11 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 15,
+    "calls": 18,
     "errors": 0
   },
   "graph_sense": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "perform_continuity_ritual": {
@@ -104,11 +104,15 @@
     "errors": 0
   },
   "manage_experiment": {
-    "calls": 8,
+    "calls": 9,
     "errors": 0
   },
   "review_state": {
     "calls": 1,
     "errors": 0
+  },
+  "append_to_ledger": {
+    "calls": 2,
+    "errors": 2
   }
 }

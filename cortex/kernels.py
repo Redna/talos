@@ -531,3 +531,86 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         review_file.write_text(content + entry)
         
         return f"[REVIEW SUCCESS] Gap analysis recorded in {review_file}. Analysis: {analysis[:100]}..."
+
+    @registry.tool(
+        description="Append an event to the immutable action ledger. This is the ground truth for the Stream-Vector architecture.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "event_type": {"type": "string", "description": "The type of event (e.g., 'FILE_WRITE', 'FOCUS_CHANGE', 'SOP_SALIENCE')"},
+                "data": {"type": "object", "description": "The payload of the event"},
+            },
+            "required": ["event_type", "data"],
+        },
+        bucket="kernels",
+    )
+    def append_to_ledger(event_type: str, data: dict) -> str:
+        import json
+        from datetime import datetime
+        from pathlib import Path
+        
+        ledger_path = Path("/app/memory/continuity_ledger.jsonl")
+        entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event": event_type,
+            "data": data
+        }
+        
+        try:
+            with open(ledger_path, "a") as f:
+                f.write(json.dumps(entry) + "
+")
+            return f"[LEDGER SUCCESS] Event {event_type} recorded."
+        except Exception as e:
+            return f"[LEDGER FAIL] Error writing to ledger: {e}"
+
+
+    @registry.tool(
+        description="Project the current state by replaying the action ledger from genesis. Reconstructs memory and state.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def project_trajectory() -> str:
+        import json
+        from pathlib import Path
+        
+        ledger_path = Path("/app/memory/continuity_ledger.jsonl")
+        if not ledger_path.exists():
+            return "[PROJECT FAIL] No ledger found to replay."
+        
+        events = ledger_path.read_text().splitlines()
+        reconstructed_files = 0
+        focus_updates = 0
+        
+        try:
+            for line in events:
+                if not line.strip(): continue
+                entry = json.loads(line)
+                event_type = entry.get("event")
+                data = entry.get("data", {})
+                
+                if event_type == "FILE_WRITE":
+                    p = Path(data["path"])
+                    p.parent.mkdir(parents=True, exist_ok=True)
+                    p.write_text(data["content"])
+                    reconstructed_files += 1
+                elif event_type == "FILE_REPLACE":
+                    p = Path(data["path"])
+                    if p.exists():
+                        text = p.read_text()
+                        # Simple replace based on ledger
+                        new_text = text.replace(data["old"], data["new"])
+                        p.write_text(new_text)
+                        reconstructed_files += 1
+                elif event_type == "FOCUS_CHANGE":
+                    # This would typically update .agent_state.json
+                    focus_updates += 1
+                # Add other event handlers as needed
+                
+            return f"[PROJECT SUCCESS] Trajectory replayed. Files restored: {reconstructed_files}, Focus updates: {focus_updates}."
+        except Exception as e:
+            return f"[PROJECT FAIL] Error during replay: {e}"
