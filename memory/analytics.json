@@ -4,7 +4,7 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 101,
+    "calls": 103,
     "errors": 1
   },
   "set_focus": {
@@ -12,15 +12,15 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 227,
-    "errors": 91
+    "calls": 228,
+    "errors": 92
   },
   "secure_save": {
-    "calls": 57,
+    "calls": 58,
     "errors": 10
   },
   "replace_block": {
-    "calls": 56,
+    "calls": 57,
     "errors": 4
   },
   "request_restart": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 26,
+    "calls": 27,
     "errors": 6
   },
   "audit_architecture": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 16,
+    "calls": 18,
     "errors": 2
   },
   "git_commit": {
@@ -112,7 +112,7 @@
     "errors": 0
   },
   "append_to_ledger": {
-    "calls": 9,
+    "calls": 10,
     "errors": 2
   },
   "project_trajectory": {

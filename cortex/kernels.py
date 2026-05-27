@@ -604,7 +604,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 event_type = entry.get("event")
                 data = entry.get("data", {})
                 
-                if event_type == "FILE_WRITE":
+                if event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
                     p = Path(data["path"])
                     p.parent.mkdir(parents=True, exist_ok=True)
                     p.write_text(data["content"])
@@ -617,6 +617,10 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                         new_text = text.replace(data["old"], data["new"])
                         p.write_text(new_text)
                         reconstructed_files += 1
+                    else:
+                        # If the file doesn't exist, we can't replace.
+                        # In a more advanced system, we'd look back for the last FILE_WRITE.
+                        pass
                 elif event_type == "FOCUS_CHANGE":
                     # This would typically update .agent_state.json
                     focus_updates += 1
