@@ -8,19 +8,19 @@
     "errors": 0
   },
   "set_focus": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "read_file": {
-    "calls": 61,
-    "errors": 38
+    "calls": 65,
+    "errors": 42
   },
   "secure_save": {
-    "calls": 26,
+    "calls": 27,
     "errors": 2
   },
   "replace_block": {
-    "calls": 24,
+    "calls": 26,
     "errors": 1
   },
   "request_restart": {
@@ -28,7 +28,7 @@
     "errors": 0
   },
   "reflect": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "self_audit": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "merge_memory_files": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "fold_context": {
@@ -56,7 +56,7 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 7,
+    "calls": 8,
     "errors": 1
   },
   "audit_architecture": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 7,
+    "calls": 8,
     "errors": 2
   },
   "git_commit": {
