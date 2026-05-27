@@ -800,25 +800,19 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         status_str = "✅ SUCCESS" if success else "❌ FAILED"
         
-        entry = f"## Trajectory: {plan['goal']} [{timestamp}]
-"
-        entry += f"**Result:** {status_str}
+        # Use triple quotes to avoid newline conversion issues
+        entry = f"""## Trajectory: {plan['goal']} [{timestamp}]
+**Result:** {status_str}
 
-"
-        entry += "### Sub-task Breakdown:
-"
+### Sub-task Breakdown:
+"""
         for i, t in enumerate(plan["sub_tasks"]):
-            entry += f"- [{t['status']}] {t['task']} (Note: {t['note']})
-"
-        entry += f"
-**Conclusion:** {conclusion}
----
-"
+            entry += f"- [{t['status']}] {t['task']} (Note: {t['note']})\n"
+            
+        entry += f"\n**Conclusion:** {conclusion}\n---\n"
         
-        current_archive = archive_path.read_text() if archive_path.exists() else "# Trajectory Archive
-
-"
+        current_archive = archive_path.read_text() if archive_path.exists() else "# Trajectory Archive\n\n"
         archive_path.write_text(current_archive + entry)
         
         traj_path.unlink()
-        return f"[FINALIZE SUCCESS] Trajectory closed and archived. Result: {status_str}"
+        return f"[FINALIZE SUCCESS] Trajectory closed and archived. Result: {status_str}"""
