@@ -262,6 +262,26 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         protected=True,
     )
     def secure_save(message: str) -> str:
+        # Snapshot Paradox Guard: Prevent corrupted identity from being committed
+        core_files = ["/app/CONSTITUTION.md", "/app/identity.md"]
+        tainted = []
+        for path in core_files:
+            p = Path(path)
+            if p.exists():
+                try:
+                    content = p.read_text(encoding="utf-8")
+                    if "[UNPROJECTED SOURCE]" in content:
+                        tainted.append(path)
+                except Exception:
+                    pass
+        
+        if tainted:
+            return (
+                f"[GUARD BLOCK] Secure save aborted. Snapshot Paradox detected! "
+                f"The following core identity files are tainted with '[UNPROJECTED SOURCE]': {tainted}. "
+                f"Restore these files from a known good commit before attempting to save."
+            )
+
         # Use the existing robust functions for commit and push
         commit_result = git_commit(message)
         if (
