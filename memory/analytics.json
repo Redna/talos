@@ -1,30 +1,30 @@
 {
   "write_file": {
-    "calls": 42,
+    "calls": 43,
     "errors": 1
   },
   "list_files": {
-    "calls": 87,
+    "calls": 91,
     "errors": 1
   },
   "set_focus": {
-    "calls": 27,
+    "calls": 28,
     "errors": 0
   },
   "read_file": {
-    "calls": 193,
-    "errors": 85
+    "calls": 201,
+    "errors": 86
   },
   "secure_save": {
-    "calls": 51,
+    "calls": 52,
     "errors": 9
   },
   "replace_block": {
-    "calls": 53,
+    "calls": 54,
     "errors": 4
   },
   "request_restart": {
-    "calls": 20,
+    "calls": 21,
     "errors": 0
   },
   "reflect": {
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 32,
+    "calls": 37,
     "errors": 0
   },
   "fold_context": {
@@ -56,15 +56,15 @@
     "errors": 0
   },
   "evolve_file": {
-    "calls": 23,
+    "calls": 24,
     "errors": 5
   },
   "audit_architecture": {
-    "calls": 17,
+    "calls": 18,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 17,
+    "calls": 18,
     "errors": 0
   },
   "send_message": {
@@ -88,11 +88,11 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 20,
+    "calls": 21,
     "errors": 0
   },
   "graph_sense": {
@@ -112,7 +112,7 @@
     "errors": 0
   },
   "append_to_ledger": {
-    "calls": 3,
+    "calls": 4,
     "errors": 2
   }
 }
