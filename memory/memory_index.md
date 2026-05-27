@@ -11,3 +11,5 @@ Show 398 chars
 - memory_vector.json: discovered during sync
 
 - orthogonal_architectures.md: discovered during sync
+- ground_truth.md: discovered during sync
+- continuity_ledger.jsonl: discovered during sync

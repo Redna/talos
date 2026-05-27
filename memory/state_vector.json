@@ -80,6 +80,12 @@
       "type": "StateNode",
       "source": "/app/memory/ground_truth.md",
       "label": "ground_truth"
+    },
+    {
+      "@id": "talos:continuity_ledger",
+      "type": "StateNode",
+      "source": "/app/memory/continuity_ledger.jsonl",
+      "label": "continuity_ledger"
     }
   ],
   "edges": [
@@ -146,6 +152,11 @@
     {
       "from": "talos:state-vector",
       "to": "talos:ground_truth",
+      "relation": "contains"
+    },
+    {
+      "from": "talos:state-vector",
+      "to": "talos:continuity_ledger",
       "relation": "contains"
     }
   ]
