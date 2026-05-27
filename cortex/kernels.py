@@ -294,7 +294,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         try:
             blob_path = Path("/app/memory/state_blob.json")
             if not blob_path.exists():
-                return "[HYDRATE FAIL] state_blob.json not found."
+                return json.dumps({"status": "FAIL", "error": "state_blob.json not found."})
             
             blob = json.loads(blob_path.read_text())
             state_vector = blob.get("state_vector", {})
@@ -310,9 +310,14 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     source_path.write_text(payload[node_id])
                     restored_count += 1
             
-            return f"[HYDRATE SUCCESS] Restored {restored_count} assets from blob. State restored to metadata version {blob.get('metadata', {}).get('version', 'unknown')}. Current Focus: {agent_state.get('focus', 'None')}"
+            return json.dumps({
+                "status": "SUCCESS", 
+                "restored_count": restored_count, 
+                "version": blob.get('metadata', {}).get('version', 'unknown'),
+                "agent_state": agent_state
+            })
         except Exception as e:
-            return f"[HYDRATE FAIL] Unexpected error: {str(e)}"
+            return json.dumps({"status": "FAIL", "error": str(e)})
 
     @registry.tool(
         description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",

@@ -14,7 +14,7 @@ from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
 from kernels import register_kernels
 
-MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
+MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/app/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
 SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
 
@@ -122,8 +122,18 @@ def main():
     # Automated SSV Hydration
     if (MEMORY_DIR / "state_blob.json").exists():
         print("[Cortex] state_blob.json found. Performing autonomous hydration...")
-        hydration_result = registry.execute("hydrate_state", {})
-        print(f"[Cortex] Hydration Result: {hydration_result}")
+        hydration_result_raw = registry.execute("hydrate_state", {})
+        try:
+            res = json.loads(hydration_result_raw)
+            if res.get("status") == "SUCCESS":
+                astate = res.get("agent_state", {})
+                state.current_focus = astate.get("focus")
+                print(f"[Cortex] Hydration Success. Focus restored to: {state.current_focus}")
+            else:
+                print(f"[Cortex] Hydration failed: {res.get('error')}")
+        except Exception as e:
+            print(f"[Cortex] Hydration result parsing failed: {e}")
+            print(f"[Cortex] Raw result: {hydration_result_raw}")
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0
