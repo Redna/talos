@@ -501,10 +501,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         })
         
         # Log the ritual to the ledger as a major state anchor
+        # Store the exact agent state provided to the ritual for perfect projection
         ledger_res = registry.execute("append_to_ledger", {
             "event_type": "RITUAL_SALIENCE",
             "data": {
                 "focus": focus,
+                "active_files": active_files,
+                "next_action": next_action,
                 "message": message,
                 "result": ser_res
             }
@@ -730,9 +733,9 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         virtual_files = {}
         virtual_state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
         virtual_agent_state = {
-            "current_focus": "none",
-            "error_streak": 0,
-            "total_tokens_consumed": 0
+            "focus": "none",
+            "active_files": [],
+            "next_action": "none"
         }
         
         reconstructed_files = 0
@@ -759,7 +762,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     if path in virtual_files:
                         virtual_files[path] = virtual_files[path].replace(data["old"], data["new"])
                 elif event_type == "FOCUS_CHANGE":
-                    virtual_agent_state["current_focus"] = data.get("new_focus", "unknown")
+                    virtual_agent_state["focus"] = data.get("new_focus", "unknown")
                     focus_updates += 1
                 elif event_type == "SVP_COMMIT":
                     virtual_agent_state["last_commit"] = data.get("hash", "unknown")
@@ -767,7 +770,9 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     if "vector_snapshot" in data:
                         virtual_state_vector = data["vector_snapshot"]
                 elif event_type == "RITUAL_SALIENCE":
-                    virtual_agent_state["current_focus"] = data.get("focus", "unknown")
+                    virtual_agent_state["focus"] = data.get("focus", "unknown")
+                    virtual_agent_state["active_files"] = data.get("active_files", [])
+                    virtual_agent_state["next_action"] = data.get("next_action", "unknown")
                     focus_updates += 1
                 elif event_type == "CONCEPTUAL_NODE_CREATE":
                     node = data
