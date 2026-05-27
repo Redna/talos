@@ -4,7 +4,7 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 56,
+    "calls": 57,
     "errors": 0
   },
   "set_focus": {
@@ -12,11 +12,11 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 115,
+    "calls": 116,
     "errors": 57
   },
   "secure_save": {
-    "calls": 37,
+    "calls": 38,
     "errors": 7
   },
   "replace_block": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 9,
+    "calls": 10,
     "errors": 0
   },
   "merge_memory_files": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "evolve_file": {
@@ -72,7 +72,7 @@
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "omni_exec": {
@@ -100,7 +100,7 @@
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 2,
+    "calls": 3,
     "errors": 0
   },
   "manage_experiment": {
