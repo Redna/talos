@@ -815,4 +815,4 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         archive_path.write_text(current_archive + entry)
         
         traj_path.unlink()
-        return f"[FINALIZE SUCCESS] Trajectory closed and archived. Result: {status_str}"""
+        return f"[FINALIZE SUCCESS] Trajectory closed and archived. Result: {status_str}"
