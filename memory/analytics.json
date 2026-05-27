@@ -1,14 +1,14 @@
 {
   "write_file": {
-    "calls": 16,
+    "calls": 18,
     "errors": 1
   },
   "list_files": {
-    "calls": 29,
+    "calls": 31,
     "errors": 0
   },
   "set_focus": {
-    "calls": 10,
+    "calls": 11,
     "errors": 0
   },
   "read_file": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "graph_sense": {
