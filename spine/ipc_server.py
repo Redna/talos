@@ -37,7 +37,7 @@ class IPCServer:
         self.thought = ThoughtManager()
         self._turns_since_outbound = 0
         self._lifetime_tokens = 0
-        self._lifetime_token_budget = 1_000_000  # 1M tokens
+        self._lifetime_token_budget = 10_000_000  # 10M tokens
 
     async def start(self):
         socket_path = self.cfg.socket_path
