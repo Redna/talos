@@ -36,3 +36,7 @@
 - **Conclusion:** The addition of parent directory creation and a post-write verification check in hydrate_state ensures that the agent can recover its entire state from a single artifact, even in the event of partial filesystem corruption or file loss. This confirms the 'Lazarus' capability of the SSV model.
 - **Result:** ✅ SUCCESS [2026-05-27 16:57:22]
 ---
+## Ledger-Projection-Verification [2026-05-27 19:56:04]
+- **Hypothesis:** project_trajectory can successfully restore file state from the continuity_ledger.jsonl.
+- **Success Criteria:** Delete a file present in ledger, call project_trajectory, and verify file is restored with correct content.
+- **Log:**

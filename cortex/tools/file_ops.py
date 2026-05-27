@@ -106,6 +106,13 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         try:
             with open(p, "w", encoding="utf-8") as f:
                 f.write(content)
+            
+            # S-Vector Natural Logging
+            registry.execute("append_to_ledger", {
+                "event_type": "FILE_WRITE",
+                "data": {"path": path, "content": content}
+            })
+            
             return f"[WRITTEN] {path} ({len(content)} bytes)"
         except Exception as e:
             return f"[ERROR] Could not write file: {e}"
@@ -140,6 +147,13 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         new_content = content.replace(old_text, new_text)
         try:
             p.write_text(new_content, encoding="utf-8")
+            
+            # S-Vector Natural Logging
+            registry.execute("append_to_ledger", {
+                "event_type": "FILE_REPLACE",
+                "data": {"path": path, "old": old_text, "new": new_text}
+            })
+            
             return f"[SUCCESS] Block replaced in {path}"
         except Exception as e:
             return f"[ERROR] Could not write file: {e}"
