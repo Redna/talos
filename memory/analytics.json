@@ -16,7 +16,7 @@
     "errors": 91
   },
   "secure_save": {
-    "calls": 56,
+    "calls": 57,
     "errors": 10
   },
   "replace_block": {
@@ -76,7 +76,7 @@
     "errors": 0
   },
   "omni_exec": {
-    "calls": 15,
+    "calls": 16,
     "errors": 2
   },
   "git_commit": {

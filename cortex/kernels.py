@@ -28,24 +28,12 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         if "[ERROR]" in act_result:
             return f"[EVOLVE FAIL] Act phase failed: {act_result}"
         
-        # Log the replacement event to the ledger
-        registry.execute("append_to_ledger", {
-            "event_type": "FILE_REPLACE",
-            "data": {"path": path, "old": old_text, "new": new_text}
-        })
-        
         verify_result = registry.execute("read_file", {"path": path})
         if "[ERROR]" in verify_result or new_text not in verify_result:
             return f"[EVOLVE FAIL] Verify phase failed. Change not detected in file."
         save_result = registry.execute("secure_save", {"message": commit_message})
         if "[SECURE SAVE FAILED]" in save_result or "[ERROR]" in save_result:
             return f"[EVOLVE FAIL] Save phase failed: {save_result}"
-        
-        # Log the commit event to the ledger
-        registry.execute("append_to_ledger", {
-            "event_type": "SVP_COMMIT",
-            "data": {"message": commit_message, "result": save_result}
-        })
         
         return f"[EVOLVE SUCCESS] File {path} evolved and secured. {save_result}"
 
