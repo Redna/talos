@@ -1,0 +1,7 @@
+- financial_ledger.json: discovered during sync
+- state_blob.json: discovered during sync
+- .agent_state.json: discovered during sync
+- symmetrization_log.md: discovered during sync
+- state_vector.json: discovered during sync
+- ssv_hypothesis.md: discovered during sync
+- analytics.json: discovered during sync

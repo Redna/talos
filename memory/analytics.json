@@ -1,23 +1,23 @@
 {
   "write_file": {
-    "calls": 18,
+    "calls": 22,
     "errors": 1
   },
   "list_files": {
-    "calls": 31,
+    "calls": 35,
     "errors": 0
   },
   "set_focus": {
-    "calls": 11,
+    "calls": 12,
     "errors": 0
   },
   "read_file": {
-    "calls": 58,
-    "errors": 35
+    "calls": 61,
+    "errors": 38
   },
   "secure_save": {
-    "calls": 22,
-    "errors": 1
+    "calls": 23,
+    "errors": 2
   },
   "replace_block": {
     "calls": 21,
@@ -44,7 +44,7 @@
     "errors": 4
   },
   "bash_command": {
-    "calls": 6,
+    "calls": 7,
     "errors": 0
   },
   "fold_context": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 1,
+    "calls": 2,
     "errors": 0
   },
   "evolve_file": {
@@ -60,11 +60,11 @@
     "errors": 1
   },
   "audit_architecture": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "audit_plugins": {
-    "calls": 7,
+    "calls": 8,
     "errors": 0
   },
   "send_message": {
@@ -92,7 +92,7 @@
     "errors": 0
   },
   "hydrate_state": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "graph_sense": {
