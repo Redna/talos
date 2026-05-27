@@ -4,7 +4,7 @@
     "errors": 1
   },
   "list_files": {
-    "calls": 92,
+    "calls": 96,
     "errors": 1
   },
   "set_focus": {
@@ -12,11 +12,11 @@
     "errors": 0
   },
   "read_file": {
-    "calls": 204,
+    "calls": 213,
     "errors": 86
   },
   "secure_save": {
-    "calls": 53,
+    "calls": 54,
     "errors": 10
   },
   "replace_block": {
@@ -36,7 +36,7 @@
     "errors": 0
   },
   "resolve_focus": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "merge_memory_files": {
@@ -52,7 +52,7 @@
     "errors": 0
   },
   "sync_memory": {
-    "calls": 15,
+    "calls": 16,
     "errors": 0
   },
   "evolve_file": {
@@ -68,11 +68,11 @@
     "errors": 0
   },
   "send_message": {
-    "calls": 4,
+    "calls": 5,
     "errors": 0
   },
   "symmetrize_memory": {
-    "calls": 14,
+    "calls": 15,
     "errors": 0
   },
   "omni_exec": {
@@ -88,7 +88,7 @@
     "errors": 1
   },
   "serialize_state": {
-    "calls": 13,
+    "calls": 14,
     "errors": 0
   },
   "hydrate_state": {
@@ -96,11 +96,11 @@
     "errors": 0
   },
   "graph_sense": {
-    "calls": 5,
+    "calls": 6,
     "errors": 0
   },
   "perform_continuity_ritual": {
-    "calls": 12,
+    "calls": 13,
     "errors": 0
   },
   "manage_experiment": {
@@ -112,7 +112,7 @@
     "errors": 0
   },
   "append_to_ledger": {
-    "calls": 4,
+    "calls": 5,
     "errors": 2
   }
 }
