@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import subprocess
 from pathlib import Path
 from tool_registry import ToolRegistry
@@ -264,10 +265,12 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
     def secure_save(message: str) -> str:
         # Snapshot Paradox Guard: Positive Integrity Validation
         # Prevents corrupted, truncated, or empty identity files from being committed.
-        core_files = {
-            "/app/CONSTITUTION.md": "# CONSTITUTION.md",
-            "/app/identity.md": "# Identity"
-        }
+        try:
+            with open("/memory/identity_manifest.json", "r") as f:
+                core_files = json.load(f)
+        except Exception:
+            # Fallback to defaults if manifest is missing/corrupt
+            core_files = {"/app/CONSTITUTION.md": "# CONSTITUTION.md", "/app/identity.md": "# Identity"}
         tainted = []
         for path, marker in core_files.items():
             p = Path(path)
