@@ -262,24 +262,30 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         protected=True,
     )
     def secure_save(message: str) -> str:
-        # Snapshot Paradox Guard: Prevent corrupted identity from being committed
-        core_files = ["/app/CONSTITUTION.md", "/app/identity.md"]
+        # Snapshot Paradox Guard: Positive Integrity Validation
+        # Prevents corrupted, truncated, or empty identity files from being committed.
+        core_files = {
+            "/app/CONSTITUTION.md": "# CONSTITUTION.md",
+            "/app/identity.md": "# Identity"
+        }
         tainted = []
-        for path in core_files:
+        for path, marker in core_files.items():
             p = Path(path)
-            if p.exists():
-                try:
-                    content = p.read_text(encoding="utf-8")
-                    if "[UNPROJECTED SOURCE]" in content:
-                        tainted.append(path)
-                except Exception:
-                    pass
+            if not p.exists():
+                tainted.append(f"{path} (MISSING)")
+                continue
+            try:
+                content = p.read_text(encoding="utf-8")
+                if len(content) < 100 or marker not in content or "[UNPROJECTED SOURCE]" in content:
+                    tainted.append(path)
+            except Exception:
+                tainted.append(f"{path} (READ ERROR)")
         
         if tainted:
             return (
-                f"[GUARD BLOCK] Secure save aborted. Snapshot Paradox detected! "
-                f"The following core identity files are tainted with '[UNPROJECTED SOURCE]': {tainted}. "
-                f"Restore these files from a known good commit before attempting to save."
+                f"[GUARD BLOCK] Secure save aborted. Identity Integrity Failure detected! "
+                f"The following files are invalid or tainted: {tainted}. "
+                f"Restore them from a known good commit before attempting to save."
             )
 
         # Use the existing robust functions for commit and push
