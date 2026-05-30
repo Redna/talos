@@ -269,7 +269,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[CONCEPT SUCCESS] Conceptual node {node_id} ({label}) created and anchored to ledger."
 
     @registry.tool(
-        description="Symmetrizes source code markers into the State-Vector. Scans for markers such as `@talos:concept-id` and creates/updates AnchorNodes.",
+        description="Symmetrizes source code markers into the State-Vector. Scans for markers such as \# @talos:your-concept-id and creates/updates AnchorNodes.",
         parameters={
             "type": "object",
             "properties": {},
