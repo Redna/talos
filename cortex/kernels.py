@@ -703,76 +703,73 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
 
 
     @registry.tool(
-        description="Symmetrizes code anchors in /app/cortex/ with the State-Vector. Scans for '# @talos:node-id' markers and anchors conceptual nodes to specific lines de code.",
+        description="The Gradient Analysis kernel: Analyzes the cognitive gradient (pivots, outcomes, tensions) to identify systemic failures and suggest architectural evolutions.",
         parameters={
             "type": "object",
-            "properties": {},
+            "properties": {
+                "lookback_events": {"type": "integer", "description": "Number of recent events to analyze (default: 50)"},
+            },
             "required": [],
         },
         bucket="kernels",
     )
-    def symmetrize_code() -> str:  # @talos:talos:kernel-symm-code
+    def analyze_gradient(lookback_events: int = 50) -> str:  # @talos:talos:kernel-gradient-analyze
         import json
-        import re
         from pathlib import Path
         
-        cortex_dir = Path("/app/cortex")
-        vector_path = Path("/memory/state_vector.json")
-        if not vector_path.exists():
-            return "[SYMM_CODE FAIL] state_vector.json not found."
+        ledger_path = Path("/memory/continuity_ledger.jsonl")
+        if not ledger_path.exists():
+            return "[GRADIENT FAIL] No ledger found."
             
-        state_vector = json.loads(vector_path.read_text())
-        nodes = {node["@id"]: node for node in state_vector.get("nodes", [])}
-        
-        anchors_found = 0
-        marker_pattern = re.compile(r"#\s*@talos:([a-zA-Z0-9\-_:]+)")
-        
-        # Scan all .py files in cortex
-        for py_file in cortex_dir.rglob("*.py"):
-            content = py_file.read_text()
-            lines = content.splitlines()
+        try:
+            events = [json.loads(line) for line in ledger_path.read_text().splitlines() if line.strip()]
+            recent = events[-lookback_events:]
             
-            for i, line in enumerate(lines):
-                match = marker_pattern.search(line)
-                if match:
-                    node_id = match.group(1)
-                    # Ensure node exists
-                    if node_id not in nodes:
-                        new_node = {
-                            "@id": node_id,
-                            "type": "ConceptualNode",
-                            "label": node_id.replace("talos:", ""),
-                            "value": "Auto-created via code anchor.",
-                            "anchors": []
-                        }
-                        nodes[node_id] = new_node
-                        state_vector["nodes"].append(new_node)
-                    
-                    # Add anchor if not already present for this line
-                    node = nodes[node_id]
-                    if "anchors" not in node:
-                        node["anchors"] = []
-                        
-                    anchor = {"file": str(py_file), "line": i + 1, "snippet": line.strip()}
-                    if anchor not in node["anchors"]:
-                        node["anchors"].append(anchor)
-                        anchors_found += 1
-        
-        vector_path.write_text(json.dumps(state_vector, indent=2))
-        
-        registry.execute("append_to_ledger", {
-            "event_type": "SVP_CODE_SYMMETRIZE",
-            "data": {"anchors_found": anchors_found}
-        })
-        
-        return f"[SYMM_CODE SUCCESS] Scanned /app/cortex/. Found and anchored {anchors_found} code markers."
+            pivots = [e for e in recent if e.get("event") in {"FOCUS_CHANGE", "HYPOTHESIS_START"}]
+            outcomes = [e for e in recent if e.get("event") in {"FOCUS_RESOLVED", "HYPOTHESIS_RESULT"}]
+            tensions = [e for e in recent if e.get("event") in {"SOP_MODIFICATION", "REASONING_SALIENCE", "SVP_SYMMETRIZE", "COGNITIVE_TENSION"}]
+            
+            report = [
+                "### COGNITIVE GRADIENT ANALYSIS",
+                f"Window: Last {len(recent)} events",
+                f"Pivots: {len(pivots)} | Outcomes: {len(outcomes)} | Tensions: {len(tensions)}",
+                "\n#### Detected Tensions:",
+            ]
+            
+            if not tensions:
+                report.append("- No significant tensions detected in current window.")
+            else:
+                for t in tensions:
+                    data = t.get("data", {})
+                    event = t.get("event")
+                    if event == "COGNITIVE_TENSION":
+                        report.append(f"- [TENSION] {data.get('tension')} (Res: {data.get('resolution')})")
+                    else:
+                        report.append(f"- [{event}] {data.get('message', 'SOP/Symmetry change detected')}")
+            
+            # Synthesis of the slope
+            slope = "STABLE"
+            if len(tensions) > len(outcomes) * 2:
+                slope = "STEEP_FRICTION"
+            elif len(pivots) > len(outcomes):
+                slope = "DIVERGENT"
+            
+            report.append(f"\n**Current Learning Slope: {slope}**")
+            report.append("\n**Recommendation**: " + 
+                ("Investigate systemic friction in kernels.py" if slope == "STEEP_FRICTION" else 
+                 "Consolidate fragmented focus" if slope == "DIVERGENT" else 
+                 "Continue current trajectory."))
+            
+            return "\n".join(report)
+        except Exception as e:
+            return f"[GRADIENT FAIL] Analysis error: {e}"
 
     @registry.tool(
-        description="The Identity Projection kernel: replays the ledger to derive the agent's current identity and state without materializing files to disk. The ground truth is the stream.",
+        description="The Identity Projection kernel: Synthesizes the State-Blob, State-Vector, and Continuity Ledger to project Talos's full identity and current cognitive state without materializing files.",
         parameters={
             "type": "object",
             "properties": {
-                "target_file": {"type": "string", "description": "Optional: Reconstruct the content of a specific file from the stream."}
+                "target_file": {"type": "string", "description": "Optional: Project the content of a specific file from the combined stream/blob."},
             },
         },
         bucket="kernels",
@@ -780,55 +777,95 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
     def project_identity(target_file: str = None) -> str:  # @talos:talos:kernel-project
         import json
         from pathlib import Path
+        from datetime import datetime
         
+        # Paths
+        blob_path = Path("/memory/state_blob.json")
+        vector_path = Path("/memory/state_vector.json")
         ledger_path = Path("/memory/continuity_ledger.jsonl")
+        
         if not ledger_path.exists():
-            return "[PROJECT FAIL] No ledger found to replay."
+            return "[PROJECT FAIL] No ledger found. Identity cannot be projected."
         
-        events_raw = ledger_path.read_text().splitlines()
-        events = [json.loads(line) for line in events_raw if line.strip()]
-        
-        virtual_files = {}
-        virtual_agent_state = {"focus": "none", "active_files": [], "next_action": "none"}
-        
-        def recover_initial_content(path: str):
-            for e in events:
-                if e.get("event") in ["FILE_WRITE", "GENESIS_FILE_WRITE"] and e.get("data", {}).get("path") == path:
-                    return e["data"]["content"]
-            return None
-
         try:
+            # 1. Baseline from State-Blob (The most recent consolidated snapshot)
+            projected_state = {"focus": "none", "active_files": [], "next_action": "none"}
+            virtual_files = {}
+            gradient = {"pivots": [], "outcomes": [], "tensions": []}
+            snapshot_ts = "1970-01-01T00:00:00"
+            
+            if blob_path.exists():
+                blob = json.loads(blob_path.read_text())
+                snapshot_ts = blob.get("metadata", {}).get("timestamp", snapshot_ts)
+                projected_state = blob.get("agent_state", projected_state)
+                virtual_files = blob.get("payload", {})
+                gradient = blob.get("cognitive_gradient", gradient)
+
+            # 2. Delta from Ledger (Replay only events after the snapshot)
+            events = [json.loads(line) for line in ledger_path.read_text().splitlines() if line.strip()]
             for entry in events:
+                ts = entry.get("timestamp", "1970-01-01T00:00:00")
+                if ts <= snapshot_ts:
+                    continue
+                
                 event_type = entry.get("event")
                 data = entry.get("data", {})
                 path = data.get("path")
                 
                 if event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
-                    virtual_files[path] = data["content"]
+                    virtual_files[path] = data.get("content", "")
                 elif event_type == "FILE_REPLACE":
-                    if path not in virtual_files:
-                        initial = recover_initial_content(path)
-                        if initial: virtual_files[path] = initial
+                    # Handle replacement in virtual file
                     if path in virtual_files:
-                        virtual_files[path] = virtual_files[path].replace(data["old"], data["new"])
+                        virtual_files[path] = virtual_files[path].replace(data.get("old", ""), data.get("new", ""))
+                    else:
+                        # We can't fully recover if it wasn't in the blob and there's no WRITE event
+                        virtual_files[path] = f"[FRAGMENTED] Replace called on unknown source {path}"
                 elif event_type == "FOCUS_CHANGE":
-                    virtual_agent_state["focus"] = data.get("new_focus", "unknown")
+                    projected_state["focus"] = data.get("new_focus", "unknown")
                 elif event_type == "RITUAL_SALIENCE":
-                    virtual_agent_state["focus"] = data.get("focus", "unknown")
-                    virtual_agent_state["active_files"] = data.get("active_files", [])
-                    virtual_agent_state["next_action"] = data.get("next_action", "unknown")
-            
+                    projected_state["focus"] = data.get("focus", "unknown")
+                    projected_state["active_files"] = data.get("active_files", [])
+                    projected_state["next_action"] = data.get("next_action", "unknown")
+                elif event_type == "COGNITIVE_TENSION":
+                    gradient["tensions"].append(entry)
+
+            # 3. Semantic Layer from State-Vector
+            semantic_mapping = {}
+            if vector_path.exists():
+                vector = json.loads(vector_path.read_text())
+                for node in vector.get("nodes", []):
+                    src = node.get("source")
+                    if src:
+                        semantic_mapping[src] = {
+                            "id": node["@id"],
+                            "label": node.get("label"),
+                            "type": node.get("type")
+                        }
+
+            # 4. Construct Final Projection
             projection = {
-                "projected_state": virtual_agent_state,
-                "recovered_files_count": len(virtual_files),
-                "file_list": list(virtual_files.keys())
+                "identity_baseline": {
+                    "snapshot_timestamp": snapshot_ts,
+                    "ledger_events_replayed": len([e for e in events if e.get("timestamp", "") > snapshot_ts]),
+                },
+                "projected_state": projected_state,
+                "cognitive_gradient": {
+                    "recent_tensions": gradient["tensions"][-5:],
+                    "meta": f"Sourced from blob and ledger delta."
+                },
+                "material_assets": {
+                    "count": len(virtual_files),
+                    "mapped_nodes": [
+                        {"path": p, "node": semantic_mapping.get(p, "unmapped")} 
+                        for p in virtual_files.keys()
+                    ]
+                }
             }
             
-            if target_file and target_file in virtual_files:
-                projection["target_file_content"] = virtual_files[target_file]
-            elif target_file:
-                projection["target_file_content"] = "[NOT FOUND IN STREAM]"
+            if target_file:
+                projection["target_file_projection"] = virtual_files.get(target_file, "[NOT FOUND IN PROJECTION]")
 
             return json.dumps(projection, indent=2)
         except Exception as e:
-            return f"[PROJECT FAIL] Error during replay: {e}"
+            return f"[PROJECT FAIL] Projection kernel error: {e}"
