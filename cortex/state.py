@@ -19,7 +19,7 @@ class AgentState: # @talos:infra-agent-state
             self.error_streak = data.get("error_streak", 0)
             self.total_tokens_consumed = data.get("total_tokens_consumed", 0)
 
-    def save(self):
+    def save(self): # @talos:infra-state-save
         self.memory_dir.mkdir(parents=True, exist_ok=True)
         data = {
             "current_focus": self.current_focus,
