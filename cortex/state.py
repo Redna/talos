@@ -34,7 +34,7 @@ class AgentState: # @talos:infra-agent-state
         self.save()
         return old
 
-    def resolve_focus(self, synthesis: str) -> Optional[str]:
+    def resolve_focus(self, synthesis: str) -> Optional[str]: # @talos:infra-state-focus-res
         old = self.current_focus
         self.current_focus = None
         self.save()
