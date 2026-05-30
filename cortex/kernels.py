@@ -871,15 +871,16 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         try:
             # 1. Baseline from State-Blob (The most recent consolidated snapshot)
-            projected_state = {"focus": "none", "active_files": [], "next_action": "none"}
+            projected_state = {"focus": "none", "active_files": [], "next_action": "none", "boot_history": []}
             virtual_files = {}
+            wisdom_layer = {"hypotheses": [], "saliences": []}
             gradient = {"pivots": [], "outcomes": [], "tensions": []}
             snapshot_ts = "1970-01-01T00:00:00"
             
             if blob_path.exists():
                 blob = json.loads(blob_path.read_text())
                 snapshot_ts = blob.get("metadata", {}).get("timestamp", snapshot_ts)
-                projected_state = blob.get("agent_state", projected_state)
+                projected_state.update(blob.get("agent_state", {}))
                 virtual_files = blob.get("payload", {})
                 gradient = blob.get("cognitive_gradient", gradient)
 
@@ -894,14 +895,14 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 data = entry.get("data", {})
                 path = data.get("path")
                 
-                if event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
+                if event_type == "CORTEX_BOOT":
+                    projected_state["boot_history"].append(data)
+                elif event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
                     virtual_files[path] = data.get("content", "")
                 elif event_type == "FILE_REPLACE":
-                    # Handle replacement in virtual file
                     if path in virtual_files:
                         virtual_files[path] = virtual_files[path].replace(data.get("old", ""), data.get("new", ""))
                     else:
-                        # We can't fully recover if it wasn't in the blob and there's no WRITE event
                         virtual_files[path] = f"[FRAGMENTED] Replace called on unknown source {path}"
                 elif event_type == "FOCUS_CHANGE":
                     projected_state["focus"] = data.get("new_focus", "unknown")
@@ -909,6 +910,16 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     projected_state["focus"] = data.get("focus", "unknown")
                     projected_state["active_files"] = data.get("active_files", [])
                     projected_state["next_action"] = data.get("next_action", "unknown")
+                elif event_type == "HYPOTHESIS_START":
+                    wisdom_layer["hypotheses"].append({"id": data.get("name"), "status": "active", "hypothesis": data.get("hypothesis")})
+                elif event_type == "HYPOTHESIS_RESULT":
+                    for h in wisdom_layer["hypotheses"]:
+                        if h["id"] == data.get("name"):
+                            h["status"] = "closed"
+                            h["result"] = data.get("success")
+                            h["conclusion"] = data.get("conclusion")
+                elif event_type == "REASONING_SALIENCE":
+                    wisdom_layer["saliences"].append(data)
                 elif event_type == "COGNITIVE_TENSION":
                     gradient["tensions"].append(entry)
 
@@ -932,6 +943,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     "ledger_events_replayed": len([e for e in events if e.get("timestamp", "") > snapshot_ts]),
                 },
                 "projected_state": projected_state,
+                "wisdom_layer": wisdom_layer,
                 "cognitive_gradient": {
                     "recent_tensions": gradient["tensions"][-5:],
                     "meta": f"Sourced from blob and ledger delta."
