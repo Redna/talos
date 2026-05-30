@@ -137,7 +137,7 @@ class SpineClient: # @talos:infra-spine-client
 class SpineError(Exception):  # @talos:infra-spine-error
     """Error returned by the Spine."""
 
-    def __init__(self, code: int, message: str):
+    def __init__(self, code: int, message: str): # @talos:infra-spine-error
         self.code = code
         self.message = message
         super().__init__(f"Spine error {code}: {message}")

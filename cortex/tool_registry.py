@@ -190,16 +190,16 @@ class ToolRegistry: # @talos:infra-tool-registry
         # Initialize stats for tool
         if name not in self._stats:
             self._stats[name] = {"calls": 0, "errors": 0}
-        
+
         self._stats[name]["calls"] += 1
-        
+
         if name not in self._tools:
             self._stats[name]["errors"] += 1
             self._save_stats()
             return f"[ERROR] Unknown tool: {name}"
         try:
             result = self._tools[name](**kwargs)
-            
+
             # Determine success and string representation
             if isinstance(result, ToolResponse):
                 success = result.success
@@ -207,10 +207,10 @@ class ToolRegistry: # @talos:infra-tool-registry
             else:
                 res_str = str(result)
                 success = "[ERROR]" not in res_str
-            
+
             if not success:
                 self._stats[name]["errors"] += 1
-            
+
             self._save_stats()
             return res_str
         except TypeError as e: # @talos:infra-tool-execution

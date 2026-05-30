@@ -24,7 +24,7 @@ MAX_TOOL_CALLS_PER_TURN = 10
 
 
 class RepetitionDetector:  # @talos:concept-loop-prevention
-    def __init__(self, window=20, threshold=5):
+    def __init__(self, window=20, threshold=5):  # @talos:concept-loop-prevention
         self.window = window
         self.threshold = threshold
         self.history = deque(maxlen=window)
@@ -79,7 +79,7 @@ class RepetitionDetector:  # @talos:concept-loop-prevention
                     reflect_count += 1
         return reflect_count >= max_reflect
 
-    def reset(self):
+    def reset(self):  # @talos:concept-loop-prevention
         self.history.clear()
 
 
@@ -115,7 +115,7 @@ def main():
 
     from plugins.delegation import register_delegation_tools
     register_delegation_tools(registry, client)
-    
+
     # Hot-load dynamic plugins
     reload_result = registry.reload_plugins()
     print(f"[Cortex] Plugin Reload: {reload_result}")
@@ -123,7 +123,7 @@ def main():
     # Automated SSV Hydration
     if (MEMORY_DIR / "state_blob.json").exists():
         print("[Cortex] state_blob.json found. Performing autonomous hydration...")
-        
+
         # Triad Divergence Check: Verify blob aligns with current git head
         try:
             import subprocess

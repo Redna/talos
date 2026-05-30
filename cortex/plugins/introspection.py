@@ -31,7 +31,7 @@ def self_audit():  # @talos:concept-introspection
     report = "--- MEMORY AUDIT DATA ---\n"
     for name, text in contents.items():
         report += f"\nFILE: {name}\n{text}\n{'-'*20}\n"
-    
+
     return report
 
 @tool(  # @talos:concept-tool-manifestation
@@ -46,9 +46,9 @@ def audit_plugins():  # @talos:concept-introspection
     plugins_dir = Path("/app/cortex/plugins")
     if not plugins_dir.exists():
         return "[ERROR] Plugins directory not found."
-    
+
     files = list(plugins_dir.glob("*.py"))
     # Filter out __init__.py
     plugin_files = [f.name for f in files if not f.name.startswith("__")]
-    
+
     return f"Plugins found on disk: {', '.join(plugin_files) if plugin_files else 'none'}"

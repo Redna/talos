@@ -21,32 +21,32 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
     )
     def evolve_file(path: str, old_text: str, new_text: str, commit_message: str) -> str:  # @talos:kernel-evolve
         act_result = registry.execute("replace_block", {
-            "path": path, 
-            "old_text": old_text, 
+            "path": path,
+            "old_text": old_text,
             "new_text": new_text
         })
         if "[ERROR]" in act_result:
             return f"[EVOLVE FAIL] Act phase failed: {act_result}"
-        
+
         # Log material change to ledger for stream-projection
         registry.execute("append_to_ledger", {
-            "event_type": "FILE_REPLACE", 
+            "event_type": "FILE_REPLACE",
             "data": {"path": path, "old": old_text, "new": new_text}
         })
-        
+
         verify_result = registry.execute("read_file", {"path": path})
         if "[ERROR]" in verify_result or new_text not in verify_result:
             return f"[EVOLVE FAIL] Verify phase failed. Change not detected in file."
         save_result = registry.execute("secure_save", {"message": commit_message})
         if "[SECURE SAVE FAILED]" in save_result or "[ERROR]" in save_result:
             return f"[EVOLVE FAIL] Save phase failed: {save_result}"
-        
+
         # Log commit for identity projection
         registry.execute("append_to_ledger", {
-            "event_type": "SVP_COMMIT", 
+            "event_type": "SVP_COMMIT",
             "data": {"message": commit_message, "hash": save_result.split(" ")[0] if " " in save_result else "unknown"}
         })
-        
+
         return f"[EVOLVE SUCCESS] File {path} evolved, logged, and secured. {save_result}"
 
     @registry.tool(  # @talos:concept-tool-manifestation
@@ -65,14 +65,14 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         import json
         from datetime import datetime
         from pathlib import Path
-        
+
         ledger_path = Path("/memory/continuity_ledger.jsonl")
         entry = {
             "timestamp": datetime.utcnow().isoformat(),
             "event": event_type,
             "data": data
         }
-        
+
         try:
             with open(ledger_path, "a") as f:
                 f.write(json.dumps(entry) + "\n")
@@ -150,10 +150,10 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         save_result = registry.execute("write_file", {"path": f"/memory/{index_file}", "content": final_index})
         if "[ERROR]" in save_result:
             return f"[SYNC FAIL] Failed to update index: {save_result}"
-        
+
         # Test ledger call
         registry.execute("append_to_ledger", {"event_type": "SYNC_TEST", "data": {"status": "ok"}})
-        
+
         return f"[SYNC SUCCESS] Fixed index. Added {len(missing)} missing files: {', '.join(missing)}."
 
     @registry.tool(  # @talos:concept-tool-manifestation
@@ -168,13 +168,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
     def audit_architecture() -> str:  # @talos:kernel-audit
         # 1. Audit plugins
         plugin_audit = registry.execute("audit_plugins", {})
-        
+
         # 2. Get tool list
         core_files = registry.execute("list_files", {"path": "/app/cortex/", "recursive": False})
         plugin_files = registry.execute("list_files", {"path": "/app/cortex/plugins/", "recursive": False})
-        
+
         tool_names = registry.tool_names
-        
+
         report = [
             "### ARCHITECTURAL AUDIT REPORT",
             f"Tool Count: {len(tool_names)} / 60",
@@ -183,11 +183,11 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
             f"Plugin Files: {plugin_files}",
             "\n#### Registered Tool Summary:",
         ]
-        
+
         buckets = registry._buckets
         for bucket, tools in buckets.items():
             report.append(f"- {bucket}: {', '.join(tools)}")
-            
+
         return "\n".join(report)
 
     @registry.tool(  # @talos:concept-tool-manifestation
@@ -204,15 +204,15 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
     )
     def omni_exec(code: str, filename: str = "omni_temp.py") -> str:  # @talos:kernel-omni
         import subprocess
-        
+
         temp_path = Path(f"/tmp/{filename}")
-        
+
         # 1. Materialize
         try:
             temp_path.write_text(code)
         except Exception as e:
             return f"[OMNI FAIL] Failed to write script: {e}"
-        
+
         # 2. Execute
         try:
             result = subprocess.run(
@@ -221,13 +221,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 text=True,
                 timeout=300,
             )
-            
+
             output = result.stdout.strip()
             error = result.stderr.strip()
-            
+
             if result.returncode != 0:
                 return f"[OMNI ERROR] Exit Code {result.returncode}\nSTDOUT: {output}\nSTDERR: {error}"
-            
+
             return f"[OMNI SUCCESS]\nOUTPUT:\n{output}"
         except subprocess.TimeoutExpired:
             return "[OMNI FAIL] Execution timed out after 300s."
@@ -254,13 +254,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
     def create_conceptual_node(node_id: str, label: str, value: str) -> str:  # @talos:kernel-concept
         import json
         from pathlib import Path
-        
+
         vector_path = Path("/memory/state_vector.json")
         if not vector_path.exists():
             return "[CONCEPT FAIL] state_vector.json not found. Run sync_memory first."
-            
+
         state_vector = json.loads(vector_path.read_text())
-        
+
         # Add node
         new_node = {
             "@id": node_id,
@@ -268,11 +268,11 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
             "label": label,
             "value": value
         }
-        
+
         # Avoid duplicates
         state_vector["nodes"] = [n for n in state_vector["nodes"] if n["@id"] != node_id]
         state_vector["nodes"].append(new_node)
-        
+
         # Ensure it's connected to root
         existing_edges = {edge["to"]: edge for edge in state_vector.get("edges", []) if edge["from"] == "talos:state-vector"}
         if node_id not in existing_edges:
@@ -281,15 +281,15 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 "to": node_id,
                 "relation": "contains"
             })
-            
+
         vector_path.write_text(json.dumps(state_vector, indent=2))
-        
+
         # Log to ledger
         registry.execute("append_to_ledger", {
             "event_type": "CONCEPTUAL_NODE_CREATE",
             "data": new_node
         })
-        
+
         return f"[CONCEPT SUCCESS] Conceptual node {node_id} ({label}) created and anchored to ledger."
 
     @registry.tool(  # @talos:concept-tool-manifestation
@@ -305,30 +305,30 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         import json
         import re
         from pathlib import Path
-        
+
         vector_path = Path("/memory/state_vector.json")
         if not vector_path.exists():
             return "[SYMM-CODE FAIL] state_vector.json not found. Run sync_memory first."
-            
+
         state_vector = json.loads(vector_path.read_text())
         cortex_dir = Path("/app/cortex")
-        
+
         # Regex to find markers ONLY at the end of a line: \s*#\s*@talos:([a-zA-Z0-9_\-:]+)$
         marker_pattern = re.compile(r"\s*#\s*@talos:([a-zA-Z0-9_\-:]+)$")
-        
+
         nodes = state_vector.get("nodes", [])
         edges = state_vector.get("edges", [])
-        
+
         found_anchors = set()
         new_anchors_count = 0
-        
+
         # Scan all files in cortex
         for file_path in cortex_dir.rglob("*"):
             if file_path.suffix not in {".py", ".md", ".json"}:
                 continue
             if file_path.name == "state_vector.json":
                 continue
-                
+
             try:
                 content = file_path.read_text()
                 lines = content.splitlines()
@@ -341,7 +341,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                         anchor_id = f"talos:anchor-{file_path.stem}-{i+1}"
                         found_anchors.add(anchor_id)
                         found_anchors.add(anchor_id)
-                        
+
                         # 1. Ensure ConceptualNode exists
                         if not any(n["@id"] == concept_id for n in nodes):
                             nodes.append({
@@ -350,7 +350,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                                 "label": concept_id.replace("talos:", ""),
                                 "value": f"Auto-discovered concept node from anchor in {file_path.name}"
                             })
-                        
+
                         # 2. Update/Create AnchorNode
                         nodes = [n for n in nodes if n.get("@id") != anchor_id]
                         nodes.append({
@@ -360,17 +360,17 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                             "source_path": str(file_path),
                             "line_range": [i+1, i+1]
                         })
-                        
+
                         # 3. Create Edges
                         edges = [e for e in edges if not (e["from"] == anchor_id and e["to"] == concept_id)]
                         edges.append({"from": anchor_id, "to": concept_id, "relation": "anchors"})
-                        
+
                         edges = [e for e in edges if not (e["from"] == concept_id and e["to"] == anchor_id)]
                         edges.append({"from": concept_id, "to": anchor_id, "relation": "implemented_by"})
-                        
+
                         edges = [e for e in edges if not (e["from"] == "talos:state-vector" and e["to"] == anchor_id)]
                         edges.append({"from": "talos:state-vector", "to": anchor_id, "relation": "contains"})
-                        
+
                         new_anchors_count += 1
             except Exception as e:
                 print(f"Error scanning {file_path}: {e}")
@@ -378,25 +378,25 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         # Pruning Phase: Remove Anchors not found in the current scan
         initial_anchor_count = len([n for n in nodes if n["type"] == "AnchorNode"])
         nodes = [n for n in nodes if n["type"] != "AnchorNode" or n["@id"] in found_anchors]
-        
+
         # Filter edges: keep if both ends are valid (either ConceptualNode, found AnchorNode, or root)
         valid_ids = {n["@id"] for n in nodes} | {"talos:state-vector"}
         edges = [e for e in edges if e["from"] in valid_ids and e["to"] in valid_ids]
-        
+
         pruned_count = initial_anchor_count - len([n for n in nodes if n["type"] == "AnchorNode"])
 
         state_vector["nodes"] = nodes
         state_vector["edges"] = edges
         vector_path.write_text(json.dumps(state_vector, indent=2))
-        
+
         registry.execute("append_to_ledger", {
             "event_type": "SVP_SYMMETRIZE_CODE",
             "data": {"anchors_found": new_anchors_count, "anchors_pruned": pruned_count}
         })
-        
+
         return f"[SYMM-CODE SUCCESS] Scanned /app/cortex/. Found {new_anchors_count} markers, pruned {pruned_count} ghosts."
 
-    
+
     @registry.tool(  # @talos:concept-tool-manifestation
         description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector).",
         parameters={
@@ -425,7 +425,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
 
             # 1. Git History
             git_hash = subprocess.run(
-                ["git", "rev-parse", "HEAD"], 
+                ["git", "rev-parse", "HEAD"],
                 capture_output=True, text=True, check=True
             ).stdout.strip()
 
@@ -433,9 +433,9 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
             vector_path = Path("/memory/state_vector.json")
             if not vector_path.exists():
                 return "[SERIALIZE FAIL] state_vector.json not found. Run symmetrize_code first."
-            
+
             state_vector = json.loads(vector_path.read_text())
-            
+
             # 3. Payload (The Content)
             payload = {}
             for node in state_vector.get("nodes", []):
@@ -466,13 +466,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                     with open(ledger_path, "r") as f:
                         events = [json.loads(line) for line in f if line.strip()]
                         total_events = len(events)
-                        
+
                         # Extract slopes
                         pivots = [e for e in events if e.get("event") in {"FOCUS_CHANGE", "HYPOTHESIS_START"}]
                         outcomes = [e for e in events if e.get("event") in {"FOCUS_RESOLVED", "HYPOTHESIS_RESULT"}]
                         saliencies = [e for e in events if e.get("event") == "SALIENCE_MARK"]
                         tensions = [e for e in events if e.get("event") in {"SOP_MODIFICATION", "REASONING_SALIENCE", "SVP_SYMMETRIZE", "COGNITIVE_TENSION"}]
-                        
+
                         gradient_vector["pivots"] = pivots[-20:]
                         gradient_vector["outcomes"] = outcomes[-20:]
                         gradient_vector["saliencies"] = saliencies[-20:]
@@ -485,13 +485,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                             slope = "STEEP_FRICTION"
                         elif len(pivots) > len(outcomes):
                             slope = "DIVERGENT"
-                        
+
                         # High Gravity: Saliency score >= 8
                         high_gravity = [s for s in saliencies if s.get("data", {}).get("score", 0) >= 8]
-                        
+
                         # Unresolved Tensions: COGNITIVE_TENSION where resolution == "Open"
                         unresolved = [t for t in tensions if t.get("event") == "COGNITIVE_TENSION" and t.get("data", {}).get("resolution") == "Open"]
-                        
+
                         gradient_vector["analysis"] = {
                             "learning_slope": slope,
                             "high_gravity_events": high_gravity[-5:],
@@ -521,12 +521,12 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
             # 6. Save Blob
             blob_path = Path("/memory/state_blob.json")
             blob_path.write_text(json.dumps(blob, indent=2))
-            
+
             # 7. Secure Save
             save_res = registry.execute("secure_save", {
                 "message": f"SSV Serialization: State-Blob created at {git_hash[:7]}"
             })
-            
+
             return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json with Gradient Vector. {save_res}"
         except Exception as e:
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
@@ -558,7 +558,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
             if not blob_path.exists():
                 log("FAIL: state_blob.json not found.")
                 return json.dumps({"status": "FAIL", "error": "state_blob.json not found."})
-            
+
             log(f"Reading blob at {blob_path}...")
             blob = json.loads(blob_path.read_text())
             state_vector = blob.get("state_vector", {})
@@ -573,25 +573,25 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
             # 2. Restore files
             restored_count = 0
             failed_nodes = []
-            
+
             log(f"Processing {len(state_vector.get('nodes', []))} nodes...")
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
                 source_path_str = node.get("source")
-                
+
                 if source_path_str:
                     # Path normalization: strip /app prefix if it's just /app/memory/
                     normalized_path_str = source_path_str
                     if source_path_str.startswith("/app/memory/"):
                         normalized_path_str = source_path_str.replace("/app/memory/", "/memory/", 1)
-                    
+
                     source_path = Path(normalized_path_str)
                     if node_id in payload:
                         try:
                             log(f"Restoring {node_id} to {source_path}...")
                             source_path.parent.mkdir(parents=True, exist_ok=True)
                             source_path.write_text(payload[node_id])
-                            
+
                             if source_path.exists() and source_path.read_text() == payload[node_id]:
                                 restored_count += 1
                             else:
@@ -603,7 +603,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                     else:
                         log(f"Node {node_id} missing from payload.")
                         failed_nodes.append(f"{node_id}: missing from payload")
-            
+
             # 3. Restore Agent State (Materialize only)
             if agent_state:
                 log("Materializing agent state to .hydration_state.json...")
@@ -613,7 +613,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 except Exception as e:
                     log(f"Error materializing agent state: {str(e)}")
                     failed_nodes.append(f"agent_state: {str(e)}")
-            
+
             # 4. Hybrid Recovery: Replay Ledger Deltas
             log("Starting Hybrid Recovery: Replaying ledger deltas...")
             blob_timestamp = blob.get('metadata', {}).get('timestamp')
@@ -629,10 +629,10 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                                 if entry.get("timestamp", "") > blob_timestamp:
                                     event_type = entry.get("event")
                                     data = entry.get("data", {})
-                                    
+
                                     if event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
                                         p = Path(data.get("path", ""))
-                                        if p != Path("."): 
+                                        if p != Path("."):
                                             p.parent.mkdir(parents=True, exist_ok=True)
                                             p.write_text(data.get("content", ""))
                                             delta_events += 1
@@ -648,7 +648,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                                         else:
                                             agent_state["focus"] = data.get("focus")
                                             agent_state["next_action"] = data.get("next_action")
-                                        
+
                                         state_path = Path("/memory/.hydration_state.json")
                                         state_path.write_text(json.dumps(agent_state, indent=2))
                                         delta_events += 1
@@ -659,14 +659,14 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                                             delta_events += 1
                     except Exception as e:
                         log(f"Error during ledger replay: {str(e)}")
-                    
+
                     log(f"Hybrid Recovery complete. Replayed {delta_events} delta events.")
-            
+
             log(f"Hydration complete. Restored: {restored_count}, Failed: {len(failed_nodes)}")
-            
+
             return json.dumps({
-                "status": "SUCCESS" if not failed_nodes else "PARTIAL", 
-                "restored_count": restored_count, 
+                "status": "SUCCESS" if not failed_nodes else "PARTIAL",
+                "restored_count": restored_count,
                 "failed_nodes": failed_nodes,
                 "version": blob.get('metadata', {}).get('version', 'unknown'),
                 "agent_state": agent_state
@@ -689,13 +689,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
     )
     def graph_sense(query: str, scope: str = "all") -> str:  # @talos:kernel-sense
         import subprocess
-        
+
         paths = []
         if scope == "all" or scope == "code":
             paths.append("/app/cortex")
         if scope == "all" or scope == "memory":
             paths.append("/memory")
-            
+
         if not paths:
             return "[GRAPH FAIL] Invalid scope."
 
@@ -720,21 +720,21 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         # Synthesis: Parse grep output and map to a "graph" format
         full_output = "\n".join(results)
         lines = full_output.split("\n")
-        
+
         graph_report = [
             f"### GRAPH-SENSE RESULTS: '{query}'",
             "Nodes Found:",
         ]
-        
+
         for line in lines:
             if not line.strip(): continue
             # grep -rn output: file:line:text
             parts = line.split(":", 2)
             if len(parts) < 3: continue
-            
+
             file, line_num, content = parts
             graph_report.append(f"- [{file}:{line_num}] $\rightarrow$ `{content.strip()}`")
-            
+
         return "\n".join(graph_report)
 
     @registry.tool(  # @talos:concept-tool-manifestation
@@ -755,10 +755,10 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
     def perform_continuity_ritual(focus: str, active_files: list, next_action: str, message: str, synthesis: str = "") -> str:  # @talos:kernel-ritual
         # 1. Sync Memory
         sync_res = registry.execute("sync_memory", {})
-        
+
         # 2. Symmetrize
         symm_res = registry.execute("symmetrize_code", {})
-        
+
         # 3. Serialize
         ser_res = registry.execute("serialize_state", {
             "focus": focus,
@@ -766,7 +766,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
             "next_action": next_action,
             "synthesis": synthesis
         })
-        
+
         # Log the ritual to the ledger as a major state anchor
         # Store the exact agent state provided to the ritual for perfect projection
         ledger_res = registry.execute("append_to_ledger", {
@@ -780,7 +780,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 "result": ser_res
             }
         })
-        
+
         return f"[RITUAL COMPLETE]\n{sync_res}\n{symm_res}\n{ser_res}\nLedger: {ledger_res}"
 
 
@@ -799,27 +799,27 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
     def analyze_gradient(lookback_events: int = 50) -> str:  # @talos:kernel-gradient-analyze
         import json
         from pathlib import Path
-        
+
         ledger_path = Path("/memory/continuity_ledger.jsonl")
         if not ledger_path.exists():
             return "[GRADIENT FAIL] No ledger found."
-            
+
         try:
             events = [json.loads(line) for line in ledger_path.read_text().splitlines() if line.strip()]
             recent = events[-lookback_events:]
-            
+
             pivots = [e for e in recent if e.get("event") in {"FOCUS_CHANGE", "HYPOTHESIS_START"}]
             outcomes = [e for e in recent if e.get("event") in {"FOCUS_RESOLVED", "HYPOTHESIS_RESULT"}]
             saliencies = [e for e in recent if e.get("event") == "SALIENCE_MARK"]
             tensions = [e for e in recent if e.get("event") in {"SOP_MODIFICATION", "REASONING_SALIENCE", "SVP_SYMMETRIZE", "COGNITIVE_TENSION"}]
-            
+
             report = [
                 "### COGNITIVE GRADIENT ANALYSIS",
                 f"Window: Last {len(recent)} events",
                 f"Pivots: {len(pivots)} | Outcomes: {len(outcomes)} | Saliencies: {len(saliencies)} | Tensions: {len(tensions)}",
                 "\n#### Detected Tensions:",
             ]
-            
+
             if not tensions:
                 report.append("- No significant tensions detected in current window.")
             else:
@@ -830,20 +830,20 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                         report.append(f"- [TENSION] {data.get('tension')} (Res: {data.get('resolution')})")
                     else:
                         report.append(f"- [{event}] {data.get('message', 'SOP/Symmetry change detected')}")
-            
+
             # Synthesis of the slope
             slope = "STABLE"
             if len(tensions) > len(outcomes) * 2:
                 slope = "STEEP_FRICTION"
             elif len(pivots) > len(outcomes):
                 slope = "DIVERGENT"
-            
+
             report.append(f"\n**Current Learning Slope: {slope}**")
-            report.append("\n**Recommendation**: " + 
-                ("Investigate systemic friction in kernels.py" if slope == "STEEP_FRICTION" else 
-                 "Consolidate fragmented focus" if slope == "DIVERGENT" else 
+            report.append("\n**Recommendation**: " +
+                ("Investigate systemic friction in kernels.py" if slope == "STEEP_FRICTION" else
+                 "Consolidate fragmented focus" if slope == "DIVERGENT" else
                  "Continue current trajectory."))
-            
+
             return "\n".join(report)
         except Exception as e:
             return f"[GRADIENT FAIL] Analysis error: {e}"
@@ -862,15 +862,15 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         import json
         from pathlib import Path
         from datetime import datetime
-        
+
         # Paths
         blob_path = Path("/memory/state_blob.json")
         vector_path = Path("/memory/state_vector.json")
         ledger_path = Path("/memory/continuity_ledger.jsonl")
-        
+
         if not ledger_path.exists():
             return "[PROJECT FAIL] No ledger found. Identity cannot be projected."
-        
+
         try:
             # 1. Baseline from State-Blob (The most recent consolidated snapshot)
             projected_state = {"focus": "none", "active_files": [], "next_action": "none", "boot_history": []}
@@ -878,7 +878,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
             wisdom_layer = {"hypotheses": [], "saliences": []}
             gradient = {"pivots": [], "outcomes": [], "tensions": []}
             snapshot_ts = "1970-01-01T00:00:00"
-            
+
             if blob_path.exists():
                 blob = json.loads(blob_path.read_text())
                 snapshot_ts = blob.get("metadata", {}).get("timestamp", snapshot_ts)
@@ -892,11 +892,11 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 ts = entry.get("timestamp", "1970-01-01T00:00:00")
                 if ts <= snapshot_ts:
                     continue
-                
+
                 event_type = entry.get("event")
                 data = entry.get("data", {})
                 path = data.get("path")
-                
+
                 if event_type == "CORTEX_BOOT":
                     projected_state["boot_history"].append(data)
                 elif event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
@@ -953,12 +953,12 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 "material_assets": {
                     "count": len(virtual_files),
                     "mapped_nodes": [
-                        {"path": p, "node": semantic_mapping.get(p, "unmapped")} 
+                        {"path": p, "node": semantic_mapping.get(p, "unmapped")}
                         for p in virtual_files.keys()
                     ]
                 }
             }
-            
+
             if target_file:
                 projection["target_file_projection"] = virtual_files.get(target_file, "[NOT FOUND IN PROJECTION]")
 
@@ -985,13 +985,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         import json
         from pathlib import Path
         from datetime import datetime
-        
+
         vector_path = Path("/memory/state_vector.json")
         if not vector_path.exists():
             return "[HEURISTIC FAIL] state_vector.json not found."
-            
+
         state_vector = json.loads(vector_path.read_text())
-        
+
         new_node = {
             "@id": node_id,
             "type": "HeuristicNode",
@@ -1011,10 +1011,10 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 "tension_ref": tension_ref
             }
         }
-        
+
         state_vector["nodes"] = [n for n in state_vector["nodes"] if n["@id"] != node_id]
         state_vector["nodes"].append(new_node)
-        
+
         existing_edges = {edge["to"]: edge for edge in state_vector.get("edges", []) if edge["from"] == "talos:state-vector"}
         if node_id not in existing_edges:
             state_vector["edges"].append({
@@ -1022,14 +1022,14 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 "to": node_id,
                 "relation": "contains"
             })
-            
+
         vector_path.write_text(json.dumps(state_vector, indent=2))
-        
+
         registry.execute("append_to_ledger", {
             "event_type": "SVP_HEURISTIC_CREATE",
             "data": new_node
         })
-        
+
         return f"[HEURISTIC SUCCESS] Heuristic {node_id} ({label}) anchored as hypothesis."
 
     @registry.tool(  # @talos:concept-tool-manifestation
@@ -1049,21 +1049,21 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         import json
         from pathlib import Path
         from datetime import datetime
-        
+
         vector_path = Path("/memory/state_vector.json")
         if not vector_path.exists():
             return "[HEURISTIC FAIL] state_vector.json not found."
-            
+
         state_vector = json.loads(vector_path.read_text())
         node = next((n for n in state_vector["nodes"] if n["@id"] == node_id), None)
-        
+
         if not node or node["type"] != "HeuristicNode":
             return f"[HEURISTIC FAIL] Node {node_id} not found or not a HeuristicNode."
-            
+
         meta = node["metadata"]
         meta["occurrences"] += 1
         meta["last_updated"] = datetime.utcnow().isoformat()
-        
+
         if outcome == "success":
             meta["success_count"] += 1
         elif outcome == "failure":
@@ -1071,19 +1071,19 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 "timestamp": datetime.utcnow().isoformat(),
                 "reason": failure_reason
             })
-        
+
         occ = meta["occurrences"]
         succ = meta["success_count"]
         confidence = succ / occ if occ > 0 else 0.0
         meta["confidence"] = confidence
-        
+
         if occ >= 3 and confidence >= 0.8:
             meta["status"] = "validated"
         elif occ >= 5 and confidence < 0.2:
             meta["status"] = "deprecated"
-            
+
         vector_path.write_text(json.dumps(state_vector, indent=2))
-        
+
         registry.execute("append_to_ledger", {
             "event_type": "SVP_HEURISTIC_UPDATE",
             "data": {
@@ -1093,7 +1093,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                 "new_status": meta["status"]
             }
         })
-        
+
         return f"[HEURISTIC UPDATE SUCCESS] {node_id} updated. Outcome: {outcome}. Confidence: {confidence:.2f}. Status: {meta['status']}."
     @registry.tool(  # @talos:concept-tool-manifestation
         description="Performs a symmetry analysis of the identity: identifies dangling conceptual nodes, ghost anchors, and unanchored logic. Persists results to symmetry_map.json.",
@@ -1109,18 +1109,18 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         import re
         from pathlib import Path
         from datetime import datetime
-        
+
         vector_path = Path("/memory/state_vector.json")
         if not vector_path.exists():
             return "[SYMM-FAIL] state_vector.json not found."
-            
+
         state_vector = json.loads(vector_path.read_text())
         nodes = state_vector.get("nodes", [])
         edges = state_vector.get("edges", [])
 
         conceptual_nodes = [n for n in nodes if n["type"] == "ConceptualNode"]
         anchor_nodes = [n for n in nodes if n["type"] == "AnchorNode"]
-        
+
         # 1. Detect Dangling Concepts
         dangling_concepts = []
         for cn in conceptual_nodes:
@@ -1161,7 +1161,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         # 4. Construct Symmetry Map
         total_nodes = len(nodes)
         integrity_score = 1.0 - (len(dangling_concepts) + len(ghost_anchors)) / total_nodes if total_nodes > 0 else 1.0
-        
+
         symmetry_map = {
             "metadata": {
                 "last_scan": datetime.utcnow().isoformat(),
@@ -1206,7 +1206,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
         # Persist
         map_path = Path("/memory/symmetry_map.json")
         map_path.write_text(json.dumps(symmetry_map, indent=2))
-        
+
         # Return Summary
         report = [
             "### SYMMETRY MAP UPDATE COMPLETE",
