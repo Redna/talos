@@ -116,7 +116,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def mark_tension(tension: str, resolution: str = "Open") -> str:
+    def mark_tension(tension: str, resolution: str = "Open") -> str: # @talos:talos:kernel-tension
         registry.execute("append_to_ledger", {
             "event_type": "COGNITIVE_TENSION",
             "data": {
@@ -979,7 +979,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def create_heuristic_node(node_id: str, label: str, value: str, tension_ref: str = "none", source_events: list = None) -> str:
+    def create_heuristic_node(node_id: str, label: str, value: str, tension_ref: str = "none", source_events: list = None) -> str: # @talos:talos:kernel-heuristic-create
         import json
         from pathlib import Path
         from datetime import datetime
@@ -1043,7 +1043,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def update_heuristic_validation(node_id: str, outcome: str, failure_reason: str = None) -> str:
+    def update_heuristic_validation(node_id: str, outcome: str, failure_reason: str = None) -> str: # @talos:talos:kernel-heuristic-update
         import json
         from pathlib import Path
         from datetime import datetime
