@@ -780,7 +780,6 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return f"[GRADIENT FAIL] Analysis error: {e}"
 
     @registry.tool(
-    @registry.tool(
         description="Symmetrizes source code markers into the State-Vector. Scans for '# @talos:node-id' and creates/updates AnchorNodes.",
         parameters={
             "type": "object",
