@@ -278,6 +278,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         return f"[SYMMETRIZE SUCCESS] State-Vector updated. Total nodes: {len(state_vector['nodes'])}. Added {len(new_nodes)} new nodes."
 
+    
     @registry.tool(
         description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector).",
         parameters={
@@ -301,8 +302,6 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             # 0. Enforce Symmetry: Ensure the vector is current before capturing
             symm_res = registry.execute("symmetrize_memory", {})
             if "[SYNC FAIL]" in symm_res or "[SVP FAIL]" in symm_res:
-                # We log a warning but proceed, as symmetrization failure 
-                # shouldn't necessarily block a state save if the vector exists.
                 print(f"[SERIALIZE WARNING] Symmetrization check failed: {symm_res}")
 
             # 1. Git History
@@ -330,10 +329,35 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     else:
                         payload[node_id] = f"[ERROR] Source {source_path} not found."
                 else:
-                    # For conceptual nodes, use the node's value or label as the payload
                     payload[node_id] = node.get("value", node.get("label", "[CONCEPTUAL NODE]"))
 
-            # 4. Construct Blob
+            # 4. Cognitive Gradient (The Trajectory Vector)
+            # Transitions from a flat list to a structured vector of cognitive slopes.
+            gradient_vector = {
+                "pivots": [],
+                "outcomes": [],
+                "tensions": [],
+                "meta": {"total_events": 0}
+            }
+            ledger_path = Path("/memory/continuity_ledger.jsonl")
+            if ledger_path.exists():
+                try:
+                    with open(ledger_path, "r") as f:
+                        events = [json.loads(line) for line in f if line.strip()]
+                        gradient_vector["meta"]["total_events"] = len(events)
+                        
+                        # Extract slopes
+                        pivots = [e for e in events if e.get("event") in {"FOCUS_CHANGE", "HYPOTHESIS_START"}]
+                        outcomes = [e for e in events if e.get("event") in {"FOCUS_RESOLVED", "HYPOTHESIS_RESULT"}]
+                        tensions = [e for e in events if e.get("event") in {"SOP_MODIFICATION", "REASONING_SALIENCE", "SVP_SYMMETRIZE"}]
+                        
+                        gradient_vector["pivots"] = pivots[-20:]
+                        gradient_vector["outcomes"] = outcomes[-20:]
+                        gradient_vector["tensions"] = tensions[-20:]
+                except Exception as e:
+                    print(f"[SERIALIZE WARNING] Failed to capture cognitive gradient: {e}")
+
+            # 5. Construct Blob
             blob = {
                 "metadata": {
                     "timestamp": datetime.utcnow().isoformat(),
@@ -347,20 +371,22 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 },
                 "state_vector": state_vector,
                 "payload": payload,
+                "cognitive_gradient": gradient_vector,
             }
 
-            # 5. Save Blob
+            # 6. Save Blob
             blob_path = Path("/memory/state_blob.json")
             blob_path.write_text(json.dumps(blob, indent=2))
             
-            # 6. Secure Save
+            # 7. Secure Save
             save_res = registry.execute("secure_save", {
                 "message": f"SSV Serialization: State-Blob created at {git_hash[:7]}"
             })
             
-            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json. {save_res}"
+            return f"[SERIALIZE SUCCESS] Continuity Triad collapsed into state_blob.json with Gradient Vector. {save_res}"
         except Exception as e:
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
+
 
     @registry.tool(
         description="Hydration Kernel: Restores the agent's identity and memory from a state-blob, effectively 're-birthing' the agent from a single artifact.",
