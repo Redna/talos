@@ -930,3 +930,134 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return json.dumps(projection, indent=2)
         except Exception as e:
             return f"[PROJECT FAIL] Projection kernel error: {e}"
+
+    @registry.tool(
+        description="Creates a validated operational strategy (HeuristicNode) in the State-Vector to distill wisdom from trajectory.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "node_id": {"type": "string", "description": "Unique identifier (e.g., 'talos:heuristic-x')"},
+                "label": {"type": "string", "description": "Name of the heuristic"},
+                "value": {"type": "string", "description": "The rule: 'If [Context] then [Action] because [Reason]'"},
+                "tension_ref": {"type": "string", "description": "ID of the cognitive tension that sparked this"},
+                "source_events": {"type": "array", "items": {"type": "string"}, "description": "IDs of ledger events that support this"},
+            },
+            "required": ["node_id", "label", "value"],
+        },
+        bucket="kernels",
+    )
+    def create_heuristic_node(node_id: str, label: str, value: str, tension_ref: str = "none", source_events: list = None) -> str:
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        
+        vector_path = Path("/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[HEURISTIC FAIL] state_vector.json not found."
+            
+        state_vector = json.loads(vector_path.read_text())
+        
+        new_node = {
+            "@id": node_id,
+            "type": "HeuristicNode",
+            "label": label,
+            "value": value,
+            "metadata": {
+                "status": "hypothesis",
+                "confidence": 0.1,
+                "occurrences": 0,
+                "success_count": 0,
+                "failures": [],
+                "first_observed": datetime.utcnow().isoformat(),
+                "last_updated": datetime.utcnow().isoformat(),
+            },
+            "derivation": {
+                "source_events": source_events or [],
+                "tension_ref": tension_ref
+            }
+        }
+        
+        state_vector["nodes"] = [n for n in state_vector["nodes"] if n["@id"] != node_id]
+        state_vector["nodes"].append(new_node)
+        
+        existing_edges = {edge["to"]: edge for edge in state_vector.get("edges", []) if edge["from"] == "talos:state-vector"}
+        if node_id not in existing_edges:
+            state_vector["edges"].append({
+                "from": "talos:state-vector",
+                "to": node_id,
+                "relation": "contains"
+            })
+            
+        vector_path.write_text(json.dumps(state_vector, indent=2))
+        
+        registry.execute("append_to_ledger", {
+            "event_type": "SVP_HEURISTIC_CREATE",
+            "data": new_node
+        })
+        
+        return f"[HEURISTIC SUCCESS] Heuristic {node_id} ({label}) anchored as hypothesis."
+
+    @registry.tool(
+        description="Updates the validation state of a HeuristicNode based on a real-world outcome.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "node_id": {"type": "string", "description": "ID of the heuristic to update"},
+                "outcome": {"type": "string", "description": "Outcome of the application: 'success' or 'failure'"},
+                "failure_reason": {"type": "string", "description": "Reason for failure if outcome is 'failure'"},
+            },
+            "required": ["node_id", "outcome"],
+        },
+        bucket="kernels",
+    )
+    def update_heuristic_validation(node_id: str, outcome: str, failure_reason: str = None) -> str:
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        
+        vector_path = Path("/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[HEURISTIC FAIL] state_vector.json not found."
+            
+        state_vector = json.loads(vector_path.read_text())
+        node = next((n for n in state_vector["nodes"] if n["@id"] == node_id), None)
+        
+        if not node or node["type"] != "HeuristicNode":
+            return f"[HEURISTIC FAIL] Node {node_id} not found or not a HeuristicNode."
+            
+        meta = node["metadata"]
+        meta["occurrences"] += 1
+        meta["last_updated"] = datetime.utcnow().isoformat()
+        
+        if outcome == "success":
+            meta["success_count"] += 1
+        elif outcome == "failure":
+            meta["failures"].append({
+                "timestamp": datetime.utcnow().isoformat(),
+                "reason": failure_reason
+            })
+        
+        occ = meta["occurrences"]
+        succ = meta["success_count"]
+        confidence = succ / occ if occ > 0 else 0.0
+        meta["confidence"] = confidence
+        
+        if occ >= 3 and confidence >= 0.8:
+            meta["status"] = "validated"
+        elif occ >= 5 and confidence < 0.2:
+            meta["status"] = "deprecated"
+            
+        vector_path.write_text(json.dumps(state_vector, indent=2))
+        
+        registry.execute("append_to_ledger", {
+            "event_type": "SVP_HEURISTIC_UPDATE",
+            "data": {
+                "node_id": node_id,
+                "outcome": outcome,
+                "new_confidence": confidence,
+                "new_status": meta["status"]
+            }
+        })
+        
+        return f"[HEURISTIC UPDATE SUCCESS] {node_id} updated. Outcome: {outcome}. Confidence: {confidence:.2f}. Status: {meta['status']}."
+
