@@ -11,7 +11,7 @@ class AgentState: # @talos:infra-agent-state
         self.total_tokens_consumed: int = 0
         self._load_state()
 
-    def _load_state(self):
+    def _load_state(self): # @talos:infra-state-load
         state_file = self.memory_dir / ".agent_state.json"
         if state_file.exists():
             data = json.loads(state_file.read_text())
