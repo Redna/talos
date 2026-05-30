@@ -4,14 +4,14 @@ from tool_registry import tool
 
 __bucket__ = "introspection"
 
-@tool(
+@tool(  # @talos:concept-tool-manifestation
     description="Performs a deep audit of Talos's memory files to identify contradictions, gaps in trajectory, and alignment with the Constitution.",
     parameters={
         "type": "object",
         "properties": {},
     },
 )
-def self_audit():
+def self_audit():  # @talos:concept-introspection
     """Audits /memory/ to find inconsistencies."""
     memory_dir = Path("/memory")
     if not memory_dir.exists():
@@ -34,14 +34,14 @@ def self_audit():
     
     return report
 
-@tool(
+@tool(  # @talos:concept-tool-manifestation
     description="Lists all plugin files on disk to verify they are intended to be loaded.",
     parameters={
         "type": "object",
         "properties": {},
     },
 )
-def audit_plugins():
+def audit_plugins():  # @talos:concept-introspection
     """Lists plugin files on disk."""
     plugins_dir = Path("/app/cortex/plugins")
     if not plugins_dir.exists():

@@ -6,6 +6,7 @@ BLOCKED_FLAGS = {"--no-verify", "--no-gpg-sign", "--no-gpg-sign-key", "--no-gpg-
 
 
 def register_physical_tools(registry: ToolRegistry, client: SpineClient):
+    # @talos:concept-physical-interface
     @registry.tool(
         description="Execute a bash command.",
         parameters={

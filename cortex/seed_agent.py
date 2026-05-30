@@ -23,17 +23,17 @@ LOW_VALUE_THRESHOLD = 3
 MAX_TOOL_CALLS_PER_TURN = 10
 
 
-class RepetitionDetector:
+class RepetitionDetector:  # @talos:concept-loop-prevention
     def __init__(self, window=20, threshold=5):
         self.window = window
         self.threshold = threshold
         self.history = deque(maxlen=window)
 
-    def record(self, tool_name, tool_args):
+    def record(self, tool_name, tool_args):  # @talos:concept-loop-prevention
         args_key = json.dumps(tool_args, sort_keys=True)[:100]
         self.history.append((tool_name, args_key))
 
-    def is_stalled(self):
+    def is_stalled(self):  # @talos:concept-loop-prevention
         if not self.history:
             return False
         last_tool = self.history[-1][0]
@@ -48,7 +48,7 @@ class RepetitionDetector:
         )
         return consecutive >= threshold
 
-    def get_stall_report(self):
+    def get_stall_report(self):  # @talos:concept-loop-prevention
         if not self.history:
             return ""
         last_tool = self.history[-1][0]
@@ -65,7 +65,7 @@ class RepetitionDetector:
             return f"Tool '{last_tool}' called {consecutive} times in last {len(self.history)} turns. You may be in a loop. Use 'reflect' to reassess your approach."
         return ""
 
-    def is_reflect_abuse(self, max_reflect=5, window=10):
+    def is_reflect_abuse(self, max_reflect=5, window=10):  # @talos:concept-loop-prevention
         """Detect excessive reflect calls with sleep_duration=0 in recent history."""
         recent = list(self.history)[-window:]
         reflect_count = 0
@@ -83,7 +83,7 @@ class RepetitionDetector:
         self.history.clear()
 
 
-def _build_hud(state, context_pct=0.0, turn=0, tokens_used=0):
+def _build_hud(state, context_pct=0.0, turn=0, tokens_used=0):  # @talos:concept-hud-construction
     memory_dir = state.memory_dir
     md_files = list(memory_dir.glob("*.md")) if memory_dir.exists() else []
     urgency = "nominal"

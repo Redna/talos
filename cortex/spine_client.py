@@ -8,14 +8,14 @@ import time
 from typing import Any, Optional
 
 
-class SpineClient:
+class SpineClient: # @talos:infra-spine-client
     """Client for communicating with the Spine via Unix domain socket."""
 
-    def __init__(self, socket_path: str = "/tmp/spine.sock"):
+    def __init__(self, socket_path: str = "/tmp/spine.sock"): # @talos:infra-spine-client
         self.socket_path = socket_path
         self._request_id = 0
 
-    def _send_request(self, method: str, params: dict, retries: int = 5) -> dict:
+    def _send_request(self, method: str, params: dict, retries: int = 5) -> dict: # @talos:infra-spine-retry
         """Send a JSON-RPC request with exponential backoff on transport errors."""
         last_error = None
         for attempt in range(retries):
@@ -31,39 +31,39 @@ class SpineClient:
                 raise
         raise last_error or SpineError(-32000, "Max retries exceeded")
 
-    def _send_request_once(self, method: str, params: dict) -> dict:
+    def _send_request_once(self, method: str, params: dict) -> dict: # @talos:infra-spine-rpc
         """Send a single JSON-RPC request (original logic)."""
-        self._request_id += 1
-        request = {
+        self._request_id += 1 # @talos:infra-spine-rpc
+        request = { # @talos:infra-spine-rpc
             "jsonrpc": "2.0",
             "id": self._request_id,
             "method": method,
             "params": params,
         }
 
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) # @talos:infra-spine-transport
         sock.settimeout(300)
         sock.connect(self.socket_path)
         try:
-            sock.sendall((json.dumps(request) + "\n").encode("utf-8"))
+            sock.sendall((json.dumps(request) + "\n").encode("utf-8")) # @talos:infra-spine-transport
             response_data = b""
             max_buffer = 10 * 1024 * 1024
             while True:
-                chunk = sock.recv(65536)
-                if not chunk:
+                chunk = sock.recv(65536) # @talos:infra-spine-transport
+                if not chunk: # @talos:infra-spine-transport
                     raise SpineError(
                         -32000,
                         "Connection closed by Spine before receiving a complete response",
                     )
-                response_data += chunk
+                response_data += chunk # @talos:infra-spine-transport
                 if len(response_data) > max_buffer:
                     raise SpineError(
                         -32000,
                         f"Response exceeded maximum buffer size of {max_buffer} bytes",
                     )
-                if b"\n" in response_data:
+                if b"\n" in response_data: # @talos:infra-spine-transport
                     break
-            response = json.loads(response_data.decode("utf-8").strip())
+            response = json.loads(response_data.decode("utf-8").strip()) # @talos:infra-spine-rpc
         except (socket.timeout, json.JSONDecodeError) as e:
             raise SpineError(-32000, f"Communication error: {e}")
         finally:
@@ -73,7 +73,7 @@ class SpineClient:
             raise SpineError(response["error"]["code"], response["error"]["message"])
         return response.get("result", {})
 
-    def generate(self, focus: str, tools: list[dict], hud_data: dict) -> dict:
+    def generate(self, focus: str, tools: list[dict], hud_data: dict) -> dict:  # @talos:infra-spine-facade
         """State-accumulating loop pass (formerly think)."""
         return self._send_request(
             "generate",
@@ -84,18 +84,18 @@ class SpineClient:
             },
         )
 
-    def think(self, focus: str, tools: list[dict], hud_data: dict) -> dict:
+    def think(self, focus: str, tools: list[dict], hud_data: dict) -> dict:  # @talos:infra-spine-facade
         """Backward-compat alias for generate()."""
         return self.generate(focus, tools, hud_data)
 
-    def stateless_generate(self, messages: list[dict], tools: list[dict]) -> dict:
+    def stateless_generate(self, messages: list[dict], tools: list[dict]) -> dict:  # @talos:infra-spine-facade
         """Raw decoupled pass-through generation (formerly stateless_think)."""
         return self._send_request(
             "stateless_generate",
             {"messages": messages, "tools": tools},
         )
 
-    def tool_result(self, tool_call_id: str, output: str, success: bool) -> dict:
+    def tool_result(self, tool_call_id: str, output: str, success: bool) -> dict:  # @talos:infra-spine-facade
         """Return tool execution result to the Spine."""
         return self._send_request(
             "tool_result",
@@ -106,7 +106,7 @@ class SpineClient:
             },
         )
 
-    def request_fold(self, synthesis: str, current_focus: str = "", active_files: list[str] | None = None, next_action: str = "") -> dict:
+    def request_fold(self, synthesis: str, current_focus: str = "", active_files: list[str] | None = None, next_action: str = "") -> dict:  # @talos:infra-spine-facade
         """Request a context fold with structured handover fields."""
         return self._send_request("request_fold", {
             "synthesis": synthesis,
@@ -115,26 +115,26 @@ class SpineClient:
             "next_action": next_action,
         })
 
-    def request_restart(self, reason: str) -> dict:
+    def request_restart(self, reason: str) -> dict:  # @talos:infra-spine-facade
         """Request a clean restart of the Cortex process."""
         return self._send_request("request_restart", {"reason": reason})
 
-    def send_message(self, channel: str, text: str) -> dict:
+    def send_message(self, channel: str, text: str) -> dict:  # @talos:infra-spine-facade
         """Send a message to the creator via Spine-owned channels."""
         return self._send_request("send_message", {"channel": channel, "text": text})
 
-    def emit_event(self, event_type: str, payload: dict) -> dict:
+    def emit_event(self, event_type: str, payload: dict) -> dict:  # @talos:infra-spine-facade
         """Log a custom event."""
         return self._send_request(
             "emit_event", {"type": event_type, "payload": payload}
         )
 
-    def get_state(self, keys: list[str]) -> dict:
+    def get_state(self, keys: list[str]) -> dict:  # @talos:infra-spine-facade
         """Query the Spine's authoritative view of agent state."""
         return self._send_request("get_state", {"keys": keys})
 
 
-class SpineError(Exception):
+class SpineError(Exception):  # @talos:infra-spine-error
     """Error returned by the Spine."""
 
     def __init__(self, code: int, message: str):

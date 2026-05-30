@@ -10,8 +10,8 @@ from tool_registry import ToolRegistry
 MAX_WORKER_TURNS = 8
 
 
-def register_delegation_tools(registry: ToolRegistry, client: SpineClient):
-    @registry.tool(
+def register_delegation_tools(registry: ToolRegistry, client: SpineClient):  # @talos:concept-delegation
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Delegate a self-contained task to an isolated worker sub-agent with a fresh context window.",
         parameters={
             "type": "object",
@@ -34,7 +34,7 @@ def register_delegation_tools(registry: ToolRegistry, client: SpineClient):
         },
         bucket="delegation",
     )
-    def delegate_task(instructions: str, target_file: str = "", buckets: list | None = None) -> str:
+    def delegate_task(instructions: str, target_file: str = "", buckets: list | None = None) -> str:  # @talos:concept-delegation
         system_prompt = (
             "You are an isolated worker sub-agent. Execute the assigned task "
             "using only the tools provided. When complete, state your final answer "

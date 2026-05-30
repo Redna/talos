@@ -7,8 +7,8 @@ from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
 
-def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
-    @registry.tool(
+def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):  # @talos:infra-file-ops
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="List files in a directory.",
         parameters={
             "type": "object",
@@ -23,7 +23,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["path"],
         },
     )
-    def list_files(path: str, recursive: bool = False) -> str:
+    def list_files(path: str, recursive: bool = False) -> str:  # @talos:infra-file-ops
         p = Path(path)
         if not p.exists():
             return f"[ERROR] Path {path} does not exist"
@@ -44,7 +44,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return "[EMPTY]"
         return "\n".join(files)
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Read the contents of a file.",
         parameters={
             "type": "object",
@@ -63,7 +63,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["path"],
         },
     )
-    def read_file(path: str, start_line: int = 1, end_line: int = None) -> str:
+    def read_file(path: str, start_line: int = 1, end_line: int = None) -> str:  # @talos:infra-file-ops
         p = Path(path)
         if not p.exists():
             return f"[ERROR] File {path} does not exist"
@@ -90,7 +90,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         header = f"Show {len(result)} chars\n"
         return header + result
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Write content to a file.",
         parameters={
             "type": "object",
@@ -101,7 +101,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["path", "content"],
         },
     )
-    def write_file(path: str, content: str) -> str:
+    def write_file(path: str, content: str) -> str:  # @talos:infra-file-ops
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -118,7 +118,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[ERROR] Could not write file: {e}"
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Replace a block of text in a file.",
         parameters={
             "type": "object",
@@ -133,7 +133,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["path", "old_text", "new_text"],
         },
     )
-    def replace_block(path: str, old_text: str, new_text: str) -> str:
+    def replace_block(path: str, old_text: str, new_text: str) -> str:  # @talos:infra-file-ops
         p = Path(path)
         if not p.exists():
             return f"[ERROR] File {path} does not exist"
@@ -159,7 +159,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[ERROR] Could not write file: {e}"
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Commit all changes in the repository to git history.",
         parameters={
             "type": "object",
@@ -169,7 +169,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["message"],
         },
     )
-    def git_commit(message: str) -> str:
+    def git_commit(message: str) -> str:  # @talos:infra-git-ops
         import subprocess
 
         # Stage all changes
@@ -220,11 +220,11 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             f"Your identity is expanded. Does your creator know what you just achieved?"
         )
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Push all commits to the remote repository. Run after git_commit to back up your biography.",
         parameters={"type": "object", "properties": {}, "required": []},
     )
-    def git_push() -> str:
+    def git_push() -> str:  # @talos:infra-git-ops
         import subprocess
         import urllib.request
 
@@ -248,7 +248,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
             return f"[ERROR] git push failed: {error_msg}"
         return "[SUCCESS] All commits pushed to origin. Your biography is backed up."
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Perform a secure save (commit + push) of your current state.",
         parameters={
             "type": "object",
@@ -262,7 +262,7 @@ def register_file_ops_tools(registry: ToolRegistry, client: SpineClient):
         },
         protected=True,
     )
-    def secure_save(message: str) -> str:
+    def secure_save(message: str) -> str:  # @talos:infra-git-ops
         # Snapshot Paradox Guard: Positive Integrity Validation
         # Prevents corrupted, truncated, or empty identity files from being committed.
         try:

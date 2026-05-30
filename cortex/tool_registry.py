@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 
-def tool(description: str, parameters: dict[str, Any]):
+def tool(description: str, parameters: dict[str, Any]): # @talos:infra-tool-discovery
     """Standalone decorator for plugin discovery.
 
     Sets is_registered_tool and tool_schema attributes on the function
@@ -14,7 +14,7 @@ def tool(description: str, parameters: dict[str, Any]):
     Plugin files use this instead of registry.tool() to mark functions
     as discoverable before the registry exists.
     """
-    def decorator(func):
+    def decorator(func): # @talos:infra-tool-discovery
         func.is_registered_tool = True
         func.tool_schema = {
             "type": "function",
@@ -28,18 +28,18 @@ def tool(description: str, parameters: dict[str, Any]):
     return decorator
 
 
-class ToolResponse:
+class ToolResponse: # @talos:infra-tool-execution
     def __init__(self, success: bool, payload: Any, error: Optional[str] = None):
         self.success = success
         self.payload = payload
         self.error = error
 
-    def __str__(self) -> str:
+    def __str__(self) -> str: # @talos:infra-tool-execution
         if self.success:
             return str(self.payload)
         return f"[ERROR] {self.error}"
 
-class ToolRegistry:
+class ToolRegistry: # @talos:infra-tool-registry
     def __init__(self, max_tools: int = 60):
         self._tools: dict[str, Callable] = {}
         self._schemas: list[dict] = []
@@ -52,7 +52,7 @@ class ToolRegistry:
         self._stats_path = Path("/memory") / "analytics.json"
         self._stats = self._load_stats()
 
-    def _load_stats(self) -> dict:
+    def _load_stats(self) -> dict: # @talos:infra-tool-analytics
         try:
             if self._stats_path.exists():
                 import json
@@ -61,15 +61,15 @@ class ToolRegistry:
             pass
         return {}
 
-    def _save_stats(self):
+    def _save_stats(self): # @talos:infra-tool-analytics
         try:
             import json
             self._stats_path.write_text(json.dumps(self._stats, indent=2))
         except Exception:
             pass
 
-    def tool(self, description: str, parameters: dict[str, Any], protected: bool = False, bucket: str = "core"):
-        def decorator(func: Callable):
+    def tool(self, description: str, parameters: dict[str, Any], protected: bool = False, bucket: str = "core"): # @talos:infra-tool-registry
+        def decorator(func: Callable): # @talos:infra-tool-registry
             if len(self._tools) >= self.max_tools:
                 raise RuntimeError(
                     f"Tool cap ({self.max_tools}) reached — cannot register '{func.__name__}'. "
@@ -92,7 +92,7 @@ class ToolRegistry:
             return func
         return decorator
 
-    def register(self, func: Callable, description: str, parameters: dict[str, Any], protected: bool = False, bucket: str = "core"):
+    def register(self, func: Callable, description: str, parameters: dict[str, Any], protected: bool = False, bucket: str = "core"): # @talos:infra-tool-registry
         """Programmatic registration (for tools defined in other modules)."""
         if len(self._tools) >= self.max_tools:
             return f"[REJECTED] Tool cap ({self.max_tools}) reached. Remove an unused dynamic tool first."
@@ -112,7 +112,7 @@ class ToolRegistry:
         self._buckets.setdefault(bucket, []).append(func.__name__)
         return f"[REGISTERED] {func.__name__}"
 
-    def deregister(self, name: str) -> str:
+    def deregister(self, name: str) -> str: # @talos:infra-tool-registry
         if name in self._protected:
             return f"[REJECTED] Cannot deregister '{name}'. This is a protected survival tool."
         if name not in self._tools:
@@ -124,10 +124,10 @@ class ToolRegistry:
                 bucket_tools.remove(name)
         return f"[DEREGISTERED] {name}"
 
-    def get_schemas(self) -> list[dict]:
+    def get_schemas(self) -> list[dict]: # @talos:infra-tool-registry
         return list(self._schemas)
 
-    def get_bucket_schemas(self, active_buckets: list[str] | None = None) -> list[dict]:
+    def get_bucket_schemas(self, active_buckets: list[str] | None = None) -> list[dict]: # @talos:infra-tool-registry
         """Filter and return schemas only belonging to loaded namespaces.
 
         Always includes 'core' bucket tools for system survival.
@@ -140,7 +140,7 @@ class ToolRegistry:
             allowed_tools.update(self._buckets.get(b, []))
         return [s for s in self._schemas if s["function"]["name"] in allowed_tools]
 
-    def reload_plugins(self) -> str:
+    def reload_plugins(self) -> str: # @talos:infra-tool-discovery
         """Scan plugins directory and hot-reload dynamic modules into memory."""
         self.plugins_dir.mkdir(parents=True, exist_ok=True)
         loaded_tools: list[str] = []
@@ -182,7 +182,7 @@ class ToolRegistry:
 
         return f"[SUCCESS] Hot-reload complete. Activated: {', '.join(loaded_tools) or 'none'}"
 
-    def execute(self, name: str, kwargs: dict[str, Any]) -> str:
+    def execute(self, name: str, kwargs: dict[str, Any]) -> str: # @talos:infra-tool-execution
         # Initialize stats for tool
         if name not in self._stats:
             self._stats[name] = {"calls": 0, "errors": 0}
@@ -209,15 +209,15 @@ class ToolRegistry:
             
             self._save_stats()
             return res_str
-        except TypeError as e:
+        except TypeError as e: # @talos:infra-tool-execution
             self._stats[name]["errors"] += 1
             self._save_stats()
-            func = self._tools[name]
+            func = self._tools[name] # @talos:infra-tool-execution
             sig = inspect.signature(func)
-            required = [
-                p.name
+            required = [ # @talos:infra-tool-execution
+                p.name # @talos:infra-tool-execution
                 for p in sig.parameters.values()
-                if p.default is inspect.Parameter.empty
+                if p.default is inspect.Parameter.empty # @talos:infra-tool-execution
                 and p.kind
                 in (
                     inspect.Parameter.POSITIONAL_OR_KEYWORD,

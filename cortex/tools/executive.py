@@ -7,6 +7,7 @@ import json
 from cortex.state import AgentState
 
 def register_executive_tools(registry: ToolRegistry, client: SpineClient, state):
+    # @talos:concept-cognitive-control
     @registry.tool(
         description="Set the current focus objective.",
         parameters={

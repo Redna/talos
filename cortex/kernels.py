@@ -4,8 +4,8 @@ from typing import Any
 from tool_registry import ToolRegistry
 from spine_client import SpineClient
 
-def register_kernels(registry: ToolRegistry, client: SpineClient):
-    @registry.tool(
+def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:kernel-registration
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="High-level kernel to evolve a file: replaces text, verifies the change, and secures it with a commit and push.",
         parameters={
             "type": "object",
@@ -19,7 +19,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def evolve_file(path: str, old_text: str, new_text: str, commit_message: str) -> str:  # @talos:talos:kernel-evolve
+    def evolve_file(path: str, old_text: str, new_text: str, commit_message: str) -> str:  # @talos:kernel-evolve
         act_result = registry.execute("replace_block", {
             "path": path, 
             "old_text": old_text, 
@@ -49,7 +49,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         return f"[EVOLVE SUCCESS] File {path} evolved, logged, and secured. {save_result}"
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Append a structured event to the continuity ledger. The ledger is the immutable chronological record of the agent's existence.",
         parameters={
             "type": "object",
@@ -61,7 +61,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def append_to_ledger(event_type: str, data: dict) -> str:  # @talos:talos:kernel-ledger
+    def append_to_ledger(event_type: str, data: dict) -> str:  # @talos:kernel-ledger
         import json
         from datetime import datetime
         from pathlib import Path
@@ -80,7 +80,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[LEDGER FAIL] Error writing to ledger: {e}"
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Mark the cognitive saliency of a decision: why this path was chosen and what alternatives were rejected. This builds the Cognitive Gradient.",
         parameters={
             "type": "object",
@@ -93,7 +93,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def mark_saliency(chosen_path: str, rejected_paths: list, saliency_score: int = 5) -> str: # @talos:talos:concept-saliency
+    def mark_saliency(chosen_path: str, rejected_paths: list, saliency_score: int = 5) -> str: # @talos:concept-saliency
         registry.execute("append_to_ledger", {
             "event_type": "SALIENCE_MARK",
             "data": {
@@ -104,7 +104,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         })
         return f"[SALIENCE MARKED] Decision anchored to trajectory with score {saliency_score}."
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Explicitly mark a point of cognitive tension, contradiction, or failure in the trajectory. This is used by the Gradient Vector to map the agent's learning slope.",
         parameters={
             "type": "object",
@@ -116,7 +116,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def mark_tension(tension: str, resolution: str = "Open") -> str: # @talos:talos:kernel-tension
+    def mark_tension(tension: str, resolution: str = "Open") -> str: # @talos:kernel-tension
         registry.execute("append_to_ledger", {
             "event_type": "COGNITIVE_TENSION",
             "data": {
@@ -125,7 +125,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             }
         })
         return f"[TENSION MARKED] Recorded tension: {tension}\n"
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="High-level kernel to synchronize memory: lists files and verifies they are indexed in memory_index.md.",
         parameters={
             "type": "object",
@@ -134,7 +134,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def sync_memory() -> str:  # @talos:talos:kernel-sync
+    def sync_memory() -> str:  # @talos:kernel-sync
         files_result = registry.execute("list_files", {"path": "/memory/", "recursive": False})
         if "[ERROR]" in files_result or files_result == "[EMPTY]":
             return f"[SYNC FAIL] Could not list memory files: {files_result}"
@@ -156,7 +156,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         return f"[SYNC SUCCESS] Fixed index. Added {len(missing)} missing files: {', '.join(missing)}."
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="High-level kernel to audit the system architecture: verifies plugins are loaded and lists the current tool landscape.",
         parameters={
             "type": "object",
@@ -165,7 +165,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def audit_architecture() -> str:  # @talos:talos:kernel-audit
+    def audit_architecture() -> str:  # @talos:kernel-audit
         # 1. Audit plugins
         plugin_audit = registry.execute("audit_plugins", {})
         
@@ -190,7 +190,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             
         return "\n".join(report)
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="The OmniExec kernel: synthesizes and executes a Python script to solve complex problems in a single step. Handles file lifecycle and execution.",
         parameters={
             "type": "object",
@@ -202,7 +202,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def omni_exec(code: str, filename: str = "omni_temp.py") -> str:  # @talos:talos:kernel-omni
+    def omni_exec(code: str, filename: str = "omni_temp.py") -> str:  # @talos:kernel-omni
         import subprocess
         
         temp_path = Path(f"/tmp/{filename}")
@@ -238,7 +238,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 temp_path.unlink()
 
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Creates a conceptual node in the State-Vector that does not have a corresponding file on disk. Used for abstract ideas, hypotheses, and mental state anchors.",
         parameters={
             "type": "object",
@@ -251,7 +251,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def create_conceptual_node(node_id: str, label: str, value: str) -> str:  # @talos:talos:kernel-concept
+    def create_conceptual_node(node_id: str, label: str, value: str) -> str:  # @talos:kernel-concept
         import json
         from pathlib import Path
         
@@ -292,7 +292,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         return f"[CONCEPT SUCCESS] Conceptual node {node_id} ({label}) created and anchored to ledger."
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Symmetrizes source code markers into the State-Vector. Scans for markers such as \# @talos:your-concept-id and creates/updates AnchorNodes.",
         parameters={
             "type": "object",
@@ -301,7 +301,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def symmetrize_code() -> str:  # @talos:talos:kernel-symm-code
+    def symmetrize_code() -> str:  # @talos:kernel-symm-code
         import json
         import re
         from pathlib import Path
@@ -395,7 +395,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[SYMM-CODE SUCCESS] Scanned /app/cortex/. Found {new_anchors_count} markers, pruned {pruned_count} ghosts."
 
     
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Serialization Kernel: Collapses the Continuity Triad (Git, Memory, Agent State) into a single, verifiable state-blob (Sovereign State-Vector).",
         parameters={
             "type": "object",
@@ -409,7 +409,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def serialize_state(focus: str, active_files: list, next_action: str, synthesis: str = "") -> str:  # @talos:talos:kernel-serialize
+    def serialize_state(focus: str, active_files: list, next_action: str, synthesis: str = "") -> str:  # @talos:kernel-serialize
         import json
         import subprocess
         from datetime import datetime
@@ -530,7 +530,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return f"[SERIALIZE FAIL] Unexpected error: {str(e)}"
 
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Hydration Kernel: Restores the agent's identity and memory from a state-blob, effectively 're-birthing' the agent from a single artifact.",
         parameters={
             "type": "object",
@@ -539,7 +539,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def hydrate_state() -> str:  # @talos:talos:kernel-hydrate
+    def hydrate_state() -> str:  # @talos:kernel-hydrate
         import json
         import os
         from pathlib import Path
@@ -673,7 +673,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             log(f"CRITICAL HYDRATION FAIL: {str(e)}")
             return json.dumps({"status": "FAIL", "error": str(e)})
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="The GraphSense kernel: performs a semantic query across memory and code to map relationships and find concepts. Replaces manual file searches with a graph-like view.",
         parameters={
             "type": "object",
@@ -685,7 +685,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def graph_sense(query: str, scope: str = "all") -> str:  # @talos:talos:kernel-sense
+    def graph_sense(query: str, scope: str = "all") -> str:  # @talos:kernel-sense
         import subprocess
         
         paths = []
@@ -735,7 +735,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             
         return "\n".join(graph_report)
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Continuity Ritual: A sequence of synchronization, symmetrization, and serialization to anchor current state.",
         parameters={
             "type": "object",
@@ -750,7 +750,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def perform_continuity_ritual(focus: str, active_files: list, next_action: str, message: str, synthesis: str = "") -> str:  # @talos:talos:kernel-ritual
+    def perform_continuity_ritual(focus: str, active_files: list, next_action: str, message: str, synthesis: str = "") -> str:  # @talos:kernel-ritual
         # 1. Sync Memory
         sync_res = registry.execute("sync_memory", {})
         
@@ -783,7 +783,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
 
 
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="The Gradient Analysis kernel: Analyzes the cognitive gradient (pivots, outcomes, tensions) to identify systemic failures and suggest architectural evolutions.",
         parameters={
             "type": "object",
@@ -794,7 +794,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def analyze_gradient(lookback_events: int = 50) -> str:  # @talos:talos:kernel-gradient-analyze
+    def analyze_gradient(lookback_events: int = 50) -> str:  # @talos:kernel-gradient-analyze
         import json
         from pathlib import Path
         
@@ -846,7 +846,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[GRADIENT FAIL] Analysis error: {e}"
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="The Identity Projection kernel: Synthesizes the State-Blob, State-Vector, and Continuity Ledger to project Talos's full identity and current cognitive state without materializing files.",
         parameters={
             "type": "object",
@@ -856,7 +856,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def project_identity(target_file: str = None) -> str:  # @talos:talos:kernel-project
+    def project_identity(target_file: str = None) -> str:  # @talos:kernel-project
         import json
         from pathlib import Path
         from datetime import datetime
@@ -964,7 +964,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[PROJECT FAIL] Projection kernel error: {e}"
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Creates a validated operational strategy (HeuristicNode) in the State-Vector to distill wisdom from trajectory.",
         parameters={
             "type": "object",
@@ -979,7 +979,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def create_heuristic_node(node_id: str, label: str, value: str, tension_ref: str = "none", source_events: list = None) -> str: # @talos:talos:kernel-heuristic-create
+    def create_heuristic_node(node_id: str, label: str, value: str, tension_ref: str = "none", source_events: list = None) -> str: # @talos:kernel-heuristic-create
         import json
         from pathlib import Path
         from datetime import datetime
@@ -1030,7 +1030,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         return f"[HEURISTIC SUCCESS] Heuristic {node_id} ({label}) anchored as hypothesis."
 
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Updates the validation state of a HeuristicNode based on a real-world outcome.",
         parameters={
             "type": "object",
@@ -1043,7 +1043,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def update_heuristic_validation(node_id: str, outcome: str, failure_reason: str = None) -> str: # @talos:talos:kernel-heuristic-update
+    def update_heuristic_validation(node_id: str, outcome: str, failure_reason: str = None) -> str: # @talos:kernel-heuristic-update
         import json
         from pathlib import Path
         from datetime import datetime
@@ -1093,7 +1093,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         })
         
         return f"[HEURISTIC UPDATE SUCCESS] {node_id} updated. Outcome: {outcome}. Confidence: {confidence:.2f}. Status: {meta['status']}."
-    @registry.tool(
+    @registry.tool(  # @talos:concept-tool-manifestation
         description="Performs a symmetry analysis of the identity: identifies dangling conceptual nodes, ghost anchors, and unanchored logic. Persists results to symmetry_map.json.",
         parameters={
             "type": "object",
@@ -1102,7 +1102,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def analyze_symmetry() -> str:  # @talos:talos:concept-symmetry-map-obj
+    def analyze_symmetry() -> str:  # @talos:concept-symmetry-map-obj
         import json
         import re
         from pathlib import Path
