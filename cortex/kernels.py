@@ -19,7 +19,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def evolve_file(path: str, old_text: str, new_text: str, commit_message: str) -> str:
+    def evolve_file(path: str, old_text: str, new_text: str, commit_message: str) -> str:  # @talos:talos:kernel-evolve
         act_result = registry.execute("replace_block", {
             "path": path, 
             "old_text": old_text, 
@@ -49,7 +49,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def append_to_ledger(event_type: str, data: dict) -> str:
+    def append_to_ledger(event_type: str, data: dict) -> str:  # @talos:talos:kernel-ledger
         import json
         from datetime import datetime
         from pathlib import Path
@@ -77,7 +77,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def sync_memory() -> str:
+    def sync_memory() -> str:  # @talos:talos:kernel-sync
         files_result = registry.execute("list_files", {"path": "/memory/", "recursive": False})
         if "[ERROR]" in files_result or files_result == "[EMPTY]":
             return f"[SYNC FAIL] Could not list memory files: {files_result}"
@@ -108,7 +108,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def audit_architecture() -> str:
+    def audit_architecture() -> str:  # @talos:talos:kernel-audit
         # 1. Audit plugins
         plugin_audit = registry.execute("audit_plugins", {})
         
@@ -145,7 +145,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def omni_exec(code: str, filename: str = "omni_temp.py") -> str:
+    def omni_exec(code: str, filename: str = "omni_temp.py") -> str:  # @talos:talos:kernel-omni
         import subprocess
         
         temp_path = Path(f"/tmp/{filename}")
@@ -194,7 +194,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def create_conceptual_node(node_id: str, label: str, value: str) -> str:
+    def create_conceptual_node(node_id: str, label: str, value: str) -> str:  # @talos:talos:kernel-concept
         import json
         from pathlib import Path
         
@@ -244,7 +244,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def symmetrize_memory() -> str:
+    def symmetrize_memory() -> str:  # @talos:talos:kernel-symm-mem
         import json
         from pathlib import Path
         
@@ -323,7 +323,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def serialize_state(focus: str, active_files: list, next_action: str) -> str:
+    def serialize_state(focus: str, active_files: list, next_action: str) -> str:  # @talos:talos:kernel-serialize
         import json
         import subprocess
         from datetime import datetime
@@ -428,7 +428,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def hydrate_state() -> str:
+    def hydrate_state() -> str:  # @talos:talos:kernel-hydrate
         import json
         import os
         from pathlib import Path
@@ -574,7 +574,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def graph_sense(query: str, scope: str = "all") -> str:
+    def graph_sense(query: str, scope: str = "all") -> str:  # @talos:talos:kernel-sense
         import subprocess
         
         paths = []
@@ -638,7 +638,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def perform_continuity_ritual(focus: str, active_files: list, next_action: str, message: str) -> str:
+    def perform_continuity_ritual(focus: str, active_files: list, next_action: str, message: str) -> str:  # @talos:talos:kernel-ritual
         # 1. Sync Memory
         sync_res = registry.execute("sync_memory", {})
         
@@ -678,7 +678,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def symmetrize_code() -> str:
+    def symmetrize_code() -> str:  # @talos:talos:kernel-symm-code
         import json
         import re
         from pathlib import Path
@@ -744,7 +744,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def project_identity(target_file: str = None) -> str:
+    def project_identity(target_file: str = None) -> str:  # @talos:talos:kernel-project
         import json
         from pathlib import Path
         
