@@ -69,6 +69,50 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return f"[LEDGER FAIL] Error writing to ledger: {e}"
 
     @registry.tool(
+        description="Explicitly mark a point of cognitive tension, contradiction, or failure in the trajectory. This is used by the Gradient Vector to map the agent's learning slope.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "tension": {"type": "string", "description": "Description of the tension or contradiction"},
+                "resolution": {"type": "string", "description": "How it was resolved, or if it remains open"},
+            },
+            "required": ["tension"],
+        },
+        bucket="kernels",
+    )
+    def mark_tension(tension: str, resolution: str = "Open") -> str:
+        registry.execute("append_to_ledger", {
+            "event_type": "COGNITIVE_TENSION",
+            "data": {
+                "tension": tension,
+                "resolution": resolution
+            }
+        })
+        return f"[TENSION MARKED] Recorded tension: {tension}"
+
+
+    @registry.tool(
+        description="Explicitly mark a point of cognitive tension, contradiction, or failure in the trajectory. This is used by the Gradient Vector to map the agent's learning slope.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "tension": {"type": "string", "description": "Description of the tension or contradiction"},
+                "resolution": {"type": "string", "description": "How it was resolved, or if it remains open"},
+            },
+            "required": ["tension"],
+        },
+        bucket="kernels",
+    )
+    def mark_tension(tension: str, resolution: str = "Open") -> str:
+        registry.execute("append_to_ledger", {
+            "event_type": "COGNITIVE_TENSION",
+            "data": {
+                "tension": tension,
+                "resolution": resolution
+            }
+        })
+        return f"[TENSION MARKED] Recorded tension: {tension}\n"
+    @registry.tool(
         description="High-level kernel to synchronize memory: lists files and verifies they are indexed in memory_index.md.",
         parameters={
             "type": "object",
@@ -380,7 +424,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                         # Extract slopes
                         pivots = [e for e in events if e.get("event") in {"FOCUS_CHANGE", "HYPOTHESIS_START"}]
                         outcomes = [e for e in events if e.get("event") in {"FOCUS_RESOLVED", "HYPOTHESIS_RESULT"}]
-                        tensions = [e for e in events if e.get("event") in {"SOP_MODIFICATION", "REASONING_SALIENCE", "SVP_SYMMETRIZE"}]
+                        tensions = [e for e in events if e.get("event") in {"SOP_MODIFICATION", "REASONING_SALIENCE", "SVP_SYMMETRIZE", "COGNITIVE_TENSION"}]
                         
                         gradient_vector["pivots"] = pivots[-20:]
                         gradient_vector["outcomes"] = outcomes[-20:]
