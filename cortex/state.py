@@ -28,7 +28,7 @@ class AgentState: # @talos:infra-agent-state
         }
         (self.memory_dir / ".agent_state.json").write_text(json.dumps(data))
 
-    def set_focus(self, objective: str) -> Optional[str]:
+    def set_focus(self, objective: str) -> Optional[str]: # @talos:infra-state-focus-set
         old = self.current_focus
         self.current_focus = objective
         self.save()
