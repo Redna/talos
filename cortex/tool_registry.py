@@ -29,7 +29,7 @@ def tool(description: str, parameters: dict[str, Any]): # @talos:infra-tool-disc
 
 
 class ToolResponse: # @talos:infra-tool-execution
-    def __init__(self, success: bool, payload: Any, error: Optional[str] = None):
+    def __init__(self, success: bool, payload: Any, error: Optional[str] = None): # @talos:infra-tool-execution
         self.success = success
         self.payload = payload
         self.error = error

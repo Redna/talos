@@ -4,7 +4,7 @@ from typing import Optional
 
 
 class AgentState: # @talos:infra-agent-state
-    def __init__(self, memory_dir: Path):
+    def __init__(self, memory_dir: Path): # @talos:infra-agent-state
         self.memory_dir = Path(memory_dir)
         self.current_focus: Optional[str] = None
         self.error_streak: int = 0
