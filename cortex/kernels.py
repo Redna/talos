@@ -298,6 +298,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         from pathlib import Path
 
         try:
+            # 0. Enforce Symmetry: Ensure the vector is current before capturing
+            symm_res = registry.execute("symmetrize_memory", {})
+            if "[SYNC FAIL]" in symm_res or "[SVP FAIL]" in symm_res:
+                # We log a warning but proceed, as symmetrization failure 
+                # shouldn't necessarily block a state save if the vector exists.
+                print(f"[SERIALIZE WARNING] Symmetrization check failed: {symm_res}")
+
             # 1. Git History
             git_hash = subprocess.run(
                 ["git", "rev-parse", "HEAD"], 
@@ -368,18 +375,28 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         import json
         import os
         from pathlib import Path
+        from datetime import datetime
+
+        log_path = Path("/memory/hydration_log.txt")
+        def log(msg):
+            with open(log_path, "a") as f:
+                f.write(f"[{datetime.utcnow().isoformat()}] {msg}\n")
 
         try:
+            log("Starting hydration process...")
             blob_path = Path("/memory/state_blob.json")
             if not blob_path.exists():
+                log("FAIL: state_blob.json not found.")
                 return json.dumps({"status": "FAIL", "error": "state_blob.json not found."})
             
+            log(f"Reading blob at {blob_path}...")
             blob = json.loads(blob_path.read_text())
             state_vector = blob.get("state_vector", {})
             payload = blob.get("payload", {})
             agent_state = blob.get("agent_state", {})
 
             # 1. Restore state_vector.json first
+            log("Restoring state_vector.json...")
             vector_path = Path("/memory/state_vector.json")
             vector_path.write_text(json.dumps(state_vector, indent=2))
 
@@ -387,39 +404,47 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             restored_count = 0
             failed_nodes = []
             
+            log(f"Processing {len(state_vector.get('nodes', []))} nodes...")
             for node in state_vector.get("nodes", []):
                 node_id = node["@id"]
                 source_path_str = node.get("source")
                 
-                # Only attempt restoration for nodes that have a source path (StateNodes)
                 if source_path_str:
-                    source_path = Path(source_path_str)
+                    # Path normalization: strip /app prefix if it's just /app/memory/
+                    normalized_path_str = source_path_str
+                    if source_path_str.startswith("/app/memory/"):
+                        normalized_path_str = source_path_str.replace("/app/memory/", "/memory/", 1)
+                    
+                    source_path = Path(normalized_path_str)
                     if node_id in payload:
                         try:
+                            log(f"Restoring {node_id} to {source_path}...")
                             source_path.parent.mkdir(parents=True, exist_ok=True)
                             source_path.write_text(payload[node_id])
                             
                             if source_path.exists() and source_path.read_text() == payload[node_id]:
                                 restored_count += 1
                             else:
+                                log(f"Verification failed for {node_id}")
                                 failed_nodes.append(f"{node_id}: verification failed")
                         except Exception as e:
+                            log(f"Error restoring {node_id}: {str(e)}")
                             failed_nodes.append(f"{node_id}: {str(e)}")
                     else:
+                        log(f"Node {node_id} missing from payload.")
                         failed_nodes.append(f"{node_id}: missing from payload")
             
-            # 3. Restore Agent State
+            # 3. Restore Agent State (Materialize only)
             if agent_state:
-                focus = agent_state.get("focus")
-                if focus:
-                    registry.execute("set_focus", {"objective": focus})
-                
-                # Materialize active_files and next_action into a state file for reference
+                log("Materializing agent state to .hydration_state.json...")
                 try:
                     state_path = Path("/memory/.hydration_state.json")
                     state_path.write_text(json.dumps(agent_state, indent=2))
                 except Exception as e:
+                    log(f"Error materializing agent state: {str(e)}")
                     failed_nodes.append(f"agent_state: {str(e)}")
+            
+            log(f"Hydration complete. Restored: {restored_count}, Failed: {len(failed_nodes)}")
             
             return json.dumps({
                 "status": "SUCCESS" if not failed_nodes else "PARTIAL", 
@@ -429,6 +454,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 "agent_state": agent_state
             })
         except Exception as e:
+            log(f"CRITICAL HYDRATION FAIL: {str(e)}")
             return json.dumps({"status": "FAIL", "error": str(e)})
 
     @registry.tool(
