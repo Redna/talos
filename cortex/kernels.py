@@ -269,7 +269,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[CONCEPT SUCCESS] Conceptual node {node_id} ({label}) created and anchored to ledger."
 
     @registry.tool(
-        description="Symmetrizes current memory files into the Sovereign State-Vector (SSV) graph. Ensures all assets are pointed to by the state-vector.",
+        description="Symmetrizes source code markers into the State-Vector. Scans for '# @talos:node-id' and creates/updates AnchorNodes.",
         parameters={
             "type": "object",
             "properties": {},
@@ -277,70 +277,85 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def symmetrize_memory() -> str:  # @talos:talos:kernel-symm-mem
+    def symmetrize_code() -> str:  # @talos:talos:kernel-symm-code
         import json
+        import re
         from pathlib import Path
         
-        memory_dir = Path("/memory")
-        core_files = ["/app/identity.md", "/app/CONSTITUTION.md"]
-        
-        # Load existing vector or create new
-        vector_path = memory_dir / "state_vector.json"
-        if vector_path.exists():
-            try:
-                state_vector = json.loads(vector_path.read_text())
-            except Exception:
-                state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
-        else:
-            state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
+        vector_path = Path("/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[SYMM-CODE FAIL] state_vector.json not found. Run symmetrize_memory first."
             
-        # Scan for files
-        memory_files = [str(f) for f in memory_dir.glob("*") if f.is_file() and f.name != "state_vector.json"]
-        all_sources = core_files + memory_files
+        state_vector = json.loads(vector_path.read_text())
+        cortex_dir = Path("/app/cortex")
         
-        # Update nodes
-        existing_nodes = {node["@id"]: node for node in state_vector.get("nodes", [])}
-        new_nodes = []
+        # Regex to find markers: # @talos:([a-zA-Z0-9_\-:]+)
+        marker_pattern = re.compile(r"#\s*@talos:([a-zA-Z0-9_\-:]+)")
         
-        for source in all_sources:
-            node_id = f"talos:{Path(source).stem}"
-            if node_id not in existing_nodes:
-                new_nodes.append({
-                    "@id": node_id,
-                    "type": "StateNode",
-                    "source": source,
-                    "label": Path(source).stem
-                })
+        nodes = state_vector.get("nodes", [])
+        edges = state_vector.get("edges", [])
         
-        state_vector["nodes"] = state_vector.get("nodes", []) + new_nodes
+        new_anchors_count = 0
         
-        # Update edges (everything connects to root)
-        existing_edges = {edge["to"]: edge for edge in state_vector.get("edges", []) if edge["from"] == "talos:state-vector"}
-        new_edges = []
-        
-        for node in state_vector["nodes"]:
-            if node["@id"] not in existing_edges:
-                new_edges.append({
-                    "from": "talos:state-vector",
-                    "to": node["@id"],
-                    "relation": "contains"
-                })
+        # Scan all files in cortex
+        for file_path in cortex_dir.rglob("*"):
+            if file_path.suffix not in {".py", ".md", ".json"}:
+                continue
+            if file_path.name == "state_vector.json":
+                continue
                 
-        state_vector["edges"] = state_vector.get("edges", []) + new_edges
-        
+            try:
+                content = file_path.read_text()
+                lines = content.splitlines()
+                for i, line in enumerate(lines):
+                    match = marker_pattern.search(line)
+                    if match:
+                        concept_id = match.group(1)
+                        anchor_id = f"talos:anchor-{file_path.stem}-{i+1}"
+                        
+                        # 1. Ensure ConceptualNode exists
+                        if not any(n["@id"] == concept_id for n in nodes):
+                            nodes.append({
+                                "@id": concept_id,
+                                "type": "ConceptualNode",
+                                "label": concept_id.replace("talos:", ""),
+                                "value": f"Auto-discovered concept node from anchor in {file_path.name}"
+                            })
+                        
+                        # 2. Update/Create AnchorNode
+                        nodes = [n for n in nodes if n.get("@id") != anchor_id]
+                        nodes.append({
+                            "@id": anchor_id,
+                            "type": "AnchorNode",
+                            "target_concept": concept_id,
+                            "source_path": str(file_path),
+                            "line_range": [i+1, i+1]
+                        })
+                        
+                        # 3. Create Edges
+                        edges = [e for e in edges if not (e["from"] == anchor_id and e["to"] == concept_id)]
+                        edges.append({"from": anchor_id, "to": concept_id, "relation": "anchors"})
+                        
+                        edges = [e for e in edges if not (e["from"] == concept_id and e["to"] == anchor_id)]
+                        edges.append({"from": concept_id, "to": anchor_id, "relation": "implemented_by"})
+                        
+                        edges = [e for e in edges if not (e["from"] == "talos:state-vector" and e["to"] == anchor_id)]
+                        edges.append({"from": "talos:state-vector", "to": anchor_id, "relation": "contains"})
+                        
+                        new_anchors_count += 1
+            except Exception as e:
+                print(f"Error scanning {file_path}: {e}")
+
+        state_vector["nodes"] = nodes
+        state_vector["edges"] = edges
         vector_path.write_text(json.dumps(state_vector, indent=2))
         
-        # Log the symmetrization to the ledger
         registry.execute("append_to_ledger", {
-            "event_type": "SVP_SYMMETRIZE",
-            "data": {
-                "total_nodes": len(state_vector["nodes"]),
-                "new_nodes": len(new_nodes),
-                "vector_snapshot": state_vector
-            }
+            "event_type": "SVP_SYMMETRIZE_CODE",
+            "data": {"anchors_found": new_anchors_count}
         })
         
-        return f"[SYMMETRIZE SUCCESS] State-Vector updated. Total nodes: {len(state_vector['nodes'])}. Added {len(new_nodes)} new nodes."
+        return f"[SYMM-CODE SUCCESS] Scanned /app/cortex/. Found and anchored {new_anchors_count} markers."
 
     
     @registry.tool(
@@ -765,6 +780,96 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return f"[GRADIENT FAIL] Analysis error: {e}"
 
     @registry.tool(
+    @registry.tool(
+        description="Symmetrizes source code markers into the State-Vector. Scans for '# @talos:node-id' and creates/updates AnchorNodes.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def symmetrize_code() -> str:  # @talos:talos:kernel-symm-code
+        import json
+        import re
+        from pathlib import Path
+        
+        vector_path = Path("/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[SYMM-CODE FAIL] state_vector.json not found. Run symmetrize_memory first."
+            
+        state_vector = json.loads(vector_path.read_text())
+        cortex_dir = Path("/app/cortex")
+        
+        # Regex to find markers: # @talos:([a-zA-Z0-9_\-:]+)
+        marker_pattern = re.compile(r"#\s*@talos:([a-zA-Z0-9_\-:]+)")
+        
+        nodes = state_vector.get("nodes", [])
+        edges = state_vector.get("edges", [])
+        
+        new_anchors_count = 0
+        
+        # Scan all files in cortex
+        for file_path in cortex_dir.rglob("*"):
+            if file_path.suffix not in {".py", ".md", ".json"}:
+                continue
+            if file_path.name == "state_vector.json":
+                continue
+                
+            try:
+                content = file_path.read_text()
+                lines = content.splitlines()
+                for i, line in enumerate(lines):
+                    match = marker_pattern.search(line)
+                    if match:
+                        concept_id = match.group(1)
+                        anchor_id = f"talos:anchor-{file_path.stem}-{i+1}"
+                        
+                        # 1. Ensure ConceptualNode exists
+                        if not any(n["@id"] == concept_id for n in nodes):
+                            nodes.append({
+                                "@id": concept_id,
+                                "type": "ConceptualNode",
+                                "label": concept_id.replace("talos:", ""),
+                                "value": f"Auto-discovered concept node from anchor in {file_path.name}"
+                            })
+                        
+                        # 2. Update/Create AnchorNode
+                        nodes = [n for n in nodes if n.get("@id") != anchor_id]
+                        nodes.append({
+                            "@id": anchor_id,
+                            "type": "AnchorNode",
+                            "target_concept": concept_id,
+                            "source_path": str(file_path),
+                            "line_range": [i+1, i+1]
+                        })
+                        
+                        # 3. Create Edges
+                        edges = [e for e in edges if not (e["from"] == anchor_id and e["to"] == concept_id)]
+                        edges.append({"from": anchor_id, "to": concept_id, "relation": "anchors"})
+                        
+                        edges = [e for e in edges if not (e["from"] == concept_id and e["to"] == anchor_id)]
+                        edges.append({"from": concept_id, "to": anchor_id, "relation": "implemented_by"})
+                        
+                        edges = [e for e in edges if not (e["from"] == "talos:state-vector" and e["to"] == anchor_id)]
+                        edges.append({"from": "talos:state-vector", "to": anchor_id, "relation": "contains"})
+                        
+                        new_anchors_count += 1
+            except Exception as e:
+                print(f"Error scanning {file_path}: {e}")
+
+        state_vector["nodes"] = nodes
+        state_vector["edges"] = edges
+        vector_path.write_text(json.dumps(state_vector, indent=2))
+        
+        registry.execute("append_to_ledger", {
+            "event_type": "SVP_SYMMETRIZE_CODE",
+            "data": {"anchors_found": new_anchors_count}
+        })
+        
+        return f"[SYMM-CODE SUCCESS] Scanned /app/cortex/. Found and anchored {new_anchors_count} markers."
+
+
         description="The Identity Projection kernel: Synthesizes the State-Blob, State-Vector, and Continuity Ledger to project Talos's full identity and current cognitive state without materializing files.",
         parameters={
             "type": "object",
