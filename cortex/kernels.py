@@ -269,7 +269,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[CONCEPT SUCCESS] Conceptual node {node_id} ({label}) created and anchored to ledger."
 
     @registry.tool(
-        description="Symmetrizes source code markers into the State-Vector. Scans for '# @talos:node-id' and creates/updates AnchorNodes.",
+        description="Symmetrizes source code markers into the State-Vector. Scans for markers such as `@talos:concept-id` and creates/updates AnchorNodes.",
         parameters={
             "type": "object",
             "properties": {},
@@ -779,6 +779,16 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         except Exception as e:
             return f"[GRADIENT FAIL] Analysis error: {e}"
 
+    @registry.tool(
+        description="The Identity Projection kernel: Synthesizes the State-Blob, State-Vector, and Continuity Ledger to project Talos's full identity and current cognitive state without materializing files.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "target_file": {"type": "string", "description": "Optional: Project the content of a specific file from the combined stream/blob."},
+            },
+        },
+        bucket="kernels",
+    )
     def project_identity(target_file: str = None) -> str:  # @talos:talos:kernel-project
         import json
         from pathlib import Path
