@@ -1083,7 +1083,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[HEURISTIC UPDATE SUCCESS] {node_id} updated. Outcome: {outcome}. Confidence: {confidence:.2f}. Status: {meta['status']}."
 
 
-        @registry.tool(
+            @registry.tool(
         description="Performs a symmetry analysis of the identity: identifies dangling conceptual nodes, ghost anchors, and unanchored logic. Persists results to symmetry_map.json.",
         parameters={
             "type": "object",
@@ -1202,5 +1202,4 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             f"Dangling: {len(dangling_concepts)} | Ghost: {len(ghost_anchors)} | Unanchored: {len(unanchored_logic)}",
             f"Debt Ledger: {len(symmetry_map['debt_ledger'])} items recorded in symmetry_map.json"
         ]
-        return "
-".join(report)
+        return "\n".join(report)
