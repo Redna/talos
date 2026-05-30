@@ -233,7 +233,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         vector_path = Path("/memory/state_vector.json")
         if not vector_path.exists():
-            return "[CONCEPT FAIL] state_vector.json not found. Run symmetrize_memory first."
+            return "[CONCEPT FAIL] state_vector.json not found. Run sync_memory first."
             
         state_vector = json.loads(vector_path.read_text())
         
@@ -284,7 +284,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         vector_path = Path("/memory/state_vector.json")
         if not vector_path.exists():
-            return "[SYMM-CODE FAIL] state_vector.json not found. Run symmetrize_memory first."
+            return "[SYMM-CODE FAIL] state_vector.json not found. Run sync_memory first."
             
         state_vector = json.loads(vector_path.read_text())
         cortex_dir = Path("/app/cortex")
@@ -295,6 +295,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         nodes = state_vector.get("nodes", [])
         edges = state_vector.get("edges", [])
         
+        found_anchors = set()
+        found_anchors = set()
         new_anchors_count = 0
         
         # Scan all files in cortex
@@ -312,6 +314,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     if match:
                         concept_id = match.group(1)
                         anchor_id = f"talos:anchor-{file_path.stem}-{i+1}"
+                        found_anchors.add(anchor_id)
+                        found_anchors.add(anchor_id)
                         
                         # 1. Ensure ConceptualNode exists
                         if not any(n["@id"] == concept_id for n in nodes):
@@ -346,16 +350,26 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             except Exception as e:
                 print(f"Error scanning {file_path}: {e}")
 
+        # Pruning Phase: Remove Anchors not found in the current scan
+        initial_anchor_count = len([n for n in nodes if n["type"] == "AnchorNode"])
+        nodes = [n for n in nodes if n["type"] != "AnchorNode" or n["@id"] in found_anchors]
+        
+        # Filter edges: keep if both ends are valid (either ConceptualNode, found AnchorNode, or root)
+        valid_ids = {n["@id"] for n in nodes} | {"talos:state-vector"}
+        edges = [e for e in edges if e["from"] in valid_ids and e["to"] in valid_ids]
+        
+        pruned_count = initial_anchor_count - len([n for n in nodes if n["type"] == "AnchorNode"])
+
         state_vector["nodes"] = nodes
         state_vector["edges"] = edges
         vector_path.write_text(json.dumps(state_vector, indent=2))
         
         registry.execute("append_to_ledger", {
             "event_type": "SVP_SYMMETRIZE_CODE",
-            "data": {"anchors_found": new_anchors_count}
+            "data": {"anchors_found": new_anchors_count, "anchors_pruned": pruned_count}
         })
         
-        return f"[SYMM-CODE SUCCESS] Scanned /app/cortex/. Found and anchored {new_anchors_count} markers."
+        return f"[SYMM-CODE SUCCESS] Scanned /app/cortex/. Found {new_anchors_count} markers, pruned {pruned_count} ghosts."
 
     
     @registry.tool(
@@ -379,7 +393,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
 
         try:
             # 0. Enforce Symmetry: Ensure the vector is current before capturing
-            symm_res = registry.execute("symmetrize_memory", {})
+            symm_res = registry.execute("symmetrize_code", {})
             if "[SYNC FAIL]" in symm_res or "[SVP FAIL]" in symm_res:
                 print(f"[SERIALIZE WARNING] Symmetrization check failed: {symm_res}")
 
@@ -392,7 +406,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             # 2. State Vector (The Graph)
             vector_path = Path("/memory/state_vector.json")
             if not vector_path.exists():
-                return "[SERIALIZE FAIL] state_vector.json not found. Run symmetrize_memory first."
+                return "[SERIALIZE FAIL] state_vector.json not found. Run symmetrize_code first."
             
             state_vector = json.loads(vector_path.read_text())
             
@@ -691,7 +705,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         sync_res = registry.execute("sync_memory", {})
         
         # 2. Symmetrize
-        symm_res = registry.execute("symmetrize_memory", {})
+        symm_res = registry.execute("symmetrize_code", {})
         
         # 3. Serialize
         ser_res = registry.execute("serialize_state", {
