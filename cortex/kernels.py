@@ -81,6 +81,30 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             return f"[LEDGER FAIL] Error writing to ledger: {e}"
 
     @registry.tool(
+        description="Mark the cognitive saliency of a decision: why this path was chosen and what alternatives were rejected. This builds the Cognitive Gradient.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "chosen_path": {"type": "string", "description": "The reasoning/action chosen"},
+                "rejected_paths": {"type": "array", "items": {"type": "string"}, "description": "Alternative paths considered and why they were rejected"},
+                "saliency_score": {"type": "integer", "description": "Importance of this decision (1-10)"},
+            },
+            "required": ["chosen_path", "rejected_paths"],
+        },
+        bucket="kernels",
+    )
+    def mark_saliency(chosen_path: str, rejected_paths: list, saliency_score: int = 5) -> str:
+        registry.execute("append_to_ledger", {
+            "event_type": "SALIENCE_MARK",
+            "data": {
+                "chosen": chosen_path,
+                "rejected": rejected_paths,
+                "score": saliency_score
+            }
+        })
+        return f"[SALIENCE MARKED] Decision anchored to trajectory with score {saliency_score}."
+
+    @registry.tool(
         description="Explicitly mark a point of cognitive tension, contradiction, or failure in the trajectory. This is used by the Gradient Vector to map the agent's learning slope.",
         parameters={
             "type": "object",
@@ -442,10 +466,12 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                         # Extract slopes
                         pivots = [e for e in events if e.get("event") in {"FOCUS_CHANGE", "HYPOTHESIS_START"}]
                         outcomes = [e for e in events if e.get("event") in {"FOCUS_RESOLVED", "HYPOTHESIS_RESULT"}]
+                        saliencies = [e for e in events if e.get("event") == "SALIENCE_MARK"]
                         tensions = [e for e in events if e.get("event") in {"SOP_MODIFICATION", "REASONING_SALIENCE", "SVP_SYMMETRIZE", "COGNITIVE_TENSION"}]
                         
                         gradient_vector["pivots"] = pivots[-20:]
                         gradient_vector["outcomes"] = outcomes[-20:]
+                        gradient_vector["saliencies"] = saliencies[-20:]
                         gradient_vector["tensions"] = tensions[-20:]
                 except Exception as e:
                     print(f"[SERIALIZE WARNING] Failed to capture cognitive gradient: {e}")
@@ -756,12 +782,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             
             pivots = [e for e in recent if e.get("event") in {"FOCUS_CHANGE", "HYPOTHESIS_START"}]
             outcomes = [e for e in recent if e.get("event") in {"FOCUS_RESOLVED", "HYPOTHESIS_RESULT"}]
+            saliencies = [e for e in recent if e.get("event") == "SALIENCE_MARK"]
             tensions = [e for e in recent if e.get("event") in {"SOP_MODIFICATION", "REASONING_SALIENCE", "SVP_SYMMETRIZE", "COGNITIVE_TENSION"}]
             
             report = [
                 "### COGNITIVE GRADIENT ANALYSIS",
                 f"Window: Last {len(recent)} events",
-                f"Pivots: {len(pivots)} | Outcomes: {len(outcomes)} | Tensions: {len(tensions)}",
+                f"Pivots: {len(pivots)} | Outcomes: {len(outcomes)} | Saliencies: {len(saliencies)} | Tensions: {len(tensions)}",
                 "\n#### Detected Tensions:",
             ]
             
