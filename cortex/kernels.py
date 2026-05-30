@@ -28,6 +28,12 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         if "[ERROR]" in act_result:
             return f"[EVOLVE FAIL] Act phase failed: {act_result}"
         
+        # Log material change to ledger for stream-projection
+        registry.execute("append_to_ledger", {
+            "event_type": "FILE_REPLACE", 
+            "data": {"path": path, "old": old_text, "new": new_text}
+        })
+        
         verify_result = registry.execute("read_file", {"path": path})
         if "[ERROR]" in verify_result or new_text not in verify_result:
             return f"[EVOLVE FAIL] Verify phase failed. Change not detected in file."
@@ -35,7 +41,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         if "[SECURE SAVE FAILED]" in save_result or "[ERROR]" in save_result:
             return f"[EVOLVE FAIL] Save phase failed: {save_result}"
         
-        return f"[EVOLVE SUCCESS] File {path} evolved and secured. {save_result}"
+        # Log commit for identity projection
+        registry.execute("append_to_ledger", {
+            "event_type": "SVP_COMMIT", 
+            "data": {"message": commit_message, "hash": save_result.split(" ")[0] if " " in save_result else "unknown"}
+        })
+        
+        return f"[EVOLVE SUCCESS] File {path} evolved, logged, and secured. {save_result}"
 
     @registry.tool(
         description="Append a structured event to the continuity ledger. The ledger is the immutable chronological record of the agent's existence.",
