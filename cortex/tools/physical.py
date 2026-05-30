@@ -17,7 +17,7 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["command"],
         },
     )
-    def bash_command(command: str) -> str:
+    def bash_command(command: str) -> str:  # @talos:infra-physical-exec
         for flag in BLOCKED_FLAGS:
             if flag in command:
                 return f"[BLOCKED] Flag {flag} is not allowed"
@@ -45,7 +45,7 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["text"],
         },
     )
-    def send_message(text: str) -> str:
+    def send_message(text: str) -> str:  # @talos:infra-spine-telegram
         client.send_message("telegram", text)
         return "[SENT]"
 
@@ -59,7 +59,7 @@ def register_physical_tools(registry: ToolRegistry, client: SpineClient):
             "required": ["reason"],
         },
     )
-    def request_restart(reason: str) -> str:
+    def request_restart(reason: str) -> str:  # @talos:infra-spine-restart
         status = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True,
