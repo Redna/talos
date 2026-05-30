@@ -313,13 +313,12 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         state_vector = json.loads(vector_path.read_text())
         cortex_dir = Path("/app/cortex")
         
-        # Regex to find markers: # @talos:([a-zA-Z0-9_\-:]+)
-        marker_pattern = re.compile(r"#\s*@talos:([a-zA-Z0-9_\-:]+)")
+        # Regex to find markers ONLY at the end of a line: \s*#\s*@talos:([a-zA-Z0-9_\-:]+)$
+        marker_pattern = re.compile(r"\s*#\s*@talos:([a-zA-Z0-9_\-:]+)$")
         
         nodes = state_vector.get("nodes", [])
         edges = state_vector.get("edges", [])
         
-        found_anchors = set()
         found_anchors = set()
         new_anchors_count = 0
         
