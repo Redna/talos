@@ -736,9 +736,6 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
 
     @registry.tool(
         description="The Identity Projection kernel: replays the ledger to derive the agent's current identity and state without materializing files to disk. The ground truth is the stream.",
-    @registry.tool(
-        description="The Identity Projection kernel: replays the ledger to derive the agent's current identity and state without materializing files to disk. The ground truth is the stream.",
-
         parameters={
             "type": "object",
             "properties": {
