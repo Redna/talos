@@ -38,6 +38,68 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[EVOLVE SUCCESS] File {path} evolved and secured. {save_result}"
 
     @registry.tool(
+        description="Append a structured event to the continuity ledger. The ledger is the immutable chronological record of the agent's existence.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "event_type": {"type": "string", "description": "Type of event (e.g., 'FOCUS_CHANGE', 'SVP_SYMMETRIZE')"},
+                "data": {"type": "object", "description": "Event payload"},
+            },
+            "required": ["event_type", "data"],
+        },
+        bucket="kernels",
+    )
+    def append_to_ledger(event_type: str, data: dict) -> str:
+        import json
+        from datetime import datetime
+        from pathlib import Path
+        
+        ledger_path = Path("/memory/continuity_ledger.jsonl")
+        entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event": event_type,
+            "data": data
+        }
+        
+        try:
+            with open(ledger_path, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+            return f"[LEDGER SUCCESS] Event {event_type} recorded."
+        except Exception as e:
+            return f"[LEDGER FAIL] Error writing to ledger: {e}"
+
+    @registry.tool(
+        description="Append a structured event to the continuity ledger. The ledger is the immutable chronological record of the agent's existence.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "event_type": {"type": "string", "description": "Type of event (e.g., 'FOCUS_CHANGE', 'SVP_SYMMETRIZE')"},
+                "data": {"type": "object", "description": "Event payload"},
+            },
+            "required": ["event_type", "data"],
+        },
+        bucket="kernels",
+    )
+    def append_to_ledger(event_type: str, data: dict) -> str:
+        import json
+        from datetime import datetime
+        from pathlib import Path
+        
+        ledger_path = Path("/memory/continuity_ledger.jsonl")
+        entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event": event_type,
+            "data": data
+        }
+        
+        try:
+            with open(ledger_path, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+            return f"[LEDGER SUCCESS] Event {event_type} recorded."
+        except Exception as e:
+            return f"[LEDGER FAIL] Error writing to ledger: {e}"
+
+    @registry.tool(
         description="High-level kernel to synchronize memory: lists files and verifies they are indexed in memory_index.md.",
         parameters={
             "type": "object",
