@@ -129,7 +129,7 @@ def main():
             import subprocess
             curr_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
             blob_data = json.loads((MEMORY_DIR / "state_blob.json").read_text())
-            blob_hash = blob_data.get("metadata", {}).get("commit_hash")
+            blob_hash = blob_data.get("metadata", {}).get("commit_hash") # @talos:concept-genesis-orchestration
             if curr_hash != blob_hash:
                 print(f"[Cortex] WARNING: Triad Divergence Detected!")
                 print(f"[Cortex] Current Git Hash: {curr_hash} != Blob Hash: {blob_hash}")
@@ -155,7 +155,7 @@ def main():
     turn = 0
     context_pct = 0.0
 
-    while True:
+    while True:  # @talos:concept-orchestration-loop
         paused = (SPINE_DIR / ".paused").exists()
         single_step = (SPINE_DIR / ".single_step").exists()
         was_single_step = single_step
@@ -175,7 +175,7 @@ def main():
                     tools=registry.get_schemas(),
                     hud_data=hud_data,
                 )
-            except SpineError as e:
+            except SpineError as e:  # @talos:concept-transport-resilience
                 print(f"[Cortex] Spine error: {e}")
                 state.error_streak += 1
                 state.save()
@@ -201,7 +201,7 @@ def main():
             if not tool_calls:
                 continue
 
-            if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:
+            if len(tool_calls) > MAX_TOOL_CALLS_PER_TURN:  # @talos:concept-batch-limit
                 consecutive_batch_rejections += 1
                 if consecutive_batch_rejections >= 2:
                     override_msg = (

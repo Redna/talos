@@ -66,7 +66,7 @@ def register_delegation_tools(registry: ToolRegistry, client: SpineClient):  # @
 
         turn = 0
         final_output = ""
-        while turn < MAX_WORKER_TURNS:
+        while turn < MAX_WORKER_TURNS:  # @talos:concept-worker-loop  # @talos:concept-worker-loop
             turn += 1
             try:
                 response = client.stateless_generate(messages, worker_tools)
