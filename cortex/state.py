@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 
-class AgentState:
+class AgentState: # @talos:infra-agent-state
     def __init__(self, memory_dir: Path):
         self.memory_dir = Path(memory_dir)
         self.current_focus: Optional[str] = None
