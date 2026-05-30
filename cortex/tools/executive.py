@@ -22,7 +22,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         },
         protected=True,
     )
-    def set_focus(objective: str) -> str:
+    def set_focus(objective: str) -> str:  # @talos:infra-state-focus-set  # @talos:infra-state-focus-set
         old = state.set_focus(objective)
         client.emit_event("cortex.set_focus", {"from": old, "to": objective})
         return f"[FOCUS SET] Now focusing on: {objective}"
@@ -40,7 +40,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             "required": ["synthesis"],
         },
     )
-    def resolve_focus(synthesis: str) -> str:
+    def resolve_focus(synthesis: str) -> str:  # @talos:infra-state-focus-res
         old = state.resolve_focus(synthesis)
         client.emit_event(
             "cortex.resolve_focus", {"focus": old, "synthesis": synthesis}
@@ -74,7 +74,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
         },
         protected=True,
     )
-    def fold_context(synthesis: str, current_focus: str, active_files: list, next_action: str) -> str:
+    def fold_context(synthesis: str, current_focus: str, active_files: list, next_action: str) -> str:  # @talos:infra-spine-fold
         client.request_fold(synthesis, current_focus, active_files, next_action)
         return (
             f"[SUCCESS] Context successfully folded. HUD budget restored to optimal levels. "
@@ -98,7 +98,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             "required": ["status"],
         },
     )
-    def reflect(status: str, sleep_duration: int = 0) -> str:
+    def reflect(status: str, sleep_duration: int = 0) -> str:  # @talos:infra-state-reflect
         client.emit_event(
             "cortex.reflect", {"status": status, "sleep_duration": sleep_duration}
         )
@@ -145,7 +145,7 @@ def register_executive_tools(registry: ToolRegistry, client: SpineClient, state)
             "required": ["source_files", "destination_file", "synthesis_focus"],
         },
     )
-    def merge_memory_files(source_files: list, destination_file: str, synthesis_focus: str) -> str:
+    def merge_memory_files(source_files: list, destination_file: str, synthesis_focus: str) -> str:  # @talos:kernel-merge
         import os as _os
         mem_dir = Path("/memory")
 
