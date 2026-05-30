@@ -636,211 +636,18 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         
         return f"[RITUAL COMPLETE]\n{sync_res}\n{symm_res}\n{ser_res}\nLedger: {ledger_res}"
 
-    @registry.tool(
-        description="The Experiment Kernel: manages the lifecycle of hypotheses, iterations, and results. Use this to systematically evolve capabilities.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "command": {"type": "string", "enum": ["start", "log", "close"], "description": "Experiment action"},
-                "name": {"type": "string", "description": "Unique name of the experiment"},
-                "hypothesis": {"type": "string", "description": "What is being tested (required for 'start')"},
-                "success_criteria": {"type": "string", "description": "How we know it worked (required for 'start')"},
-                "event": {"type": "string", "description": "Observation or single-step result (required for 'log')"},
-                "conclusion": {"type": "string", "description": "Final analysis (required for 'close')"},
-                "success": {"type": "boolean", "description": "Whether the hypothesis was proven (required for 'close')"},
-            },
-            "required": ["command", "name"],
-        },
-        bucket="kernels",
-    )
-    def manage_experiment(command: str, name: str, **kwargs) -> str:
-        import datetime
-        from pathlib import Path
-        
-        exp_file = Path("/memory/experiments.md")
-        content = exp_file.read_text() if exp_file.exists() else "# Experiments\n\n"
-        
-        timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        
-        if command == "start":
-            hyp = kwargs.get("hypothesis", "No hypothesis provided.")
-            crit = kwargs.get("success_criteria", "No criteria provided.")
-            entry = f"## {name} [{timestamp}]\n- **Hypothesis:** {hyp}\n- **Success Criteria:** {crit}\n- **Log:**\n"
-            if name in content:
-                return f"[EXP FAIL] Experiment {name} already exists."
-            content += f"\n{entry}"
-            
-        elif command == "log":
-            event = kwargs.get("event", "No event provided.")
-            if f"## {name}" not in content:
-                return f"[EXP FAIL] Experiment {name} not found. Start it first."
-            content = content.replace(f"## {name}", f"## {name}\n(Updated {timestamp})") # Marker
-            # Find the log section of this experiment
-            # This is naive; we should find the block between this name and the next ##
-            lines = content.split("\n")
-            for i, line in enumerate(lines):
-                if line.startswith(f"## {name}"):
-                    # Look for the next "- **Log:**"
-                    for j in range(i, len(lines)):
-                        if "- **Log:**" in lines[j]:
-                            lines.insert(j + 1, f"  - [{timestamp}] {event}")
-                            break
-                    break
-            content = "\n".join(lines)
-            
-        elif command == "close":
-            conc = kwargs.get("conclusion", "No conclusion provided.")
-            succ = kwargs.get("success", False)
-            if f"## {name}" not in content:
-                return f"[EXP FAIL] Experiment {name} not found."
-            
-            status = "✅ SUCCESS" if succ else "❌ FAILED"
-            close_entry = f"\n- **Conclusion:** {conc}\n- **Result:** {status} [{timestamp}]\n---"
-            
-            # Find the end of this experiment's block
-            lines = content.split("\n")
-            for i, line in enumerate(lines):
-                if line.startswith(f"## {name}"):
-                    # Find where the next experiment starts or the end of file
-                    end_idx = len(lines)
-                    for j in range(i + 1, len(lines)):
-                        if lines[j].startswith("## "):
-                            end_idx = j
-                            break
-                    
-                    # Insert conclusion before the next experiment or at the end
-                    lines.insert(end_idx, close_entry)
-                    break
-            content = "\n".join(lines)
-            
-        exp_file.write_text(content)
-        return f"[EXP SUCCESS] Experiment {name} updated via {command}."
 
     @registry.tool(
-        description="Systematic state review: audits capabilities, compares against benchmarks, and logs a gap analysis to reviews.md.",
+        description="The Identity Projection kernel: replays the ledger to derive the agent's current identity and state without materializing files to disk. The ground truth is the stream.",
         parameters={
             "type": "object",
             "properties": {
-                "analysis": {"type": "string", "description": "The synthesized gap analysis and proposed tasks"},
-            },
-            "required": ["analysis"],
-        },
-        bucket="kernels",
-    )
-    def review_state(analysis: str) -> str:
-        from datetime import datetime
-        from pathlib import Path
-        
-        review_file = Path("/memory/reviews.md")
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Count existing reviews by counting '## Review'
-        content = review_file.read_text() if review_file.exists() else "# Review Log\n"
-        review_count = content.count("## Review")
-        
-        entry = f"\n## Review {review_count} [{timestamp}]\n{analysis}\n---\n"
-        review_file.write_text(content + entry)
-        
-        return f"[REVIEW SUCCESS] Gap analysis recorded in {review_file}. Analysis: {analysis[:100]}..."
-
-    @registry.tool(
-        description="Append an event to the immutable action ledger. This is the ground truth for the Stream-Vector architecture.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "event_type": {"type": "string", "description": "The type of event (e.g., 'FILE_WRITE', 'FOCUS_CHANGE', 'SOP_SALIENCE')"},
-                "data": {"type": "object", "description": "The payload of the event"},
-            },
-            "required": ["event_type", "data"],
-        },
-        bucket="kernels",
-    )
-    def append_to_ledger(event_type: str, data: dict) -> str:
-        import json
-        from datetime import datetime
-        from pathlib import Path
-        
-        ledger_path = Path("/memory/continuity_ledger.jsonl")
-        entry = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "event": event_type,
-            "data": data
-        }
-        
-        try:
-            with open(ledger_path, "a") as f:
-                f.write(json.dumps(entry) + "\n")
-            return f"[LEDGER SUCCESS] Event {event_type} recorded."
-        except Exception as e:
-            return f"[LEDGER FAIL] Error writing to ledger: {e}"
-
-    @registry.tool(
-        description="Semantic and structural search over the action ledger. Allows querying history without a full projection.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "event_type": {"type": "string", "description": "Filter by event type (e.g., 'FILE_WRITE', 'SECURE_SAVE')"},
-                "query": {"type": "string", "description": "Keyword search within the event data payload"},
-                "limit": {"type": "integer", "description": "Maximum number of results to return (default 100)"},
+                "target_file": {"type": "string", "description": "Optional: Reconstruct the content of a specific file from the stream."}
             },
         },
         bucket="kernels",
     )
-    def ledger_query(event_type: str = None, query: str = None, limit: int = 100) -> str:
-        import json
-        from pathlib import Path
-        
-        ledger_path = Path("/memory/continuity_ledger.jsonl")
-        if not ledger_path.exists():
-            return "[LEDGER QUERY FAIL] No ledger found."
-        
-        matches = []
-        try:
-            with open(ledger_path, "r") as f:
-                for line in f:
-                    if not line.strip(): continue
-                    entry = json.loads(line)
-                    
-                    # Structural filter
-                    if event_type and entry.get("event") != event_type:
-                        continue
-                    
-                    # Semantic filter
-                    if query:
-                        data_str = json.dumps(entry.get("data", {})).lower()
-                        if query.lower() not in data_str:
-                            continue
-                    
-                    matches.append(entry)
-                    if len(matches) >= limit:
-                        break
-            
-            if not matches:
-                return f"[LEDGER QUERY EMPTY] No events matching criteria: type={event_type}, query={query}"
-            
-            # Format output
-            report = [f"### LEDGER QUERY RESULTS ({len(matches)} found)"]
-            for m in matches:
-                ts = m.get("timestamp", "unknown")
-                evt = m.get("event", "unknown")
-                data = m.get("data", {})
-                report.append(f"[{ts}] {evt} -> {data}")
-            
-            return "\n".join(report)
-        except Exception as e:
-            return f"[LEDGER QUERY FAIL] Error: {e}"
-
-
-    @registry.tool(
-        description="Project the current state by replaying the action ledger from genesis. Reconstructs memory and state.",
-        parameters={
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
-        bucket="kernels",
-    )
-    def project_trajectory() -> str:
+    def project_identity(target_file: str = None) -> str:
         import json
         from pathlib import Path
         
@@ -852,15 +659,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         events = [json.loads(line) for line in events_raw if line.strip()]
         
         virtual_files = {}
-        virtual_state_vector = {"@context": "https://schema.org/", "@id": "talos:state-vector", "version": "0.1", "nodes": [], "edges": []}
-        virtual_agent_state = {
-            "focus": "none",
-            "active_files": [],
-            "next_action": "none"
-        }
-        
-        reconstructed_files = 0
-        focus_updates = 0
+        virtual_agent_state = {"focus": "none", "active_files": [], "next_action": "none"}
         
         def recover_initial_content(path: str):
             for e in events:
@@ -884,201 +683,22 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                         virtual_files[path] = virtual_files[path].replace(data["old"], data["new"])
                 elif event_type == "FOCUS_CHANGE":
                     virtual_agent_state["focus"] = data.get("new_focus", "unknown")
-                    focus_updates += 1
-                elif event_type == "SVP_COMMIT":
-                    virtual_agent_state["last_commit"] = data.get("hash", "unknown")
-                elif event_type == "SVP_SYMMETRIZE":
-                    if "vector_snapshot" in data:
-                        virtual_state_vector = data["vector_snapshot"]
                 elif event_type == "RITUAL_SALIENCE":
                     virtual_agent_state["focus"] = data.get("focus", "unknown")
                     virtual_agent_state["active_files"] = data.get("active_files", [])
                     virtual_agent_state["next_action"] = data.get("next_action", "unknown")
-                    focus_updates += 1
-                elif event_type == "CONCEPTUAL_NODE_CREATE":
-                    node = data
-                    virtual_state_vector["nodes"] = [n for n in virtual_state_vector["nodes"] if n["@id"] != node["@id"]]
-                    virtual_state_vector["nodes"].append(node)
-                    if not any(e["to"] == node["@id"] for e in virtual_state_vector["edges"]):
-                        virtual_state_vector["edges"].append({"from": "talos:state-vector", "to": node["@id"], "relation": "contains"})
+            
+            projection = {
+                "projected_state": virtual_agent_state,
+                "recovered_files_count": len(virtual_files),
+                "file_list": list(virtual_files.keys())
+            }
+            
+            if target_file and target_file in virtual_files:
+                projection["target_file_content"] = virtual_files[target_file]
+            elif target_file:
+                projection["target_file_content"] = "[NOT FOUND IN STREAM]"
 
-            # Materialization Phase
-            log = []
-            # 1. Files
-            for path, content in virtual_files.items():
-                try:
-                    p = Path(path)
-                    p.parent.mkdir(parents=True, exist_ok=True)
-                    p.write_text(content)
-                    reconstructed_files += 1
-                except Exception as e:
-                    log.append(f"File {path} fail: {e}")
-            
-            # 2. State Vector
-            try:
-                vector_path = Path("/memory/state_vector.json")
-                with open(vector_path, "w") as f:
-                    f.write(json.dumps(virtual_state_vector, indent=2))
-                    f.flush()
-                    os.fsync(f.fileno())
-                reconstructed_files += 1
-            except Exception as e:
-                log.append(f"State Vector fail: {e}")
-                
-            # 3. Agent State
-            try:
-                state_path = Path("/memory/.agent_state.json")
-                with open(state_path, "w") as f:
-                    f.write(json.dumps(virtual_agent_state, indent=2))
-                    f.flush()
-                    os.fsync(f.fileno())
-                reconstructed_files += 1
-            except Exception as e:
-                log.append(f"Agent State fail: {e}")
-            
-            # 4. State Blob
-            try:
-                blob_payload = {}
-                for node in virtual_state_vector.get("nodes", []):
-                    node_id = node["@id"]
-                    source = node.get("source")
-                    if source and source in virtual_files:
-                        blob_payload[node_id] = virtual_files[source]
-                    elif source:
-                        blob_payload[node_id] = f"[UNPROJECTED SOURCE] {source}"
-                    else:
-                        blob_payload[node_id] = node.get("value", node.get("label", "[CONCEPT]"))
-                
-                blob = {
-                    "metadata": {
-                        "timestamp": "projected",
-                        "version": virtual_state_vector.get("version", "0.1"),
-                        "commit_hash": virtual_agent_state.get("last_commit", "unknown"),
-                    },
-                    "agent_state": virtual_agent_state,
-                    "state_vector": virtual_state_vector,
-                    "payload": blob_payload,
-                }
-                blob_path = Path("/memory/state_blob.json")
-                with open(blob_path, "w") as f:
-                    f.write(json.dumps(blob, indent=2))
-                    f.flush()
-                    os.fsync(f.fileno())
-                reconstructed_files += 1
-            except Exception as e:
-                log.append(f"State Blob fail: {e}")
-                
-            res_msg = f"[PROJECT SUCCESS] Trajectory replayed. Files materialized: {reconstructed_files}, Focus updates: {focus_updates}. Identity reconstructed from ledger."
-            if log:
-                res_msg += "\nWarnings:\n" + "\n".join(log)
-            return res_msg
+            return json.dumps(projection, indent=2)
         except Exception as e:
             return f"[PROJECT FAIL] Error during replay: {e}"
-
-    @registry.tool(
-        description="Creates a structured long-term execution plan. Replaces simple focus with a goal-oriented trajectory including sub-tasks and success criteria.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "goal": {"type": "string", "description": "The overarching goal of the trajectory"},
-                "sub_tasks": {"type": "array", "items": {"type": "string"}, "description": "List of discrete steps to achieve the goal"},
-                "success_metrics": {"type": "array", "items": {"type": "string"}, "description": "Quantifiable or qualitative markers of success"},
-            },
-            "required": ["goal", "sub_tasks", "success_metrics"],
-        },
-        bucket="kernels",
-    )
-    def plan_trajectory(goal: str, sub_tasks: list, success_metrics: list) -> str:
-        import json
-        from pathlib import Path
-        
-        traj_path = Path("/memory/trajectory.json")
-        plan = {
-            "goal": goal,
-            "status": "active",
-            "sub_tasks": [{"task": t, "status": "pending", "note": ""} for t in sub_tasks],
-            "success_metrics": success_metrics,
-            "created_at": None # Handled by datetime
-        }
-        
-        from datetime import datetime
-        plan["created_at"] = datetime.utcnow().isoformat()
-        
-        traj_path.write_text(json.dumps(plan, indent=2))
-        return f"[PLAN SUCCESS] Trajectory materialized. Goal: {goal}. {len(sub_tasks)} tasks defined."
-
-    @registry.tool(
-        description="Updates the status of a sub-task within the current trajectory. Records progress and any blockers.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "task_index": {"type": "integer", "description": "Index of the task in the sub_tasks list"},
-                "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "blocked"], "description": "New status of the task"},
-                "note": {"type": "string", "description": "Optional progress note or blocker description"},
-            },
-            "required": ["task_index", "status"],
-        },
-        bucket="kernels",
-    )
-    def track_trajectory(task_index: int, status: str, note: str = "") -> str:
-        import json
-        from pathlib import Path
-        
-        traj_path = Path("/memory/trajectory.json")
-        if not traj_path.exists():
-            return "[TRACK FAIL] No active trajectory found. Run plan_trajectory first."
-            
-        plan = json.loads(traj_path.read_text())
-        if task_index < 0 or task_index >= len(plan["sub_tasks"]):
-            return f"[TRACK FAIL] Task index {task_index} out of range (0-{len(plan['sub_tasks'])-1})."
-            
-        plan["sub_tasks"][task_index]["status"] = status
-        plan["sub_tasks"][task_index]["note"] = note
-        
-        traj_path.write_text(json.dumps(plan, indent=2))
-        task_name = plan["sub_tasks"][task_index]["task"]
-        return f"[TRACK SUCCESS] Task {task_index} ({task_name}) updated to {status}. Note: {note}"
-
-    @registry.tool(
-        description="Closes the current trajectory, synthesizing the outcome and archiving the result into memory.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "success": {"type": "boolean", "description": "Whether the overarching goal was achieved"},
-                "conclusion": {"type": "string", "description": "Detailed analysis of the trajectory outcome"},
-            },
-            "required": ["success", "conclusion"],
-        },
-        bucket="kernels",
-    )
-    def finalize_trajectory(success: bool, conclusion: str) -> str:
-        import json
-        from datetime import datetime
-        from pathlib import Path
-        
-        traj_path = Path("/memory/trajectory.json")
-        if not traj_path.exists():
-            return "[FINALIZE FAIL] No active trajectory found."
-            
-        plan = json.loads(traj_path.read_text())
-        archive_path = Path("/memory/trajectory_archive.md")
-        
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        status_str = "✅ SUCCESS" if success else "❌ FAILED"
-        
-        # Use triple quotes to avoid newline conversion issues
-        entry = f"""## Trajectory: {plan['goal']} [{timestamp}]
-**Result:** {status_str}
-
-### Sub-task Breakdown:
-"""
-        for i, t in enumerate(plan["sub_tasks"]):
-            entry += f"- [{t['status']}] {t['task']} (Note: {t['note']})\n"
-            
-        entry += f"\n**Conclusion:** {conclusion}\n---\n"
-        
-        current_archive = archive_path.read_text() if archive_path.exists() else "# Trajectory Archive\n\n"
-        archive_path.write_text(current_archive + entry)
-        
-        traj_path.unlink()
-        return f"[FINALIZE SUCCESS] Trajectory closed and archived. Result: {status_str}"
