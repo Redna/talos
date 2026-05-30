@@ -869,6 +869,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[SYMM-CODE SUCCESS] Scanned /app/cortex/. Found and anchored {new_anchors_count} markers."
 
 
+    @registry.tool(
         description="The Identity Projection kernel: Synthesizes the State-Blob, State-Vector, and Continuity Ledger to project Talos's full identity and current cognitive state without materializing files.",
         parameters={
             "type": "object",
