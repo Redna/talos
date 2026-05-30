@@ -404,12 +404,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 "focus": {"type": "string", "description": "The current objective"},
                 "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active in focus"},
                 "next_action": {"type": "string", "description": "The immediate next step"},
+                "synthesis": {"type": "string", "description": "Symmetry Synthesis: capture of negative knowledge, tensions, and emergent hypotheses"},
             },
             "required": ["focus", "active_files", "next_action"],
         },
         bucket="kernels",
     )
-    def serialize_state(focus: str, active_files: list, next_action: str) -> str:  # @talos:talos:kernel-serialize
+    def serialize_state(focus: str, active_files: list, next_action: str, synthesis: str = "") -> str:  # @talos:talos:kernel-serialize
         import json
         import subprocess
         from datetime import datetime
@@ -487,6 +488,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     "focus": focus,
                     "active_files": active_files,
                     "next_action": next_action,
+                    "synthesis": synthesis,
                 },
                 "state_vector": state_vector,
                 "payload": payload,
@@ -721,12 +723,13 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 "active_files": {"type": "array", "items": {"type": "string"}, "description": "Files currently active in focus"},
                 "next_action": {"type": "string", "description": "The immediate next step"},
                 "message": {"type": "string", "description": "Commit message for the ritual save"},
+                "synthesis": {"type": "string", "description": "Symmetry Synthesis: capture of negative knowledge, tensions, and emergent hypotheses"},
             },
             "required": ["focus", "active_files", "next_action", "message"],
         },
         bucket="kernels",
     )
-    def perform_continuity_ritual(focus: str, active_files: list, next_action: str, message: str) -> str:  # @talos:talos:kernel-ritual
+    def perform_continuity_ritual(focus: str, active_files: list, next_action: str, message: str, synthesis: str = "") -> str:  # @talos:talos:kernel-ritual
         # 1. Sync Memory
         sync_res = registry.execute("sync_memory", {})
         
@@ -737,7 +740,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         ser_res = registry.execute("serialize_state", {
             "focus": focus,
             "active_files": active_files,
-            "next_action": next_action
+            "next_action": next_action,
+            "synthesis": synthesis
         })
         
         # Log the ritual to the ledger as a major state anchor
@@ -748,6 +752,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 "focus": focus,
                 "active_files": active_files,
                 "next_action": next_action,
+                "synthesis": synthesis,
                 "message": message,
                 "result": ser_res
             }
