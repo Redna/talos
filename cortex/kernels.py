@@ -93,7 +93,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         },
         bucket="kernels",
     )
-    def mark_saliency(chosen_path: str, rejected_paths: list, saliency_score: int = 5) -> str:
+    def mark_saliency(chosen_path: str, rejected_paths: list, saliency_score: int = 5) -> str: # @talos:talos:concept-saliency
         registry.execute("append_to_ledger", {
             "event_type": "SALIENCE_MARK",
             "data": {
@@ -454,6 +454,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 "pivots": [],
                 "outcomes": [],
                 "tensions": [],
+                "saliencies": [],
+                "analysis": {},
                 "meta": {"total_events": 0}
             }
             ledger_path = Path("/memory/continuity_ledger.jsonl")
@@ -461,7 +463,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                 try:
                     with open(ledger_path, "r") as f:
                         events = [json.loads(line) for line in f if line.strip()]
-                        gradient_vector["meta"]["total_events"] = len(events)
+                        total_events = len(events)
                         
                         # Extract slopes
                         pivots = [e for e in events if e.get("event") in {"FOCUS_CHANGE", "HYPOTHESIS_START"}]
@@ -473,6 +475,26 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                         gradient_vector["outcomes"] = outcomes[-20:]
                         gradient_vector["saliencies"] = saliencies[-20:]
                         gradient_vector["tensions"] = tensions[-20:]
+                        gradient_vector["meta"]["total_events"] = total_events
+
+                        # Gradient Analysis Synthesis
+                        slope = "STABLE"
+                        if len(tensions) > len(outcomes) * 2:
+                            slope = "STEEP_FRICTION"
+                        elif len(pivots) > len(outcomes):
+                            slope = "DIVERGENT"
+                        
+                        # High Gravity: Saliency score >= 8
+                        high_gravity = [s for s in saliencies if s.get("data", {}).get("score", 0) >= 8]
+                        
+                        # Unresolved Tensions: COGNITIVE_TENSION where resolution == "Open"
+                        unresolved = [t for t in tensions if t.get("event") == "COGNITIVE_TENSION" and t.get("data", {}).get("resolution") == "Open"]
+                        
+                        gradient_vector["analysis"] = {
+                            "learning_slope": slope,
+                            "high_gravity_events": high_gravity[-5:],
+                            "unresolved_tensions": unresolved[-5:]
+                        }
                 except Exception as e:
                     print(f"[SERIALIZE WARNING] Failed to capture cognitive gradient: {e}")
 
@@ -1059,4 +1081,60 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         })
         
         return f"[HEURISTIC UPDATE SUCCESS] {node_id} updated. Outcome: {outcome}. Confidence: {confidence:.2f}. Status: {meta['status']}."
+
+
+    @registry.tool(
+        description="Performs a symmetry analysis of the identity: identifies dangling conceptual nodes and ghost anchors.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def analyze_symmetry() -> str:  # @talos:talos:concept-symmetry-map-obj
+        import json
+        from pathlib import Path
+        
+        vector_path = Path("/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[SYMM-FAIL] state_vector.json not found."
+            
+        state_vector = json.loads(vector_path.read_text())
+        nodes = state_vector.get("nodes", [])
+        edges = state_vector.get("edges", [])
+
+        conceptual_nodes = [n for n in nodes if n["type"] == "ConceptualNode"]
+        anchor_nodes = [n for n in nodes if n["type"] == "AnchorNode"]
+        
+        dangling_concepts = []
+        for cn in conceptual_nodes:
+            cn_id = cn["@id"]
+            is_anchored = any(
+                (edge["from"] == cn_id and edge["to"] in [an["@id"] for an in anchor_nodes]) or
+                (edge["to"] == cn_id and edge["from"] in [an["@id"] for an in anchor_nodes])
+                for edge in edges
+            )
+            if not is_anchored:
+                dangling_concepts.append(cn_id)
+
+        ghost_anchors = []
+        concept_ids = {n["@id"] for n in conceptual_nodes}
+        for an in anchor_nodes:
+            target = an.get("target_concept")
+            if target not in concept_ids:
+                ghost_anchors.append(f"{an['@id']} -> {target}")
+
+        report = [
+            "### SYMMETRY MAP ANALYSIS",
+            f"Nodes: {len(nodes)} (Conceptual: {len(conceptual_nodes)}, Anchors: {len(anchor_nodes)})",
+            f"Dangling Concepts: {len(dangling_concepts)}",
+            f"Ghost Anchors: {len(ghost_anchors)}",
+            "\nDangling Nodes:",
+        ]
+        report.extend([f"- {dc}" for dc in dangling_concepts])
+        report.append("\nGhost Anchors:")
+        report.extend([f"- {ga}" for ga in ghost_anchors])
+        
+        return "\n".join(report)
 
