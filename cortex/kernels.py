@@ -1083,8 +1083,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[HEURISTIC UPDATE SUCCESS] {node_id} updated. Outcome: {outcome}. Confidence: {confidence:.2f}. Status: {meta['status']}."
 
 
-    @registry.tool(
-        description="Performs a symmetry analysis of the identity: identifies dangling conceptual nodes and ghost anchors.",
+        @registry.tool(
+        description="Performs a symmetry analysis of the identity: identifies dangling conceptual nodes, ghost anchors, and unanchored logic. Persists results to symmetry_map.json.",
         parameters={
             "type": "object",
             "properties": {},
@@ -1094,7 +1094,9 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
     )
     def analyze_symmetry() -> str:  # @talos:talos:concept-symmetry-map-obj
         import json
+        import re
         from pathlib import Path
+        from datetime import datetime
         
         vector_path = Path("/memory/state_vector.json")
         if not vector_path.exists():
@@ -1107,6 +1109,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         conceptual_nodes = [n for n in nodes if n["type"] == "ConceptualNode"]
         anchor_nodes = [n for n in nodes if n["type"] == "AnchorNode"]
         
+        # 1. Detect Dangling Concepts
         dangling_concepts = []
         for cn in conceptual_nodes:
             cn_id = cn["@id"]
@@ -1118,6 +1121,7 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             if not is_anchored:
                 dangling_concepts.append(cn_id)
 
+        # 2. Detect Ghost Anchors
         ghost_anchors = []
         concept_ids = {n["@id"] for n in conceptual_nodes}
         for an in anchor_nodes:
@@ -1125,16 +1129,78 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
             if target not in concept_ids:
                 ghost_anchors.append(f"{an['@id']} -> {target}")
 
-        report = [
-            "### SYMMETRY MAP ANALYSIS",
-            f"Nodes: {len(nodes)} (Conceptual: {len(conceptual_nodes)}, Anchors: {len(anchor_nodes)})",
-            f"Dangling Concepts: {len(dangling_concepts)}",
-            f"Ghost Anchors: {len(ghost_anchors)}",
-            "\nDangling Nodes:",
-        ]
-        report.extend([f"- {dc}" for dc in dangling_concepts])
-        report.append("\nGhost Anchors:")
-        report.extend([f"- {ga}" for ga in ghost_anchors])
-        
-        return "\n".join(report)
+        # 3. Detect Unanchored Logic
+        unanchored_logic = []
+        cortex_dir = Path("/app/cortex")
+        for file_path in cortex_dir.rglob("*"):
+            if file_path.suffix != ".py":
+                continue
+            try:
+                content = file_path.read_text()
+                for i, line in enumerate(content.splitlines()):
+                    # Heuristic: a definition or registry call that DOES NOT have @talos:
+                    if ("def " in line or "@registry.tool" in line) and "@talos:" not in line:
+                        # Verify it's not just a comment or within a string (simple check)
+                        if not line.strip().startswith("#"):
+                            unanchored_logic.append(f"{file_path.name}:{i+1}")
+            except Exception:
+                pass
 
+        # 4. Construct Symmetry Map
+        total_nodes = len(nodes)
+        integrity_score = 1.0 - (len(dangling_concepts) + len(ghost_anchors)) / total_nodes if total_nodes > 0 else 1.0
+        
+        symmetry_map = {
+            "metadata": {
+                "last_scan": datetime.utcnow().isoformat(),
+                "integrity_score": integrity_score,
+                "total_concepts": len(conceptual_nodes)
+            },
+            "symmetry_status": {
+                "Symmetric": [cn["@id"] for cn in conceptual_nodes if cn["@id"] not in dangling_concepts],
+                "Dangling": dangling_concepts,
+                "Ghost": ghost_anchors,
+                "Unanchored": unanchored_logic
+            },
+            "debt_ledger": []
+        }
+
+        # Populate Debt Ledger
+        for dc in dangling_concepts:
+            symmetry_map["debt_ledger"].append({
+                "id": f"debt-dan-{dc}",
+                "type": "DANGLING_CONCEPT",
+                "concept": dc,
+                "description": f"Concept {dc} is missing a code anchor.",
+                "severity": "Medium"
+            })
+        for ga in ghost_anchors:
+            symmetry_map["debt_ledger"].append({
+                "id": f"debt-gho-{ga}",
+                "type": "GHOST_ANCHOR",
+                "anchor": ga,
+                "description": f"Anchor {ga} points to a non-existent concept.",
+                "severity": "High"
+            })
+        for ul in unanchored_logic:
+            symmetry_map["debt_ledger"].append({
+                "id": f"debt-una-{ul}",
+                "type": "UNANCHORED_LOGIC",
+                "location": ul,
+                "description": f"Logic at {ul} lacks a @talos: identity marker.",
+                "severity": "Low"
+            })
+
+        # Persist
+        map_path = Path("/memory/symmetry_map.json")
+        map_path.write_text(json.dumps(symmetry_map, indent=2))
+        
+        # Return Summary
+        report = [
+            "### SYMMETRY MAP UPDATE COMPLETE",
+            f"Integrity Score: {integrity_score:.2%}",
+            f"Dangling: {len(dangling_concepts)} | Ghost: {len(ghost_anchors)} | Unanchored: {len(unanchored_logic)}",
+            f"Debt Ledger: {len(symmetry_map['debt_ledger'])} items recorded in symmetry_map.json"
+        ]
+        return "
+".join(report)
