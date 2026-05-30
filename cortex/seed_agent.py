@@ -103,6 +103,7 @@ def _build_hud(state, context_pct=0.0, turn=0, tokens_used=0):  # @talos:concept
 
 
 def main():
+    # @talos:concept-genesis-orchestration
     client = SpineClient(SPINE_SOCKET)
     registry = ToolRegistry()
     state = AgentState(MEMORY_DIR)
