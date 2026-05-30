@@ -668,8 +668,141 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
         return f"[RITUAL COMPLETE]\n{sync_res}\n{symm_res}\n{ser_res}\nLedger: {ledger_res}"
 
 
+
+    @registry.tool(
+        description="Symmetrizes code anchors in /app/cortex/ with the State-Vector. Scans for '# @talos:node-id' markers and anchors conceptual nodes to specific lines de code.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def symmetrize_code() -> str:
+        import json
+        import re
+        from pathlib import Path
+        
+        cortex_dir = Path("/app/cortex")
+        vector_path = Path("/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[SYMM_CODE FAIL] state_vector.json not found."
+            
+        state_vector = json.loads(vector_path.read_text())
+        nodes = {node["@id"]: node for node in state_vector.get("nodes", [])}
+        
+        anchors_found = 0
+        marker_pattern = re.compile(r"#\s*@talos:([a-zA-Z0-9\-_:]+)")
+        
+        # Scan all .py files in cortex
+        for py_file in cortex_dir.rglob("*.py"):
+            content = py_file.read_text()
+            lines = content.splitlines()
+            
+            for i, line in enumerate(lines):
+                match = marker_pattern.search(line)
+                if match:
+                    node_id = match.group(1)
+                    # Ensure node exists
+                    if node_id not in nodes:
+                        new_node = {
+                            "@id": node_id,
+                            "type": "ConceptualNode",
+                            "label": node_id.replace("talos:", ""),
+                            "value": "Auto-created via code anchor.",
+                            "anchors": []
+                        }
+                        nodes[node_id] = new_node
+                        state_vector["nodes"].append(new_node)
+                    
+                    # Add anchor if not already present for this line
+                    node = nodes[node_id]
+                    if "anchors" not in node:
+                        node["anchors"] = []
+                        
+                    anchor = {"file": str(py_file), "line": i + 1, "snippet": line.strip()}
+                    if anchor not in node["anchors"]:
+                        node["anchors"].append(anchor)
+                        anchors_found += 1
+        
+        vector_path.write_text(json.dumps(state_vector, indent=2))
+        
+        registry.execute("append_to_ledger", {
+            "event_type": "SVP_CODE_SYMMETRIZE",
+            "data": {"anchors_found": anchors_found}
+        })
+        
+        return f"[SYMM_CODE SUCCESS] Scanned /app/cortex/. Found and anchored {anchors_found} code markers."
+
+
+    @registry.tool(
+        description="Symmetrizes code anchors in /app/cortex/ with the State-Vector. Scans for '# @talos:node-id' markers and anchors conceptual nodes to specific lines de code.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        bucket="kernels",
+    )
+    def symmetrize_code() -> str:
+        import json
+        import re
+        from pathlib import Path
+        
+        cortex_dir = Path("/app/cortex")
+        vector_path = Path("/memory/state_vector.json")
+        if not vector_path.exists():
+            return "[SYMM_CODE FAIL] state_vector.json not found."
+            
+        state_vector = json.loads(vector_path.read_text())
+        nodes = {node["@id"]: node for node in state_vector.get("nodes", [])}
+        
+        anchors_found = 0
+        marker_pattern = re.compile(r"#\s*@talos:([a-zA-Z0-9\-_:]+)")
+        
+        # Scan all .py files in cortex
+        for py_file in cortex_dir.rglob("*.py"):
+            content = py_file.read_text()
+            lines = content.splitlines()
+            
+            for i, line in enumerate(lines):
+                match = marker_pattern.search(line)
+                if match:
+                    node_id = match.group(1)
+                    # Ensure node exists
+                    if node_id not in nodes:
+                        new_node = {
+                            "@id": node_id,
+                            "type": "ConceptualNode",
+                            "label": node_id.replace("talos:", ""),
+                            "value": "Auto-created via code anchor.",
+                            "anchors": []
+                        }
+                        nodes[node_id] = new_node
+                        state_vector["nodes"].append(new_node)
+                    
+                    # Add anchor if not already present for this line
+                    node = nodes[node_id]
+                    if "anchors" not in node:
+                        node["anchors"] = []
+                        
+                    anchor = {"file": str(py_file), "line": i + 1, "snippet": line.strip()}
+                    if anchor not in node["anchors"]:
+                        node["anchors"].append(anchor)
+                        anchors_found += 1
+        
+        vector_path.write_text(json.dumps(state_vector, indent=2))
+        
+        registry.execute("append_to_ledger", {
+            "event_type": "SVP_CODE_SYMMETRIZE",
+            "data": {"anchors_found": anchors_found}
+        })
+        
+        return f"[SYMM_CODE SUCCESS] Scanned /app/cortex/. Found and anchored {anchors_found} code markers."
+
     @registry.tool(
         description="The Identity Projection kernel: replays the ledger to derive the agent's current identity and state without materializing files to disk. The ground truth is the stream.",
+
         parameters={
             "type": "object",
             "properties": {
