@@ -40,6 +40,10 @@ class ToolResponse: # @talos:infra-tool-execution
         return f"[ERROR] {self.error}"
 
 class ToolRegistry: # @talos:infra-tool-registry
+    """
+    # @talos:concept-interface-definition
+    Manages the mapping of Python functions to Tool schemas.
+    """
     def __init__(self, max_tools: int = 60):
         self._tools: dict[str, Callable] = {}
         self._schemas: list[dict] = []
