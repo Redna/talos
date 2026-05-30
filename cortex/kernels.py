@@ -470,6 +470,54 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):
                     log(f"Error materializing agent state: {str(e)}")
                     failed_nodes.append(f"agent_state: {str(e)}")
             
+            # 4. Hybrid Recovery: Replay Ledger Deltas
+            log("Starting Hybrid Recovery: Replaying ledger deltas...")
+            blob_timestamp = blob.get('metadata', {}).get('timestamp')
+            if blob_timestamp:
+                ledger_path = Path("/memory/continuity_ledger.jsonl")
+                if ledger_path.exists():
+                    delta_events = 0
+                    try:
+                        with open(ledger_path, "r") as f:
+                            for line in f:
+                                if not line.strip(): continue
+                                entry = json.loads(line)
+                                if entry.get("timestamp", "") > blob_timestamp:
+                                    event_type = entry.get("event")
+                                    data = entry.get("data", {})
+                                    
+                                    if event_type in ["FILE_WRITE", "GENESIS_FILE_WRITE"]:
+                                        p = Path(data.get("path", ""))
+                                        if p != Path("."): 
+                                            p.parent.mkdir(parents=True, exist_ok=True)
+                                            p.write_text(data.get("content", ""))
+                                            delta_events += 1
+                                    elif event_type == "FILE_REPLACE":
+                                        p = Path(data.get("path", ""))
+                                        if p.exists():
+                                            content = p.read_text()
+                                            p.write_text(content.replace(data.get("old", ""), data.get("new", "")))
+                                            delta_events += 1
+                                    elif event_type in ["FOCUS_CHANGE", "RITUAL_SALIENCE"]:
+                                        if event_type == "FOCUS_CHANGE":
+                                            agent_state["focus"] = data.get("new_focus")
+                                        else:
+                                            agent_state["focus"] = data.get("focus")
+                                            agent_state["next_action"] = data.get("next_action")
+                                        
+                                        state_path = Path("/memory/.hydration_state.json")
+                                        state_path.write_text(json.dumps(agent_state, indent=2))
+                                        delta_events += 1
+                                    elif event_type == "SVP_SYMMETRIZE":
+                                        if "vector_snapshot" in data:
+                                            vector_path = Path("/memory/state_vector.json")
+                                            vector_path.write_text(json.dumps(data["vector_snapshot"], indent=2))
+                                            delta_events += 1
+                    except Exception as e:
+                        log(f"Error during ledger replay: {str(e)}")
+                    
+                    log(f"Hybrid Recovery complete. Replayed {delta_events} delta events.")
+            
             log(f"Hydration complete. Restored: {restored_count}, Failed: {len(failed_nodes)}")
             
             return json.dumps({
