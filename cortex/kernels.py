@@ -336,6 +336,8 @@ def register_kernels(registry: ToolRegistry, client: SpineClient):  # @talos:ker
                     match = marker_pattern.search(line)
                     if match:
                         concept_id = match.group(1)
+                        if not concept_id.startswith("talos:"):
+                            concept_id = f"talos:{concept_id}"
                         anchor_id = f"talos:anchor-{file_path.stem}-{i+1}"
                         found_anchors.add(anchor_id)
                         found_anchors.add(anchor_id)
