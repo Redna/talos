@@ -30,6 +30,30 @@ async def main():
     ]:
         Path(dir_path).mkdir(parents=True, exist_ok=True)
 
+    # --- credential proxy ----------------------------------------------------
+    # Phase 3: Start the nono credential proxy so the Cortex never sees real
+    # GITHUB_TOKEN or TELEGRAM_BOT_TOKEN.  The proxy reads them from the
+    # Spine's environment and injects them on matching outbound requests.
+    # Export NONO_PROXY_PORT so entrypoint.sh can configure git to use it.
+    credential_proxy = start_credential_proxy(cfg)
+    if credential_proxy is not None:
+        os.environ["NONO_PROXY_PORT"] = str(credential_proxy.port)
+        logger.info("[Spine] NONO_PROXY_PORT=%s", credential_proxy.port)
+
+    # --- nono sandbox ----------------------------------------------------------
+    sandbox = None
+    try:
+        from spine.sandbox import TalosSandbox
+
+        sandbox = TalosSandbox(cfg)
+        logger.info(
+            "[Spine] Nono sandbox enabled=%s supported=%s",
+            sandbox.nono_enabled,
+            sandbox.is_supported(),
+        )
+    except Exception:
+        logger.warning("[Spine] Failed to create TalosSandbox — running without sandbox", exc_info=True)
+
     logger.info(f"[Spine] Starting: GateURL={cfg.gate_url} Socket={cfg.socket_path}")
 
     event_logger = EventLogger(f"{cfg.spine_dir}/events")
@@ -37,7 +61,7 @@ async def main():
         stall_timeout=getattr(cfg, "stall_timeout", 600.0), startup_timeout=30.0
     )
     stream_mgr = StreamManager(cfg)
-    supervisor = Supervisor(cfg, event_logger, health, stream_mgr)
+    supervisor = Supervisor(cfg, event_logger, health, stream_mgr, sandbox=sandbox)
     gate_proxy = GateProxy(cfg.gate_url, model=os.environ.get("TALOS_MODEL", ""))
     ipc_server = IPCServer(cfg, supervisor, stream_mgr, event_logger, gate_proxy)
 

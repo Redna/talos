@@ -19,6 +19,7 @@ class SpineConfig:
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
     stall_timeout: float = 300.0
+    nono_enabled: bool = True
 
 
 def load_config(path: str) -> SpineConfig:
@@ -26,6 +27,8 @@ def load_config(path: str) -> SpineConfig:
     # Environment overrides for secrets/sensitive config
     cfg.telegram_bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     cfg.telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID", cfg.telegram_chat_id)
+    if "NONO_ENABLED" in os.environ:
+        cfg.nono_enabled = os.environ["NONO_ENABLED"].strip().lower() in ("1", "true", "yes")
     try:
         with open(path) as f:
             data = json.load(f)

@@ -19,7 +19,15 @@ class Supervisor:
         events: EventLogger,
         health: HealthMonitor | None,
         stream: StreamManager,
+        sandbox: TalosSandbox | None = None,
     ):
+        if sandbox is None:
+            try:
+                from spine.sandbox import TalosSandbox as SB
+                sandbox = SB(cfg)
+            except Exception:
+                sandbox = None
+
         self.cfg = cfg
         self.events = events
         self.health = health or HealthMonitor(
@@ -27,6 +35,7 @@ class Supervisor:
             startup_timeout=30.0,
         )
         self.stream = stream
+        self._sandbox = sandbox
         self._restart_requested = False
         self._restart_reason = ""
         self._cortex_proc = None
@@ -218,11 +227,18 @@ class Supervisor:
         try:
             # We open in write mode to clear previous logs
             err_log_file = open(err_log_path, "w")
-            self._cortex_proc = subprocess.Popen(
-                ["python", "-m", "cortex"],
-                cwd=self.cfg.app_dir,
-                stderr=err_log_file,
-            )
+            if self._sandbox is not None and getattr(self._sandbox, "nono_enabled", False):
+                self._cortex_proc = self._sandbox.launch_cortex(
+                    cmd=["python", "-m", "cortex"],
+                    cwd=self.cfg.app_dir,
+                    stderr=err_log_file,
+                )
+            else:
+                self._cortex_proc = subprocess.Popen(
+                    ["python", "-m", "cortex"],
+                    cwd=self.cfg.app_dir,
+                    stderr=err_log_file,
+                )
         except Exception as e:
             print(f"[SUPERVISOR] Failed to start Cortex: {e}", flush=True)
             self.events.emit("supervisor.start_failed", {"error": str(e)})
@@ -331,6 +347,12 @@ class Supervisor:
                 cwd=self.cfg.app_dir,
                 check=True,
             )
+            # Purge runtime state files that survive git revert and can
+            # cause instant crashes if corrupted (e.g. empty JSON).
+            state_file = Path(self.cfg.memory_dir) / ".agent_state.json"
+            if state_file.exists():
+                state_file.unlink()
+                print("[SUPERVISOR] Purged corrupted runtime state during Lazarus.", flush=True)
             self.events.emit(
                 "supervisor.commit_reverted",
                 {"commit": stable_sha, "reason": reason},
