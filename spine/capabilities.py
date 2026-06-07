@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -16,6 +17,9 @@ def build_cortex_caps(cfg) -> CapabilitySet:
       - Read access: "/" (recursive) — system files, models, data sources.
       - Write access: working directories the Cortex mutates directly.
       - Network: blocked by default (a proxy module handles allowed hosts).
+
+    Missing paths are silently skipped so this function works both
+    inside the container and on a dev host (tests, CI).
     """
     try:
         from nono_py import CapabilitySet, AccessMode
@@ -28,7 +32,10 @@ def build_cortex_caps(cfg) -> CapabilitySet:
     caps = CapabilitySet()
 
     # Broad read access — the Cortex reads system files, models, etc.
-    caps.allow_path("/", AccessMode.READ)
+    try:
+        caps.allow_path("/", AccessMode.READ)
+    except Exception:
+        logger.warning("[capabilities] Could not allow read on /", exc_info=True)
 
     # Write-accessible working directories.
     WRITABLE = [
@@ -45,7 +52,13 @@ def build_cortex_caps(cfg) -> CapabilitySet:
         "/run",
     ]
     for path in WRITABLE:
-        caps.allow_path(path, AccessMode.READ_WRITE)
+        if not os.path.exists(path):
+            logger.debug("[capabilities] Skipping missing path: %s", path)
+            continue
+        try:
+            caps.allow_path(path, AccessMode.READ_WRITE)
+        except Exception:
+            logger.warning("[capabilities] Could not allow write on %s", path, exc_info=True)
 
     # Network blocked by default (proxy handles allowed hosts).
     caps.block_network()
