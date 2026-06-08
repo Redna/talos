@@ -41,15 +41,19 @@ async def main():
         logger.info("[Spine] NONO_PROXY_PORT=%s", credential_proxy.port)
 
     # --- nono sandbox ----------------------------------------------------------
+    # Phase 2b: the policy file is written by TalosSandbox.__init__ so the
+    # `nono run --config` subprocess can be launched as a real Popen
+    # (giving the Supervisor a PID it can SIGTERM / SIGKILL).
     sandbox = None
     try:
-        from spine.sandbox import TalosSandbox
+        from spine.sandbox import TalosSandbox, DEFAULT_POLICY_PATH
 
-        sandbox = TalosSandbox(cfg)
+        sandbox = TalosSandbox(cfg, policy_path=DEFAULT_POLICY_PATH)
         logger.info(
-            "[Spine] Nono sandbox enabled=%s supported=%s",
+            "[Spine] Nono sandbox enabled=%s supported=%s policy=%s",
             sandbox.nono_enabled,
             sandbox.is_supported(),
+            DEFAULT_POLICY_PATH,
         )
     except Exception:
         logger.warning("[Spine] Failed to create TalosSandbox — running without sandbox", exc_info=True)

@@ -1,64 +1,122 @@
+"""Phase 2b: Talos sandbox launches the Cortex as a ``nono run`` subprocess.
+
+Why the rewrite
+---------------
+Phase 2 used ``nono_py.sandboxed_exec()`` (a Python call that runs the
+Cortex on a daemon thread and returns a thread-wrapped
+:class:`SandboxProc` with a no-op ``.kill()``).  That meant the Spine
+could not ``SIGTERM`` a hung Cortex: ``sandboxed_exec`` blocks until
+the child exits, so the only termination channel was a flag the
+background thread could check between calls — not useful for
+timeouts.
+
+The fix is to treat ``nono`` as **infrastructure**: a static binary
+that the agent cannot modify.  The Spine runs it as a real
+:func:`subprocess.Popen` subprocess:
+
+    Popen(['nono', 'run', '--config', policy, '--', sys.executable, '-m', 'cortex'])
+
+That gives the Supervisor a real Popen with a real PID.  The user
+explicitly rejected the in-Cortex approach — rlimits must be set by
+the Spine (via ``preexec_fn``) and the container's cgroup caps are
+the unbypassable backstop.
+
+Signal forwarding
+-----------------
+We verified that ``nono run`` forwards ``SIGTERM`` to its child
+(both processes die with exit code 143).  Sending ``SIGKILL`` to
+the nono PID also takes down the child.
+
+On kernels that lack Landlock — or when *cfg.nono_enabled* is
+``False`` — every method degrades gracefully to plain
+``subprocess.Popen`` so the agent keeps running without kernel
+isolation.
+"""
+
 from __future__ import annotations
 
 import logging
 import os
 import subprocess
-import threading
+import sys
 import uuid
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from nono_py import CapabilitySet
     from spine.config import SpineConfig
 
 logger = logging.getLogger("spine.sandbox")
 
 
-class SandboxProc:
-    """Minimal Popen-like wrapper returned by :meth:`TalosSandbox.launch_cortex`.
+# ---------------------------------------------------------------------------
+# rlimits — applied via preexec_fn so the agent cannot raise them
+# ---------------------------------------------------------------------------
 
-    The Supervisor uses ``.poll()`` and ``.returncode`` as well as
-    ``.kill()`` on stall detection — this object matches that contract
-    while the actual child runs inside ``sandboxed_exec`` on a
-    background thread.
+# 30 minutes of CPU time (covers long LLM streams + code execution).
+_CORTEX_CPU_RLIMIT_S = 1800
+# 8 GB virtual address space — the container cgroup is the real cap.
+_CORTEX_AS_RLIMIT_BYTES = 8 * 1024 * 1024 * 1024
+# 4096 open file descriptors (default is usually 1024 — agents that
+# fork many subprocesses hit this).
+_CORTEX_NOFILE_RLIMIT = 4096
+
+
+def _set_cortex_rlimits() -> None:
+    """Apply rlimits to the Cortex process tree.
+
+    Set via ``preexec_fn`` on the nono Popen, so they apply to nono
+    itself and are inherited by its child (the Cortex).  The agent
+    *can* lower its own limits but cannot exceed the container cgroup
+    cap (set in ``docker-compose.yml``).
+
+    Must be safe to call from the preexec callback — it runs in the
+    child between ``fork()`` and ``exec()``, so only async-signal-safe
+    operations are allowed.  ``resource.setrlimit`` is async-signal-safe
+    on Linux.
     """
+    import resource
 
-    def __init__(self, thread: threading.Thread, result_holder: dict):
-        self._thread = thread
-        self._result = result_holder  # {"returncode": int | None}
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_CPU,
+            (_CORTEX_CPU_RLIMIT_S, _CORTEX_CPU_RLIMIT_S),
+        )
+    except (OSError, ValueError):
+        # EINVAL on kernels that don't honour the cap — non-fatal.
+        pass
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_AS,
+            (_CORTEX_AS_RLIMIT_BYTES, _CORTEX_AS_RLIMIT_BYTES),
+        )
+    except (OSError, ValueError):
+        pass
+    try:
+        resource.setrlimit(
+            resource.RLIMIT_NOFILE,
+            (_CORTEX_NOFILE_RLIMIT, _CORTEX_NOFILE_RLIMIT),
+        )
+    except (OSError, ValueError):
+        pass
 
-    def poll(self) -> int | None:
-        """Return the exit code if the sandboxed process has finished."""
-        return self._result["returncode"] if self._result.get("done") else None
 
-    @property
-    def returncode(self) -> int | None:
-        return self._result["returncode"]
+# ---------------------------------------------------------------------------
+# TalosSandbox — Popen-CLI orchestrator
+# ---------------------------------------------------------------------------
 
-    def kill(self) -> None:
-        """Best-effort termination.
-
-        ``sandboxed_exec`` blocks until the child exits, so we cannot
-        send SIGKILL directly.  The Supervisor already has a
-        TimeoutExpired-fallback path that handles this case — setting
-        a flag here lets the background thread notice it should stop
-        waiting (when/if nono supports cancellation).
-        """
-        self._result["_cancel"] = True
-
-    def wait(self, timeout: float | None = None) -> int:
-        if timeout is not None:
-            self._thread.join(timeout=timeout)
-        else:
-            self._thread.join()
-        return self._result.get("returncode", -1)
+# Default path to write the nono policy manifest.  Lives under the
+# Spine's own data directory so the Cortex cannot tamper with it
+# (the Spine runs as root; the Cortex runs as ``talos`` with read-only
+# access to /spine by default — see ``nono_policy.build_policy_dict``).
+DEFAULT_POLICY_PATH = "/spine/nono_policy.json"
 
 
 class TalosSandbox:
-    """Manages the Cortex sandbox lifecycle via nono Landlock.
+    """Manages the Cortex sandbox lifecycle via the ``nono`` CLI.
 
     On kernels that lack Landlock (or when *nono_enabled* is False)
-    every method degrades gracefully to the classic `subprocess.Popen`
+    every method degrades gracefully to the classic ``subprocess.Popen``
     behaviour so the agent keeps running — just without kernel-level
     isolation.
 
@@ -66,6 +124,11 @@ class TalosSandbox:
     ----------
     cfg:
         Spine configuration dataclass.
+    policy_path:
+        Where to write the JSON manifest passed to ``nono run --config``.
+        The directory is created on demand.  The file is regenerated on
+        every ``__init__``; if its contents are unchanged the write is
+        a no-op (see :func:`spine.nono_policy.write_nono_policy`).
     snapshot_dir:
         Directory where the SnapshotManager stores snapshots.
     audit_path:
@@ -75,21 +138,39 @@ class TalosSandbox:
     def __init__(
         self,
         cfg: SpineConfig,
+        policy_path: str = DEFAULT_POLICY_PATH,
         snapshot_dir: str = "/spine/snapshots",
         audit_path: str = "/spine/audit.ndjson",
     ):
         self.cfg = cfg
+        self.policy_path = policy_path
         self.nono_enabled = getattr(cfg, "nono_enabled", True)
-        self.caps: CapabilitySet | None = None
+        self.caps: Any = None
         self.snapshots = None
         self.recorder = None
         self.proxy = None
 
         if not self._kernel_supports():
-            logger.info("[TalosSandbox] nono not supported on this kernel — sandbox disabled")
+            logger.info(
+                "[TalosSandbox] nono not supported on this kernel — sandbox disabled"
+            )
             return
 
-        # --- capability manifest ------------------------------------------------
+        # --- policy file (must be on disk before launch_cortex) -------
+        # Even when the Python CapabilitySet is unavailable (e.g. a
+        # minimal container), the policy file is still written so the
+        # CLI has *something* to enforce.
+        try:
+            from spine.nono_policy import write_nono_policy
+
+            write_nono_policy(cfg, policy_path)
+        except Exception:
+            logger.warning(
+                "[TalosSandbox] Failed to write nono policy — nono will use defaults",
+                exc_info=True,
+            )
+
+        # --- capability manifest (Python-side, for tests + introspection) -
         try:
             from spine.capabilities import build_cortex_caps
 
@@ -97,7 +178,7 @@ class TalosSandbox:
         except Exception:
             logger.warning("[TalosSandbox] Failed to build capability set", exc_info=True)
 
-        # --- network proxy (lazy — may not exist) ------------------------------
+        # --- network proxy (lazy — may not exist) -----------------------
         try:
             from spine.proxy import build_proxy_config, start_proxy
 
@@ -107,9 +188,12 @@ class TalosSandbox:
         except ImportError:
             logger.info("[TalosSandbox] spine.proxy not available — network fully blocked")
         except Exception:
-            logger.warning("[TalosSandbox] Failed to start proxy — network fully blocked", exc_info=True)
+            logger.warning(
+                "[TalosSandbox] Failed to start proxy — network fully blocked",
+                exc_info=True,
+            )
 
-        # --- snapshots ---------------------------------------------------------
+        # --- snapshots -------------------------------------------------
         try:
             from spine.snapshots import init_snapshots
 
@@ -117,7 +201,7 @@ class TalosSandbox:
         except Exception:
             logger.warning("[TalosSandbox] Failed to init snapshots", exc_info=True)
 
-        # --- audit recorder ----------------------------------------------------
+        # --- audit recorder --------------------------------------------
         try:
             from spine.audit import TalosAuditRecorder
 
@@ -142,80 +226,75 @@ class TalosSandbox:
         cmd: list[str] | None = None,
         cwd: str | None = None,
         stderr: object | None = None,
-    ):
-        """Start the Cortex, sandboxed when possible, and return a
-        ``.poll()``-able object.
+        stdout: object | None = None,
+    ) -> subprocess.Popen:
+        """Start the Cortex under ``nono run`` and return a real Popen.
 
-        *cmd* defaults to ``["python", "-m", "cortex"]``, *cwd* to
-        ``cfg.app_dir``.  The returned object supports the subset of
-        ``subprocess.Popen`` that the Supervisor actually calls:
-        ``.poll()``, ``.returncode``, ``.kill()``, and ``.wait()``.
+        *cmd* defaults to ``[sys.executable, "-m", "cortex"]``; *cwd*
+        to ``cfg.app_dir``.  The returned object supports the full
+        :class:`subprocess.Popen` API — ``.poll()``, ``.returncode``,
+        ``.kill()``, ``.terminate()`` and ``.wait(timeout=...)``.
+
+        On unsupported kernels (or when ``nono`` is missing) the
+        method falls back to a plain ``subprocess.Popen`` of *cmd*
+        with no preexec callback.
         """
         if cmd is None:
-            cmd = ["python", "-m", "cortex"]
+            cmd = [sys.executable, "-m", "cortex"]
         if cwd is None:
             cwd = self.cfg.app_dir
 
-        if not self._kernel_supports() or not self.caps:
+        # --- fallback: no sandbox --------------------------------------
+        if not self._kernel_supports() or not Path("/usr/bin/nono").exists():
             logger.warning(
-                "[TalosSandbox] Falling back to subprocess.Popen (no sandbox)"
+                "[TalosSandbox] Falling back to subprocess.Popen (no nono binary / kernel)"
             )
-            proc = subprocess.Popen(cmd, cwd=cwd, stderr=stderr)
-            return proc
+            return subprocess.Popen(
+                cmd, cwd=cwd, stderr=stderr, stdout=stdout
+            )
 
-        # --- sandboxed path ---------------------------------------------------
+        # --- sandboxed path via nono CLI --------------------------------
         env = self._build_env()
+        nono_cmd = [
+            "nono",
+            "run",
+            "--config",
+            self.policy_path,
+            "--silent",   # suppress nono's banner — keep stderr for the Cortex
+            # We use the Spine's own TalosAuditRecorder (Merklized) for
+            # the per-session audit trail; disable nono's redundant
+            # audit to avoid double-logging and to skip the need for a
+            # writable nono state directory.
+            "--no-audit",
+            "--",
+        ] + list(cmd)
 
-        result_holder: dict[str, int | bool | None] = {
-            "returncode": None,
-            "done": False,
-            "_cancel": False,
+        logger.info(
+            "[TalosSandbox] Launching Cortex via nono CLI: %s",
+            " ".join(nono_cmd),
+        )
+
+        # Build the Popen kwargs.  We always set ``env=`` explicitly
+        # so the Cortex does not inherit the Spine's full environment
+        # (e.g. real GITHUB_TOKEN).  ``preexec_fn`` is applied in the
+        # forked child between fork() and exec() of the nono binary.
+        popen_kwargs: dict[str, Any] = {
+            "cwd": cwd,
+            "stderr": stderr if stderr is not None else subprocess.PIPE,
+            "stdout": stdout if stdout is not None else subprocess.PIPE,
+            "env": dict(env),
+            "preexec_fn": _set_cortex_rlimits,
         }
 
-        def _run():
-            """Execute sandboxed_exec on a daemon thread so the main
-            asyncio loop is not blocked."""
+        if self.recorder and self.recorder.active:
             try:
-                from nono_py import sandboxed_exec
-
-                if self.recorder and self.recorder.active:
-                    self.recorder.session_start(cmd)
-
-                # timeout_secs=0 means "no timeout" — runs until exit.
-                result = sandboxed_exec(
-                    self.caps,
-                    cmd,
-                    cwd=cwd,
-                    timeout_secs=0,
-                    env=env,
-                )
-                result_holder["returncode"] = result.exit_code
+                self.recorder.session_start(list(cmd))
             except Exception:
-                logger.exception("[TalosSandbox] sandboxed_exec raised")
-                result_holder["returncode"] = 70  # EX_SOFTWARE
-            finally:
-                result_holder["done"] = True
-                if self.recorder and self.recorder.active:
-                    self.recorder.session_end(
-                        result_holder.get("returncode", -1)
-                    )
+                logger.warning(
+                    "[TalosSandbox] session_start failed", exc_info=True
+                )
 
-        t = threading.Thread(target=_run, daemon=True, name="nono-sandbox")
-        t.start()
-
-        # Stderr capture: if the caller passed an open file handle for
-        # stderr, we cannot redirect it through sandboxed_exec.  The
-        # Cortex's own stderr goes to the sandboxed process's stderr
-        # which is NOT captured here.  We log a note — a future
-        # iteration can tee the sandboxed-exec stderr to the log file.
-        if stderr is not None:
-            logger.debug(
-                "[TalosSandbox] stderr capture requested but sandboxed_exec "
-                "does not redirect child stderr — cortex_stderr.log will be "
-                "empty for sandboxed sessions"
-            )
-
-        return SandboxProc(t, result_holder)
+        return subprocess.Popen(nono_cmd, **popen_kwargs)
 
     # ------------------------------------------------------------------
     # internals
@@ -226,37 +305,34 @@ class TalosSandbox:
             return False
         try:
             from nono_py import is_supported
+
             return is_supported()
         except ImportError:
             return False
 
     def _build_env(self) -> list[tuple[str, str]]:
         """Assemble the environment variable list for the sandboxed process."""
-        # Start with proxy-supplied env vars if available.
+        base_pairs: list[tuple[str, str]] = [
+            ("NONO_SESSION_ID", str(uuid.uuid4())),
+            ("MEMORY_DIR", self.cfg.memory_dir),
+            ("SPINE_SOCKET", self.cfg.socket_path),
+            ("SPINE_DIR", self.cfg.spine_dir),
+            ("TALOS_DRIVE_ROOT", "/drive"),
+            ("PATH", os.environ.get("PATH", "/venv/bin:/usr/bin:/bin")),
+            ("HOME", "/home/talos"),
+            ("PYTHONPATH", "/app:/app/cortex"),
+            ("PYTHONUNBUFFERED", "1"),
+        ]
+
         if self.proxy:
-            base = self.proxy.sandbox_env(
-                extra_env=[
-                    ("NONO_SESSION_ID", str(uuid.uuid4())),
-                    ("MEMORY_DIR", self.cfg.memory_dir),
-                    ("SPINE_SOCKET", self.cfg.socket_path),
-                    ("SPINE_DIR", self.cfg.spine_dir),
-                    ("TALOS_DRIVE_ROOT", "/drive"),
-                    ("PATH", os.environ.get("PATH", "/venv/bin:/usr/bin:/bin")),
-                    ("HOME", "/home/talos"),
-                    ("PYTHONPATH", "/app:/app/cortex"),
-                    ("PYTHONUNBUFFERED", "1"),
-                ]
-            )
-        else:
-            base = [
-                ("NONO_SESSION_ID", str(uuid.uuid4())),
-                ("MEMORY_DIR", self.cfg.memory_dir),
-                ("SPINE_SOCKET", self.cfg.socket_path),
-                ("SPINE_DIR", self.cfg.spine_dir),
-                ("TALOS_DRIVE_ROOT", "/drive"),
-                ("PATH", os.environ.get("PATH", "/venv/bin:/usr/bin:/bin")),
-                ("HOME", "/home/talos"),
-                ("PYTHONPATH", "/app:/app/cortex"),
-                ("PYTHONUNBUFFERED", "1"),
-            ]
-        return base
+            # Let the proxy add its own env vars (PROXY_CA_CERT,
+            # upstream config, etc.) and return the merged list.
+            try:
+                return self.proxy.sandbox_env(extra_env=base_pairs)
+            except Exception:
+                logger.warning(
+                    "[TalosSandbox] proxy.sandbox_env() failed — using base env only",
+                    exc_info=True,
+                )
+
+        return base_pairs

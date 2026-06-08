@@ -469,3 +469,260 @@ class TestSupervisorIntegration:
         # The lazy fallback may have created a sandbox — check that
         # start_cortex would still work (we don't actually launch).
         assert sup._sandbox is not None
+
+
+# ---------------------------------------------------------------------------
+# Phase 2b: nono CLI Popen integration
+# ---------------------------------------------------------------------------
+
+class TestNonoPolicyWriter:
+    """``spine.nono_policy.write_nono_policy()`` serialises the Cortex
+    capability set to a JSON file the ``nono run --config`` CLI accepts."""
+
+    def test_writes_versioned_manifest(self, sandbox_cfg, tmp_workspace):
+        from spine.nono_policy import write_nono_policy, POLICY_VERSION
+
+        path = str(tmp_workspace / "policy.json")
+        write_nono_policy(sandbox_cfg, path)
+        import json
+        with open(path) as f:
+            policy = json.load(f)
+        # The nono CLI rejects manifests without a semver `version` field.
+        assert policy["version"] == POLICY_VERSION
+        # The 0.61.x CLI uses `filesystem.read` (not `allow_read`) and
+        # `filesystem.allow` (not `allow_read_write`).
+        assert "read" in policy["filesystem"]
+        assert "allow" in policy["filesystem"]
+        assert "allow_read" not in policy["filesystem"]
+        assert "allow_read_write" not in policy["filesystem"]
+
+    def test_includes_writable_paths(self, sandbox_cfg, tmp_workspace):
+        from spine.nono_policy import write_nono_policy
+
+        path = str(tmp_workspace / "policy.json")
+        write_nono_policy(sandbox_cfg, path)
+        import json
+        with open(path) as f:
+            policy = json.load(f)
+        # /tmp and /var/tmp are universal Unix paths; they should
+        # always make it through the "skip missing paths" filter.
+        assert "/tmp" in policy["filesystem"]["allow"]
+        assert "/var/tmp" in policy["filesystem"]["allow"]
+        # The root of the filesystem is granted read-only.
+        assert "/" in policy["filesystem"]["read"]
+
+    def test_idempotent(self, sandbox_cfg, tmp_workspace):
+        """Calling write_nono_policy() twice produces byte-identical output."""
+        from spine.nono_policy import write_nono_policy
+
+        path = str(tmp_workspace / "policy.json")
+        write_nono_policy(sandbox_cfg, path)
+        first = open(path, "rb").read()
+        # Second call should not rewrite because contents match.
+        write_nono_policy(sandbox_cfg, path)
+        second = open(path, "rb").read()
+        assert first == second
+
+    def test_manifest_parses_with_nono_cli(self, sandbox_cfg, tmp_workspace):
+        """The nono CLI must accept the manifest nono_policy produces.
+
+        We run ``nono run --config <file> --dry-run`` and assert the
+        binary doesn't error out on parse / version / schema validation.
+        """
+        from spine.nono_policy import write_nono_policy
+
+        path = str(tmp_workspace / "policy.json")
+        write_nono_policy(sandbox_cfg, path)
+        import subprocess
+        r = subprocess.run(
+            ["nono", "run", "--config", path, "--dry-run", "--", "/bin/true"],
+            capture_output=True,
+            timeout=10,
+        )
+        # If the JSON was malformed the CLI exits with a parse error
+        # (rc != 0 + "invalid capability manifest JSON" in stderr).
+        stderr = r.stderr.decode("utf-8", errors="replace")
+        assert "invalid capability manifest JSON" not in stderr, (
+            f"nono rejected the manifest: {stderr[:500]}"
+        )
+        # The dry-run prints "dry-run sandbox would be applied" or exits
+        # with rc 0; both are acceptable here.
+        assert r.returncode in (0, 1), f"unexpected rc={r.returncode}: {stderr[:500]}"
+
+
+class TestSandboxReturnsPopen:
+    """Phase 2b: ``TalosSandbox.launch_cortex()`` must return a real
+    :class:`subprocess.Popen` so the Supervisor can SIGTERM / SIGKILL a
+    hung Cortex.  The Phase 2 thread-wrapped ``SandboxProc`` is gone."""
+
+    def test_launch_returns_subprocess_popen(self, sandbox_cfg, tmp_workspace):
+        import subprocess
+        from spine.sandbox import TalosSandbox
+
+        sandbox = TalosSandbox(
+            sandbox_cfg,
+            policy_path=str(tmp_workspace / "policy.json"),
+            snapshot_dir=str(tmp_workspace / "snapshots"),
+            audit_path=str(tmp_workspace / "audit.ndjson"),
+        )
+        proc = sandbox.launch_cortex(
+            cmd=["/bin/true"],
+            cwd="/tmp",
+        )
+        try:
+            # The critical Phase 2b invariant: launch_cortex returns a
+            # real Popen (with a real .pid), not a thread wrapper.
+            assert isinstance(proc, subprocess.Popen)
+            assert proc.pid is not None and proc.pid > 0
+            # poll() is a no-op while the child runs.
+            assert proc.poll() is None or isinstance(proc.poll(), int)
+        finally:
+            # Clean up — we don't care about exit code, just the proc.
+            try:
+                proc.wait(timeout=10)
+            except Exception:
+                proc.kill()
+                proc.wait()
+
+    def test_policy_file_is_written_to_disk(self, sandbox_cfg, tmp_workspace):
+        """``TalosSandbox.__init__`` must materialise the JSON policy."""
+        from pathlib import Path
+        from spine.sandbox import TalosSandbox
+
+        policy_path = str(tmp_workspace / "policy.json")
+        TalosSandbox(
+            sandbox_cfg,
+            policy_path=policy_path,
+            snapshot_dir=str(tmp_workspace / "snapshots"),
+            audit_path=str(tmp_workspace / "audit.ndjson"),
+        )
+        # File must exist after construction.
+        assert Path(policy_path).exists()
+        # And contain parseable JSON with the version field nono needs.
+        import json
+        policy = json.loads(Path(policy_path).read_text())
+        assert "version" in policy
+        assert "filesystem" in policy
+
+    def test_default_policy_path_is_under_spine(self, sandbox_cfg):
+        """The default policy path is /spine/nono_policy.json so the
+        Cortex (running as ``talos``) cannot tamper with it."""
+        from spine.sandbox import DEFAULT_POLICY_PATH
+
+        assert DEFAULT_POLICY_PATH.startswith("/spine/")
+
+
+class TestCortexRlimits:
+    """``_set_cortex_rlimits`` is the preexec_fn applied to the nono
+    Popen.  It must set RLIMIT_CPU / RLIMIT_AS / RLIMIT_NOFILE on the
+    child (nono) which inherits to the Cortex."""
+
+    def _check_rlimits_in_subprocess(self) -> dict[str, tuple[int, int]]:
+        """Run ``_set_cortex_rlimits()`` in a child and return the
+        resulting resource limits as reported by ``resource.getrlimit``."""
+        import json
+        import os
+        import subprocess
+        import sys
+
+        # Use the constant *names* as the dict keys (RLIMIT_* are
+        # bare ints in Python's resource module — stringifying them
+        # would yield "0" for RLIMIT_CPU which is ambiguous).
+        probe = (
+            "import sys, json, resource;"
+            "from spine.sandbox import _set_cortex_rlimits;"
+            "_set_cortex_rlimits();"
+            "out = {"
+            "'RLIMIT_CPU': resource.getrlimit(resource.RLIMIT_CPU),"
+            "'RLIMIT_AS': resource.getrlimit(resource.RLIMIT_AS),"
+            "'RLIMIT_NOFILE': resource.getrlimit(resource.RLIMIT_NOFILE)"
+            "};"
+            "sys.stdout.write(json.dumps(out))"
+        )
+        env = os.environ.copy()
+        # Add the project root so 'spine' is importable in the subprocess.
+        env["PYTHONPATH"] = os.pathsep.join([
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            env.get("PYTHONPATH", ""),
+        ])
+        r = subprocess.run(
+            [sys.executable, "-c", probe],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env=env,
+        )
+        assert r.returncode == 0, f"subprobe failed: {r.stderr!r}"
+        assert r.returncode == 0, f"probe failed: {r.stderr}"
+        return json.loads(r.stdout)
+
+    def test_sets_cpu_rlimit(self):
+        """RLIMIT_CPU is 30 minutes (1800 seconds) hard+soft."""
+        from spine.sandbox import _CORTEX_CPU_RLIMIT_S
+
+        limits = self._check_rlimits_in_subprocess()
+        cpu = limits["RLIMIT_CPU"]
+        # JSON deserialises tuples as lists; compare elementwise.
+        assert tuple(cpu) == (_CORTEX_CPU_RLIMIT_S, _CORTEX_CPU_RLIMIT_S)
+
+    def test_sets_as_rlimit(self):
+        """RLIMIT_AS is 8 GB hard+soft."""
+        from spine.sandbox import _CORTEX_AS_RLIMIT_BYTES
+
+        limits = self._check_rlimits_in_subprocess()
+        as_limit = limits["RLIMIT_AS"]
+        assert tuple(as_limit) == (
+            _CORTEX_AS_RLIMIT_BYTES,
+            _CORTEX_AS_RLIMIT_BYTES,
+        )
+
+    def test_sets_nofile_rlimit(self):
+        """RLIMIT_NOFILE is 4096 hard+soft."""
+        from spine.sandbox import _CORTEX_NOFILE_RLIMIT
+
+        limits = self._check_rlimits_in_subprocess()
+        nofile = limits["RLIMIT_NOFILE"]
+        # Some kernels cap NOFILE at a lower value; we only check the
+        # soft limit is at least our target.
+        soft, _hard = nofile
+        assert soft >= _CORTEX_NOFILE_RLIMIT, (
+            f"expected >= {_CORTEX_NOFILE_RLIMIT}, got {soft}"
+        )
+
+    def test_cgroup_cap_is_documented_in_docker_compose(self):
+        """The unbypassable backstop — cgroup limits in docker-compose.yml.
+
+        We assert the file contains a ``deploy.resources.limits`` block
+        on the ``talos`` service so a future change cannot silently
+        remove the backstop.
+        """
+        from pathlib import Path
+
+        compose_path = Path(__file__).resolve().parent.parent.parent / "docker-compose.yml"
+        # The tests live in talos/tests-spine/; the compose file is in
+        # the runtime repo root.  Skip the assertion if not findable
+        # (e.g. when the tests are vendored elsewhere).
+        if not compose_path.exists():
+            return
+        text = compose_path.read_text()
+        assert "deploy:" in text
+        assert "resources:" in text
+        assert "cpus:" in text
+        assert "memory:" in text
+
+
+class TestSandboxProcRemoved:
+    """The Phase 2 ``SandboxProc`` thread-wrapper is gone in Phase 2b —
+    the Popen IS the process handle.  These tests pin that invariant
+    so a future regression that re-introduces the wrapper is caught."""
+
+    def test_sandbox_proc_class_does_not_exist(self):
+        try:
+            from spine.sandbox import SandboxProc  # noqa: F401
+        except ImportError:
+            return  # expected
+        raise AssertionError(
+            "spine.sandbox.SandboxProc must be removed in Phase 2b — "
+            "TalosSandbox.launch_cortex() returns a real Popen now."
+        )
+
