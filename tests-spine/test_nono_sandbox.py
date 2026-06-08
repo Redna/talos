@@ -487,14 +487,29 @@ class TestNonoPolicyWriter:
         import json
         with open(path) as f:
             policy = json.load(f)
-        # The nono CLI rejects manifests without a semver `version` field.
+        # The nono 0.61.x CLI rejects manifests without a semver
+        # `version` at the top level.  The `meta` block is the
+        # documentation-friendly copy used by `nono profile show`.
         assert policy["version"] == POLICY_VERSION
+        assert policy["meta"]["version"] == POLICY_VERSION
+        # We extend nono's `default` profile and pull in the built-in
+        # permission groups documented in the nono profile schema.
+        assert policy["extends"] == "default"
+        assert "python_runtime" in policy["groups"]["include"]
         # The 0.61.x CLI uses `filesystem.read` (not `allow_read`) and
         # `filesystem.allow` (not `allow_read_write`).
         assert "read" in policy["filesystem"]
         assert "allow" in policy["filesystem"]
         assert "allow_read" not in policy["filesystem"]
         assert "allow_read_write" not in policy["filesystem"]
+        # The network block uses the real schema (network_profile,
+        # allow_domain, credentials, custom_credentials).
+        assert policy["network"]["network_profile"] == "developer"
+        assert "api.github.com" in policy["network"]["allow_domain"]
+        assert "github" in policy["network"]["credentials"]
+        # process block uses the real schema.
+        assert policy["process"]["signal_mode"] == "isolated"
+        assert policy["process"]["capability_elevation"] is False
 
     def test_includes_writable_paths(self, sandbox_cfg, tmp_workspace):
         from spine.nono_policy import write_nono_policy

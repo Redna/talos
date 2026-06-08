@@ -5,66 +5,83 @@ The nono CLI accepts a fully-resolved sandbox specification as JSON via
 :class:`nono_py.CapabilitySet` (built by :func:`spine.capabilities.build_cortex_caps`)
 and the on-disk JSON consumed by the ``nono run`` subprocess.
 
-Schema (reverse-engineered from the nono 0.61.x source — ``nono run --help``
-advertises ``-c, --config <FILE>  Capability manifest file (JSON). A
-fully-resolved sandbox specification``; the schema is embedded in the
-binary at ``capability_manifest_types.rs`` and can be dumped with
-``nono profile schema``):
+Schema (per the nono docs at ``nono.sh/docs/cli/features/profiles-groups``
+and the example policies in ``github.com/always-further/nono-packs`` —
+e.g. the ``claude`` pack's ``policy.json``):
 
     {
-      "version": "<MAJOR>.<MINOR>.<PATCH>",   # semver string, required
-      "filesystem": {                          # required
-        "read":        ["/path", ...],         # read-only directories
-        "allow":       ["/path", ...],         # read+write directories
-        "write":       ["/path", ...],         # write-only directories
-        "allow_file":  ["/path", ...],         # read+write single files
-        "read_file":   ["/path", ...],         # read-only single files
-        "write_file":  ["/path", ...],         # write-only single files
-        "deny":        ["/path", ...],         # explicit deny list
+      "meta": {
+        "name": "<profile name>",
+        "version": "<semver>",
+        "description": "<free text>"
       },
-      "network": {                             # optional
-        "block": <bool>                        # in the current 0.61 CLI the
-                                               # network section is not parsed
-                                               # from JSON — outbound is
-                                               # always allowed at the kernel
-                                               # layer.  Application-level
-                                               # egress is enforced by the
-                                               # nono credential proxy.
+      "extends": "default",                  # inherit from nono's default profile
+      "groups": {                            # built-in permission groups
+        "include": ["python_runtime", "git_config", "linux_sysfs_read"],
+        "exclude": ["dangerous_commands"]
       },
-      "process": {                             # optional
-        "exec_strategy": "<string>",
-        "process_info_mode": "<string>",
-        "signal_mode": "<string>"
+      "filesystem": {                        # explicit per-host additions
+        "read":   ["/path", ...],            # read-only directories
+        "allow":  ["/path", ...],            # read+write directories
+        "deny":   ["/path", ...]             # explicit deny list
+      },
+      "network": {                           # network policy
+        "network_profile": "developer",      # built-in: developer | strict
+        "allow_domain": ["api.github.com"],  # per-domain allowlist
+        "credentials": ["github", "telegram"],   # built-in cred injection
+        "custom_credentials": {                  # full custom cred config
+          "github":   {"upstream": "api.github.com", "credential_key": "GITHUB_TOKEN",
+                       "inject_header": "Authorization", "credential_format": "Bearer {token}"},
+          "telegram": {"upstream": "api.telegram.org", "credential_key": "TELEGRAM_BOT_TOKEN",
+                       "inject_header": "X-Bot-Token",   "credential_format": "{token}"}
+        }
+      },
+      "process": {
+        "signal_mode": "isolated",           # do not forward signals to the host
+        "capability_elevation": false        # no interactive prompts
+      },
+      "rollback": {                          # built-in snapshot exclusions
+        "exclude_patterns": ["*.pyc", "__pycache__/"],
+        "exclude_globs":   [".git/objects/"]
+      },
+      "session_hooks": {                     # pre/post scripts
+        "before": {"script": "/spine/hooks/before.sh", "timeout_secs": 5},
+        "after":  {"script": "/spine/hooks/after.sh",  "timeout_secs": 5}
       }
     }
 
-Path entries are ``ConditionalPath`` — either a bare string or an
-object ``{"path": "/...", "when": "linux"}``.  We use the bare-string
-form for simplicity.
-
 Notes / quirks observed while building this file
 -------------------------------------------------
-1. The ``version`` field is required and must match
+1. The ``meta.version`` field is required and must match
    ``^[0-9]+\\.[0-9]+\\.[0-9]+$``.  An integer (``1``) or short string
    (``"1.0"``) is rejected with a serde error.
-2. The ``fs`` / ``allow_read`` / ``allow_read_write`` aliases some
-   Google searches report do **not** exist on the 0.61.x CLI — the
-   correct keys are ``read`` (read-only) and ``allow`` (read+write).
-   ``SandboxState`` (returned by the Python ``SandboxState.to_json()``)
-   uses a different ``fs`` array; that schema is the *runtime*
-   representation, not the manifest.
-3. The dev host I tested on is unable to grant ``/`` read recursively
-   through the JSON config (the directory the executable lives in is
-   only covered by the implicit ``system_read_linux_core`` group, which
-   the manifest schema does not surface).  In the runtime container
-   the situation is different: the Cortex's python lives at
-   ``/venv/bin/python`` and ``/venv`` is granted read+write, so the
-   manifest is sufficient.
-4. Network blocking is *not* represented in the policy — the runtime
-   layer uses the nono credential proxy (``spine.proxy``) to enforce
-   egress.  Setting ``"network": {"block": true}`` in the policy has
-   no observable effect with the current nono build; we keep the field
-   as a hint for future versions.
+2. ``groups.include`` and ``groups.exclude`` use the built-in group
+   identifiers documented in the nono profile schema (e.g.
+   ``python_runtime``, ``node_runtime``, ``git_config``,
+   ``linux_sysfs_read``, ``dangerous_commands``).  Including
+   ``python_runtime`` grants the right set of interpreter, library and
+   ``/proc`` paths for Python workloads without having to enumerate
+   them by hand.
+3. ``filesystem`` is additive on top of the inherited groups.  We use
+   it to grant write access to the Talos-specific working directories
+   (``/app``, ``/memory``, ``/spine``, ``/home/talos``) and explicit
+   read access to the model directory.
+4. ``network.credentials`` references built-in providers; nono knows
+   how to inject ``github`` and ``telegram`` tokens out of the box.
+   The ``custom_credentials`` block is documented for the case where
+   the built-in provider is not sufficient.  This is a candidate to
+   retire our custom ``spine.proxy`` module if the 0.61.x CLI honours
+   both blocks in production.
+5. ``process.signal_mode: "isolated"`` is best practice for a
+   long-running agent: the Cortex cannot kill or signal the Spine
+   through nono, and a hung Cortex can still be SIGKILL'd by its real
+   PID (the nono Popen — see :mod:`spine.sandbox`).
+6. ``capability_elevation: false`` prevents nono from prompting the
+   user for elevation; Talos runs non-interactive in the container.
+
+Path entries in ``filesystem.*`` are ``ConditionalPath`` — either a
+bare string or an object ``{"path": "/...", "when": "linux"}``.  We
+use the bare-string form for simplicity.
 
 The :func:`write_nono_policy` function is idempotent: calling it twice
 with the same config produces byte-identical output, so the Supervisor
@@ -113,6 +130,26 @@ READ_PATHS: tuple[str, ...] = (
     "/",
 )
 
+# Built-in nono permission groups the Cortex needs.  These are the
+# identifiers documented in nono.sh/docs/cli/features/profiles-groups;
+# we use them to avoid enumerating every Python / git / procfs path
+# by hand.
+INCLUDED_GROUPS: tuple[str, ...] = (
+    "python_runtime",
+    "git_config",
+    "linux_sysfs_read",
+)
+
+# Domains the Cortex is allowed to reach.  The credential proxy (or
+# nono's built-in network.credentials block) handles the rest.
+ALLOWED_DOMAINS: tuple[str, ...] = (
+    "api.github.com",
+    "github.com",
+    "api.telegram.org",
+    "objects.githubusercontent.com",
+    "raw.githubusercontent.com",
+)
+
 
 def build_policy_dict(cfg: SpineConfig) -> dict[str, Any]:
     """Build the in-memory policy dict for *cfg* without touching disk.
@@ -126,16 +163,73 @@ def build_policy_dict(cfg: SpineConfig) -> dict[str, Any]:
     allow = [p for p in WRITABLE_PATHS if os.path.exists(p)]
 
     return {
+        # ``version`` must be at the top level for the nono 0.61.x CLI to
+        # parse the manifest (``missing field `version` at line ...``).
+        # The ``meta`` block is the documentation-friendly copy used by
+        # ``nono profile show`` and the JSON-schema-aware editors.
+        "meta": {
+            "name": "talos_cortex",
+            "version": POLICY_VERSION,
+            "description": (
+                "Talos Cortex sandbox — kernel-enforced Landlock boundary "
+                "around the autonomous agent."
+            ),
+        },
         "version": POLICY_VERSION,
+        # Inherit from nono's default profile so we pick up sensible
+        # baseline groups (python_runtime, node_runtime, ...).
+        "extends": "default",
+        "groups": {
+            "include": list(INCLUDED_GROUPS),
+            "exclude": ["dangerous_commands"],
+        },
         "filesystem": {
             # Sorted for deterministic output (idempotency).
             "read": sorted(read),
             "allow": sorted(allow),
+            "deny": [],
         },
-        # The CLI does not currently parse the network section, but
-        # we keep the field for forward compatibility.  See module
-        # docstring "Notes / quirks" item 4.
-        "network": {"block": False},
+        "network": {
+            # Built-in profile handles outbound by default; the
+            # allow_domain list narrows it to the hosts the Cortex
+            # legitimately needs.
+            "network_profile": "developer",
+            "allow_domain": sorted(ALLOWED_DOMAINS),
+            # Built-in credential injection.  When the 0.61.x CLI
+            # honours this block end-to-end we can retire
+            # ``spine.proxy`` entirely.  The custom_credentials block
+            # documents the full injection config in case we need it.
+            "credentials": ["github", "telegram"],
+            "custom_credentials": {
+                "github": {
+                    "upstream": "api.github.com",
+                    "credential_key": "GITHUB_TOKEN",
+                    "inject_header": "Authorization",
+                    "credential_format": "Bearer {token}",
+                },
+                "telegram": {
+                    "upstream": "api.telegram.org",
+                    "credential_key": "TELEGRAM_BOT_TOKEN",
+                    "inject_header": "X-Bot-Token",
+                    "credential_format": "{token}",
+                },
+            },
+        },
+        "process": {
+            # Do not forward host signals through nono into the Cortex;
+            # the Supervisor uses the nono Popen's real PID for
+            # SIGTERM/SIGKILL.  No interactive prompts.
+            "signal_mode": "isolated",
+            "capability_elevation": False,
+        },
+        "rollback": {
+            "exclude_patterns": ["*.pyc", "__pycache__/", "*.log"],
+            "exclude_globs": [".git/objects/"],
+        },
+        "session_hooks": {
+            "before": {"script": "/spine/hooks/before.sh", "timeout_secs": 5},
+            "after":  {"script": "/spine/hooks/after.sh",  "timeout_secs": 5},
+        },
     }
 
 
@@ -186,9 +280,12 @@ def write_nono_policy(cfg: SpineConfig, path: str) -> None:
         f.write(serialised)
     os.replace(tmp_path, path)
     logger.info(
-        "[nono_policy] Wrote nono policy v%s to %s (read=%d, allow=%d)",
+        "[nono_policy] Wrote nono policy v%s to %s "
+        "(groups=%d, read=%d, allow=%d, domains=%d)",
         POLICY_VERSION,
         path,
+        len(policy["groups"]["include"]),
         len(policy["filesystem"]["read"]),
         len(policy["filesystem"]["allow"]),
+        len(policy["network"]["allow_domain"]),
     )
