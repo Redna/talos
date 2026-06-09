@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.cache/
+.venv/
+
+# Agent runtime state — never tracked, regenerated on every cortex run
+memory/.agent_state.json
+memory/analytics.json
+memory/financial_ledger.json

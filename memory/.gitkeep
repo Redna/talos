@@ -1,0 +1,10 @@
+# Agent Memory
+
+This directory is the agent's persistent memory. It starts empty.
+
+The agent creates and maintains files here as part of its operation. Files
+in this directory are typically committed to git so the agent's state
+survives container restarts.
+
+This `.gitkeep` file ensures the directory is tracked even when empty.
+Delete it once you create your first memory file.
