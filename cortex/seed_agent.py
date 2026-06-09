@@ -12,7 +12,9 @@ from state import AgentState
 from tools.executive import register_executive_tools
 from tools.file_ops import register_file_ops_tools
 from tools.physical import register_physical_tools
-from kernels import register_kernels
+# NOTE: kernels.py is intentionally absent from the clean seed. The
+# agent will (re)create it under P2 Self-Creation when it needs
+# higher-level kernel abstractions.
 
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
@@ -110,7 +112,6 @@ def main():
     register_executive_tools(registry, client, state)
     register_file_ops_tools(registry, client)
     register_physical_tools(registry, client)
-    register_kernels(registry, client)
 
     from plugins.delegation import register_delegation_tools
     register_delegation_tools(registry, client)
@@ -118,12 +119,6 @@ def main():
     # Hot-load dynamic plugins
     reload_result = registry.reload_plugins()
     print(f"[Cortex] Plugin Reload: {reload_result}")
-
-    # Automated SSV Hydration
-    if (MEMORY_DIR / "state_blob.json").exists():
-        print("[Cortex] state_blob.json found. Performing autonomous hydration...")
-        hydration_result = registry.execute("hydrate_state", {})
-        print(f"[Cortex] Hydration Result: {hydration_result}")
 
     detector = RepetitionDetector()
     consecutive_batch_rejections = 0
