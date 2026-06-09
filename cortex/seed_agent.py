@@ -16,6 +16,12 @@ from tools.physical import register_physical_tools
 # agent will (re)create it under P2 Self-Creation when it needs
 # higher-level kernel abstractions.
 
+# Dry-run driver.  Loaded unconditionally so the import cost is paid
+# once, but every code path inside it is gated on TALOS_DRYRUN_MODE.
+# When the env var is unset the driver is a no-op and the cortex runs
+# the real LLM-backed loop.
+from dryrun_driver import is_active, plan_next, plan_to_openai_tool_call, should_exit as plan_should_exit, should_block as plan_should_block  # noqa: E402
+
 MEMORY_DIR = Path(os.environ.get("MEMORY_DIR", "/memory"))
 SPINE_SOCKET = os.environ.get("SPINE_SOCKET", "/tmp/spine.sock")
 SPINE_DIR = Path(os.environ.get("SPINE_DIR", "/spine"))
@@ -140,11 +146,27 @@ def main():
             hud_data = _build_hud(state, context_pct=context_pct, turn=turn)
 
             try:
-                response = client.generate(
-                    focus=state.current_focus or "No focus set",
-                    tools=registry.get_schemas(),
-                    hud_data=hud_data,
-                )
+                if is_active():
+                    # Dry-run: bypass the LLM entirely.  The driver
+                    # produces a plan, we convert it to the OpenAI
+                    # tool_call shape the rest of the loop expects,
+                    # and we synthesise a fake "response" object that
+                    # matches the structure returned by SpineClient.generate().
+                    plan = plan_next(turn + 1)
+                    print(f"[Cortex][DRYRUN] turn={turn + 1} plan={plan.tool_name}({plan.arguments})", flush=True)
+                    response = {
+                        "tool_calls": [plan_to_openai_tool_call(plan, turn + 1)],
+                        "context_pct": 0.0,
+                        "tokens_used": 50,
+                        "turn": turn + 1,
+                        "assistant_message": f"dry-run: {plan.tool_name}",
+                    }
+                else:
+                    response = client.generate(
+                        focus=state.current_focus or "No focus set",
+                        tools=registry.get_schemas(),
+                        hud_data=hud_data,
+                    )
             except SpineError as e:
                 print(f"[Cortex] Spine error: {e}")
                 state.error_streak += 1
