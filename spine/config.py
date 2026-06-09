@@ -33,9 +33,22 @@ def load_config(path: str) -> SpineConfig:
         with open(path) as f:
             data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        return cfg
+        data = {}
     valid_fields = {f.name for f in fields(SpineConfig)}
     for k, v in data.items():
         if k in valid_fields:
             setattr(cfg, k, v)
+    # Environment overrides applied *after* the JSON load so the
+    # dry-run compose can swap the gate URL (production uses
+    # http://gate:4000, dry-run uses http://gate-dryrun:4000) and
+    # the stall_timeout (300s in production, 15s in dry-run so a
+    # single stall-detection cycle completes in seconds) without
+    # needing a separate spine_config.json.
+    if "GATE_URL" in os.environ:
+        cfg.gate_url = os.environ["GATE_URL"]
+    if "STALL_TIMEOUT" in os.environ:
+        try:
+            cfg.stall_timeout = float(os.environ["STALL_TIMEOUT"])
+        except ValueError:
+            pass
     return cfg
