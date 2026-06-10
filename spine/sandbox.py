@@ -255,12 +255,36 @@ class TalosSandbox:
 
         # --- sandboxed path via nono CLI --------------------------------
         env = self._build_env()
+        # NOTE: We pass filesystem grants as CLI flags (--read, --allow)
+        # rather than via the JSON policy file, because nono 0.61.2 has
+        # a bug where the JSON manifest's filesystem.read list does not
+        # cover /venv/bin (where the Talos Python lives) — the CLI
+        # flags are the reliable path.  We still keep the policy file
+        # for groups, network, and other features that work correctly.
+        # See spinetests/issue-127 for the upstream bug report.
         nono_cmd = [
             "nono",
             "run",
             "--config",
             self.policy_path,
             "--silent",   # suppress nono's banner — keep stderr for the Cortex
+            # Filesystem grants via CLI (workaround for nono 0.61.2 bug
+            # with the JSON manifest's read list not covering /venv/bin).
+            "--read", "/",
+            "--allow", "/app",
+            "--allow", "/memory",
+            "--allow", "/spine",
+            "--allow", "/home/talos",
+            "--allow", "/tmp",
+            "--allow", "/var/tmp",
+            "--allow", "/venv",
+            "--allow", "/venv/bin",
+            "--allow", "/venv/lib",
+            "--allow", "/usr/local",
+            "--allow", "/usr/local/bin",
+            "--allow", "/usr/local/lib",
+            "--allow", "/opt",
+            "--allow", "/run",
             # We use the Spine's own TalosAuditRecorder (Merklized) for
             # the per-session audit trail; disable nono's redundant
             # audit to avoid double-logging and to skip the need for a

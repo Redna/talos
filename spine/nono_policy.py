@@ -130,14 +130,16 @@ READ_PATHS: tuple[str, ...] = (
     "/",
 )
 
-# Built-in nono permission groups the Cortex needs.  These are the
-# identifiers documented in nono.sh/docs/cli/features/profiles-groups;
-# we use them to avoid enumerating every Python / git / procfs path
-# by hand.
+# Built-in nono permission groups.  We don't include ``python_runtime``
+# here: in nono 0.61.x the ``python_runtime`` group does NOT cover
+# ``/venv`` (where the Talos venv actually lives) — the binary's
+# directory is denied even though the executable is in the group's
+# path set.  Workaround: grant the venv paths explicitly in
+# ``WRITABLE_PATHS`` and rely on ``read: ["/"]`` for the rest of the
+# interpreter's runtime needs.  ``git_config`` is also redundant for
+# our use case — we use git via the shell anyway.
 INCLUDED_GROUPS: tuple[str, ...] = (
-    "python_runtime",
-    "git_config",
-    "linux_sysfs_read",
+    "linux_sysfs_read",  # /proc and /sys reads for the Python runtime
 )
 
 # Domains the Cortex is allowed to reach.  The credential proxy (or

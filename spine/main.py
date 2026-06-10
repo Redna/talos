@@ -11,6 +11,7 @@ from spine.gate_proxy import GateProxy
 from spine.config import load_config
 from spine.events import EventLogger
 from spine.health import HealthMonitor
+from spine.proxy import start_credential_proxy
 from spine.stream import StreamManager
 from spine.supervisor import Supervisor
 from spine.ipc_server import IPCServer
